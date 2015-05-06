@@ -3,6 +3,8 @@
 
 Set-Alias ?: Invoke-Ternary
 
+function Invoke-Ternary
+{
 <#
 .SYNOPSIS
 If Condition gets coerced to True, emit Primary, otherwise Alternate.
@@ -28,9 +30,6 @@ get-process asdfjkl* | ?: {$null.TotallyIllegal()} {"Ok"}
 # a puzzle - don't cheat
 $false, $true | ?: $false $true | ?: $false $true | ?: $false $true | ?: $false $true
 #>
-
-function Invoke-Ternary
-{
 	[CmdletBinding()]
     param (
         [parameter(ValueFromPipeline=$True)]
