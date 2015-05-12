@@ -1,6 +1,7 @@
 ## Unreleased
  - added invoke
  - added collection
+ - added cmdlet
 
 ## 0.1.0
  - port from private repo
