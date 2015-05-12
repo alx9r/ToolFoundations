@@ -2,6 +2,7 @@
  - added invoke
  - added collection
  - added cmdlet
+ - added compareObject2
 
 ## 0.1.0
  - port from private repo
