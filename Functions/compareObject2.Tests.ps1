@@ -8,15 +8,15 @@ Describe Compare-Object2 {
         $result = Compare-Object 1,2,3 1,2,3,4
 
         $result | Should not beNullOrEmpty
-        $result[0].InputObject   | Should be 4
-        $result[0].SideIndicator | Should be '=>'
+        $result.InputObject   | Should be 4
+        $result.SideIndicator | Should be '=>'
     }
     It 'Compare-Object2: compares differing sets.' {
         $result = Compare-Object2 1,2,3 1,2,3,4
 
         $result | Should not beNullOrEmpty
-        $result[0].InputObject   | Should be 4
-        $result[0].SideIndicator | Should be '=>'
+        $result.InputObject   | Should be 4
+        $result.SideIndicator | Should be '=>'
     }
     It 'Compare-Object:  compares identical sets.' {
         $result = Compare-Object 1,2,3 1,2,3
@@ -135,7 +135,7 @@ Describe Compare-Object2 {
         $result[1].Count | Should be 5
     }
     It 'Compare-Object2: correctly passes through null DifferenceObject.' {
-        $result = $null | Compare-Object2 1,2,3,4 -PassThru
+        $result = Compare-Object2 -ReferenceObject 1,2,3,4 -DifferenceObject $null -PassThru
 
         $result.Count | Should be 1
         $result[0]    | Should be $null

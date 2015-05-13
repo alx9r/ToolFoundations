@@ -42,10 +42,18 @@ function Expand-String
     process
     {
         if (!$String) {$(throw "String is mandatory.")}
-        $escapedString = $String -replace '"','`"'
-        $code = "`$ExecutionContext.InvokeCommand.ExpandString(`"$escapedString`")"
+
+        if ( $PSVersionTable.PSVersion.Major -le 2 )
+        {
+            $escapedString = $String -replace '"','`"'
+        }
+        else
+        {
+            $escapedString = $String
+        }
+
+        $code = "`$ExecutionContext.InvokeCommand.ExpandString('$escapedString')"
         [scriptblock]::create($code)
     }
 }
 
-Export-ModuleMember -Function * -Alias *

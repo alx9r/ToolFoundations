@@ -151,7 +151,7 @@ An array of difference objects with properties InputObject and SideIndicator or,
     {
         if ( $PassThru )
         {
-            return Out-Collection ([array]$acc)
+            Out-Collection ([array]$acc)
         }
     }
 }

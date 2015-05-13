@@ -53,7 +53,7 @@
         }
 
         AfterEach {
-            Remove-Variable $Global:9b57b26a -ea Ignore
+            Remove-Variable $Global:9b57b26a -ea SilentlyContinue
         }
     }
 

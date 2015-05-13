@@ -46,14 +46,14 @@ Describe Get-BoundParams {
 
         $o.p1 | Should be 'foo'
         $o.p2 | Should be 123456
-        'Verbose' -in $o | Should be $false
+        $o -Contains 'Verbose' | Should be $false
     }
     It "includes a common parameter. (test 4)" {
         $o = Test-GetBoundParams -test 4 -p1 'foo' -p2 123456 -Verbose
 
         $o.p1 | Should be 'foo'
         $o.p2 | Should be 123456
-        'Verbose' -in $o.Keys | Should be $true
+        $o.Keys -Contains 'Verbose' | Should be $true
     }
 }
 InModuleScope a9Foundations {
@@ -81,7 +81,9 @@ InModuleScope a9Foundations {
             Remove-Item function:Test-CommonParams2 -Force
         }
         It 'outputs [scriptblock].' {
-            (gcp) -is [scriptblock] |
+            $r = gcp
+
+            $r -is [scriptblock] |
                 Should be $true
         }
         It 'defaults to empty hashtable.' {
@@ -95,7 +97,7 @@ InModuleScope a9Foundations {
         It 'cascades -Verbose. (True)' {
             $bp = Test-CommonParams1 -Verbose
 
-            'Verbose' -in $bp.Keys |
+            $bp.Keys -Contains 'Verbose' |
                 Should be $true
             $bp.Verbose |
                 Should be $true
@@ -105,7 +107,7 @@ InModuleScope a9Foundations {
         It 'cascades -Verbose. (False)' {
             $bp = Test-CommonParams1 -Verbose:$false
 
-            'Verbose' -in $bp.Keys |
+            $bp.Keys -Contains 'Verbose' |
                 Should be $true
             $bp.Verbose |
                 Should be $false
@@ -117,7 +119,7 @@ InModuleScope a9Foundations {
             It 'returns hashtable with remaining items.' {
                 $bp = Test-CommonParams1 -Verbose -params @{ParamList = 'Verbose','Invalid'}
 
-                'Verbose' -in $bp.Keys |
+                $bp.Keys -contains 'Verbose' |
                     Should be $true
                 $bp.Keys.Count |
                     Should be 1

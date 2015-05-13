@@ -66,7 +66,7 @@ This demonstrates the difference between testing the value and testing the exist
                 $bp = iex "`$PSCmdlet.MyInvocation.BoundParameters"
                 $ncbp = @{}
                 $bp.Keys |
-                    ? { $_ -notin $cp } |
+                    ? { $cp -notContains $_ } |
                     % {
                         $ncbp[$_] = $bp[$_]
                     }
@@ -134,41 +134,73 @@ This demonstrates how to use Get-CommonParams to cascade the value and existence
     )
     process
     {
-        $commonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters+`
-                            [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
+        $commonParameters = Get-CommonParameterNames
+
+        if ( (&(gbpm)).Keys -contains 'ParamList' )
+        {
+            $pl = $ParamList
+        }
+        else
+        {
+            $pl = Get-CommonParameterNames
+        }
 
         # get the valid output stream names
-        $vcp = $ParamList |
+        $vcp = $pl |
             % {
-                if ( $_ -in $commonParameters ) { $_ }
+                if ( $commonParameters -Contains $_ ) { $_ }
                 else
                 {
                     Write-Error "`"$_`" is not a valid Common Parameter."
                 }
 
             }
-        $codeStringString = @'
+        $codeString = @'
             $hash = @{}
 
 '@
         foreach ($name in $vcp)
         {
-            $codeStringString = $codeStringString + @"
-            if ( '$name' -in `$PSCmdlet.MyInvocation.BoundParameters.Keys )
+            $codeString = $codeString + @"
+            if ( `$PSCmdlet.MyInvocation.BoundParameters.Keys -Contains '$name' )
             {
                 `$hash['$name'] = `$PSCmdlet.MyInvocation.BoundParameters['$name']
             }
 
 "@
         }
-        $codeStringString = $codeStringString + @'
+        $codeString = $codeString + @'
             $hash
 '@
 
-        if ( $Code ) { return $codeStringString }
+        if ( $Code ) { return $codeString }
 
-        [scriptblock]::Create($codeStringString)
+        [scriptblock]::Create($codeString)
     }
 }
 
-Export-ModuleMember -Function * -Alias *
+function NoParams
+{
+    [CmdletBinding()]
+    param()
+    process{}
+}
+
+Function Get-CommonParameterNames
+{
+    [CmdletBinding()]
+    param()
+    process
+    {
+        if ( $PSVersionTable.PSVersion.Major -ge 3 )
+        {
+            [System.Management.Automation.PSCmdlet]::CommonParameters+`
+            [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
+        }
+        else
+        {
+            (Get-Command NoParams).Parameters.Keys
+        }
+    }
+}
+

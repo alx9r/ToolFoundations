@@ -9,10 +9,20 @@
                 param([parameter(position=1)]$InputObject)
                 process{$InputObject}
             }
+            Function RawReturn {
+                [CmdletBinding()]
+                param([parameter(position=1)]$InputObject)
+                process{ return $InputObject}
+            }
             Function UsingOutCollection {
                 [CmdletBinding()]
                 param([parameter(position=1)]$InputObject)
-                process{Out-Collection $InputObject}
+                process{ Out-Collection $InputObject}
+            }
+            Function UsingOutCollectionReturn {
+                [CmdletBinding()]
+                param([parameter(position=1)]$InputObject)
+                process{ return Out-Collection $InputObject }
             }
             Function TwoOutputsUsingOutCollection {
                 [CmdletBinding()]
@@ -71,10 +81,39 @@
             $o[0].Count | Should be 2
             $o[1].Count | Should be 2
         }
+        It 'normally outputs null for 1x1 array containing null item.' {
+            $o = Raw @($null)
+
+            $o | Should beNullOrEmpty
+        }
+        It 'preserves 1x1 array containing null item.' {
+            $o = UsingOutCollection @($null)
+
+            $o.Count | Should be 1
+            $o[0]    | Should beNullOrEmpty
+        }
+        It 'normally outputs null for 1x1 array containing null item. (return)' {
+            $o = RawReturn @($null)
+
+            $o | Should beNullOrEmpty
+        }
+        It 'preserves 1x1 array containing null item only in PowerShell 3+. (return)' {
+            $o = UsingOutCollectionReturn @($null)
+
+            if ( $PSVersionTable.PSVersion.Major -le 2 )
+            {
+                $o | Should beNullOrEmpty
+            }
+            else
+            {
+                $o.Count | Should be 1
+                $o[0]    | Should beNullOrEmpty
+            }
+        }
     }
     Context "powershell objects" {
         It "does not accept pipeline input (that would be insane)." {
-            (gcm Out-Collection).Parameters.InputObject.Attributes.ValueFromPipeline |
+            (gcm Out-Collection).Parameters.InputObject.Attributes[0].ValueFromPipeline |
                 Should be $false
         }
         It "passes through objects that are not ienumerable." {
@@ -142,7 +181,7 @@
             $miObjects =
                        (New-Object string 'TenTwentyThirty'),
                        (& {
-                           $l = New-Object "System.Collections.Generic.List``1[int32]"
+                           $l = New-Object "System.Collections.Generic.List``1[System.int32]"
                            10,20,30 | % {$l.Add($_)}
                            $l
                        }),
@@ -153,7 +192,7 @@
                        [System.Collections.SortedList]@{ten=10;twenty=20;thirty=30},
                        [System.Collections.Stack]@(10,20,30),
                        (& {
-                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,int32]"
+                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
                            ('ten',10),('twenty',20),('thirty',30) | % {$d.Add($_[0],$_[1])}
                            $d
                        })
@@ -161,7 +200,7 @@
             $siObjects =
                        (New-Object string 't'),
                        (& {
-                           $l = New-Object "System.Collections.Generic.List``1[int32]"
+                           $l = New-Object "System.Collections.Generic.List``1[System.int32]"
                            10 | % {$l.Add($_)}
                            $l
                        }),
@@ -172,7 +211,7 @@
                        [System.Collections.SortedList]@{ten=10},
                        [System.Collections.Stack]@(10),
                        (& {
-                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,int32]"
+                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
                            ,('ten',10) | % {$d.Add($_[0],$_[1])}
                            $d
                        })
@@ -209,14 +248,14 @@
         It "emits object that evaluates to null for dotnet collections containing no items." {
             $emptyObjects =
                        [string]::Empty,
-                       (New-Object "System.Collections.Generic.List``1[int32]"),
+                       (New-Object "System.Collections.Generic.List``1[System.int32]"),
                        (New-Object System.Collections.ArrayList),
                        (New-Object System.Collections.BitArray 0),
                        (New-Object System.Collections.Hashtable),
                        (New-Object System.Collections.Queue),
                        (New-Object System.Collections.SortedList),
                        (New-Object System.Collections.Stack),
-                       (New-Object "System.Collections.Generic.Dictionary``2[System.String,int32]")
+                       (New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]")
 
             $emptyObjects |
                 % {

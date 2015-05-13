@@ -3,6 +3,7 @@
  - added collection
  - added cmdlet
  - added compareObject2
+ - tests pass under PowerShell v2
 
 ## 0.1.0
  - port from private repo

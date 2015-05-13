@@ -22,7 +22,7 @@ Copyright = 'Copyright (c) 2015, licensed under Apache 2.0 License.'
 # Description = ''
 
 # Minimum version of the Windows PowerShell engine required by this module
-PowerShellVersion = '3.0'
+PowerShellVersion = '2.0'
 
 # Functions to export from this module
 FunctionsToExport = '*'
