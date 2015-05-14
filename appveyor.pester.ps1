@@ -42,10 +42,6 @@ if (($env:PSModulePath.Split(';') | select -First 1) -ne $myModulePath) {
     $env:PSModulePath = "$myModulePath;$env:PSModulePath"
 }
 
-#Output some debugging information
-Write-Host "myModulePath: $myModulePath"
-Write-Host "PSModulePath: $env:PSModulePath"
-
 #Run a test with the current version of PowerShell
     if(-not $Finalize)
     {

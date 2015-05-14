@@ -125,7 +125,8 @@ InModuleScope a9Foundations {
                     Should be 1
             }
             It 'reports correct error.' {
-                Assert-MockCalled Write-Error -Exactly -Times 1 -ExclusiveFilter {
+                Assert-MockCalled Write-Error -Exactly -Times 1
+                Assert-MockCalled Write-Error -Exactly -Times 1 {
                     $Message -eq '"Invalid" is not a valid Common Parameter.'
                 }
             }
