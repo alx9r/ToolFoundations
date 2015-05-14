@@ -34,7 +34,17 @@ param([switch]$Finalize)
     $TestFile = "TestResultsPS$PSVersion.xml"
     $ProjectRoot = $ENV:APPVEYOR_BUILD_FOLDER
     Set-Location $ProjectRoot
-   
+
+
+#Set PSModulePath to include one level up from the project root
+$myModulePath = [System.IO.Path]::GetFullPath("$ProjectRoot\..")
+if (($env:PSModulePath.Split(';') | select -First 1) -ne $myModulePath) {
+    $env:PSModulePath = "$myModulePath;$env:PSModulePath"
+}
+
+#Output some debugging information
+Write-Host "myModulePath: $myModulePath"
+Write-Host "PSModulePath: $env:PSModulePath"
 
 #Run a test with the current version of PowerShell
     if(-not $Finalize)
