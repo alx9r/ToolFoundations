@@ -4,6 +4,7 @@
  - added cmdlet
  - added compareObject2
  - tests pass under PowerShell v2
+ - Appveyor Tests passing
 
 ## 0.1.0
  - port from private repo
