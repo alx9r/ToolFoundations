@@ -46,6 +46,7 @@ This demonstrates the difference between testing the value and testing the exist
     (
         # Get-BoundParams normally only provides user-defined parameters.  Set this switch to include common parameters.
         [switch]
+        [Alias('cp')]
         $IncludeCommonParameters,
 
         # Get-BoundParams normally returns a scriptblock.  Set this switch to return the code string used to create the scriptblock, instead.
