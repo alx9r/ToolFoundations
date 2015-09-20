@@ -18,4 +18,4 @@ PowerShell Version | Compatible         | Remarks
 2.0                | :white_check_mark: | there are [some PowerShell 2 limitations](https://github.com/alx9r/a9Foundations/labels/Powershell%202%20Limitation)
 3.0                | :grey_question:    | not tested, probably works
 4.0                | :white_check_mark: |
-
+5.0                | :white_check_mark: |
