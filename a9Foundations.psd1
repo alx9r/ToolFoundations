@@ -1,7 +1,7 @@
 @{
 
 # Script module or binary module file associated with this manifest.
-ModuleToProcess = 'a9Foundations.psm1'
+ModuleToProcess = 'ToolFoundations.psm1'
 
 # Version number of this module.
 ModuleVersion = '0.1.0'

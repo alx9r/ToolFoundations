@@ -1,9 +1,9 @@
 # This file is derived, in part, from the Pester project.  https://github.com/pester/Pester
-Import-Module a9Foundations
+Import-Module ToolFoundations
 
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$manifestPath   = "$here\a9Foundations.psd1"
+$manifestPath   = "$here\ToolFoundations.psd1"
 $changeLogPath = "$here\CHANGELOG.md"
 
 Describe "manifest and changelog" {
@@ -15,7 +15,7 @@ Describe "manifest and changelog" {
     }
 
     It "has a valid name in the manifest" {
-        $script:manifest.Name | Should Be a9Foundations
+        $script:manifest.Name | Should Be ToolFoundations
     }
 
     It "has a valid guid in the manifest" {
@@ -71,7 +71,7 @@ Describe "manifest and changelog" {
 }
 
 Describe 'Style rules' {
-    $moduleRoot = (Get-Module a9Foundations).ModuleBase
+    $moduleRoot = (Get-Module ToolFoundations).ModuleBase
 
     $files = @(
         Get-ChildItem $moduleRoot -Include *.ps1,*.psm1
