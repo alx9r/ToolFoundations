@@ -27,6 +27,7 @@ http://stackoverflow.com/a/1775017/1404637
     [CmdletBinding()]
     param
     (
+        # The regular expression pattern to test.
         [parameter(ValueFromPipeline=$true,
                    Position=0,
                    Mandatory=$true)]
@@ -36,7 +37,6 @@ http://stackoverflow.com/a/1775017/1404637
     )
     process
     {
-        #http://stackoverflow.com/a/1775017/1404637
 
         Write-Verbose "Testing pattern `"$Pattern`""
         if (!$Pattern) {return $false}
@@ -52,5 +52,37 @@ http://stackoverflow.com/a/1775017/1404637
         }
 
         return $true
+    }
+}
+Function ConvertTo-RegexEscapedString
+{
+<#
+.SYNOPSIS
+Converts a string so that all regular expression characters are escaped.
+
+.DESCRIPTION
+Escapes a minimal set of characters (\, *, +, ?, |, {, [, (,), ^, $,., #, and white space) by replacing them with their escape codes.  Does this by invoking the .NET API Regex.Escape.
+
+.LINK
+http://stackoverflow.com/a/12963199/1404637
+
+.EXAMPLE
+    "Yup, just a bunch of `"normal`" characters! 'Cept white space. (and periods...and parentheses)" | ConvertTo-RegexEscapedString
+    # "Yup,\ just\ a\ bunch\ of\ `"normal`"\ characters!\ 'Cept\ white\ space\.\ \(and\ periods\.\.\.and\ parentheses\)"
+
+Escapes just the regular expression characters in some prose.
+#>
+    [CmdletBinding()]
+    param
+    (
+        # The literal text to escape.
+        [parameter(ValueFromPipeline=$true,
+                   mandatory=$true)]
+        [string]
+        $LiteralText
+    )
+    process
+    {
+        [regex]::Escape($LiteralText)
     }
 }

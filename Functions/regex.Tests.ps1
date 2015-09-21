@@ -23,3 +23,26 @@ Describe Test-ValidRegex {
             % { $_ | Should be $true }
     }
 }
+Describe ConvertTo-RegexEscapedString {
+    BeforeEach {
+        Remove-Module ToolFoundations -ea SilentlyContinue
+        Import-Module ToolFoundations
+    }
+
+    # http://stackoverflow.com/a/12963199/1404637
+    $NeedEscaping = '\t\n\f\r#$()*+.?[\^{|'
+    $NoEscaping   = 'zxcvbnmasdfghjklqwertyuiop'
+    $SomeEscaping   = "Yup, just a bunch of `"normal`" characters! 'Cept white space. (and periods...and parentheses)"
+    It 'outputs correctly escaped regex metacharacters.' {
+        $r = $NeedEscaping | ConvertTo-RegexEscapedString
+        $r | Should be '\\t\\n\\f\\r\#\$\(\)\*\+\.\?\[\\\^\{\|'
+    }
+    It "doesn't escape non-metacharacters." {
+        $r = $NoEscaping | ConvertTo-RegexEscapedString
+        $r | Should be $NoEscaping
+    }
+    It "correctly escapes a mixed characters." {
+        $r = $SomeEscaping | ConvertTo-RegexEscapedString
+        $r | Should be "Yup,\ just\ a\ bunch\ of\ `"normal`"\ characters!\ 'Cept\ white\ space\.\ \(and\ periods\.\.\.and\ parentheses\)"
+    }
+}
