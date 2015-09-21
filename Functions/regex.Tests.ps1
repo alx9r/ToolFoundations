@@ -45,4 +45,8 @@ Describe ConvertTo-RegexEscapedString {
         $r = $SomeEscaping | ConvertTo-RegexEscapedString
         $r | Should be "Yup,\ just\ a\ bunch\ of\ `"normal`"\ characters!\ 'Cept\ white\ space\.\ \(and\ periods\.\.\.and\ parentheses\)"
     }
+    It "correctly handles empty strings." {
+        $r = [string]::Empty | ConvertTo-RegexEscapedString
+        $r -eq [string]::Empty | Should be $true
+    }
 }

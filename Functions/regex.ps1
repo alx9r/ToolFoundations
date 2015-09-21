@@ -78,6 +78,7 @@ Escapes just the regular expression characters in some prose.
         # The literal text to escape.
         [parameter(ValueFromPipeline=$true,
                    mandatory=$true)]
+        [AllowEmptyString()]
         [string]
         $LiteralText
     )
