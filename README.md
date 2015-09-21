@@ -1,8 +1,8 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/q38mor7o20ejxswx?svg=true)](https://ci.appveyor.com/project/alx9r/a9foundations)
+[![Build status](https://ci.appveyor.com/api/projects/status/q38mor7o20ejxswx?svg=true)](https://ci.appveyor.com/project/alx9r/ToolFoundations)
 
-## a9Foundations
+## ToolFoundations
 
-a9Foundations is a collection of PowerShell helper functions that I commonly use when writing other Powershell cmdlets in Powershell:
+ToolFoundations is a collection of PowerShell helper functions that I commonly use when writing other Powershell cmdlets in Powershell:
 
 * [`Get-BoundParams`](./Functions/cmdlet.ps1) - a terse way to get the current cmdlet's bound parameters.
 * [`Get-CommonParams`](./Functions/cmdlet.ps1) - a terse way to reliably cascade common parameters (like `-Verbose`) from one cmdlet to another
@@ -15,7 +15,7 @@ a9Foundations is a collection of PowerShell helper functions that I commonly use
 
 PowerShell Version | Compatible         | Remarks
 -------------------|--------------------|--------
-2.0                | :white_check_mark: | there are [some PowerShell 2 limitations](https://github.com/alx9r/a9Foundations/labels/Powershell%202%20Limitation)
+2.0                | :white_check_mark: | there are [some PowerShell 2 limitations](https://github.com/alx9r/ToolFoundations/labels/Powershell%202%20Limitation)
 3.0                | :grey_question:    | not tested, probably works
 4.0                | :white_check_mark: |
 5.0                | :white_check_mark: |

@@ -1,7 +1,7 @@
 Describe Get-BoundParams {
     BeforeEach {
-        Remove-Module a9Foundations -ea SilentlyContinue
-        Import-Module a9Foundations
+        Remove-Module ToolFoundations -ea SilentlyContinue
+        Import-Module ToolFoundations
     }
     BeforeEach {
         Function Test-GetBoundParams
@@ -56,7 +56,7 @@ Describe Get-BoundParams {
         $o.Keys -Contains 'Verbose' | Should be $true
     }
 }
-InModuleScope a9Foundations {
+InModuleScope ToolFoundations {
     Describe Get-CommonParams {
         BeforeAll {
             Function Test-CommonParams1

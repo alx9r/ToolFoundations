@@ -1,7 +1,7 @@
 Describe Compare-Object2 {
     BeforeEach {
-        Remove-Module a9Foundations -ea SilentlyContinue
-        Import-Module a9Foundations
+        Remove-Module ToolFoundations -ea SilentlyContinue
+        Import-Module ToolFoundations
     }
 
     It 'Compare-Object:  compares differing sets.' {

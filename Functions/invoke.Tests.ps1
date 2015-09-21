@@ -1,7 +1,7 @@
 ﻿Describe "Invoke-Ternary" {
     BeforeEach {
-        Remove-Module a9Foundations -ea SilentlyContinue
-        Import-Module a9Foundations
+        Remove-Module ToolFoundations -ea SilentlyContinue
+        Import-Module ToolFoundations
     }
 
     It "correctly interprets boolean true" {
@@ -92,8 +92,8 @@
 
 Describe "Invoke-IfScriptblock" {
     BeforeEach {
-        Remove-Module a9Foundations -ea SilentlyContinue
-        Import-Module a9Foundations
+        Remove-Module ToolFoundations -ea SilentlyContinue
+        Import-Module ToolFoundations
     }
     It "outputs a non-scriptblock object" {
         Invoke-IfScriptBlock "string" | Should be 'string'
