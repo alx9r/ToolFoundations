@@ -55,8 +55,6 @@ Describe Test-ValidFilename{
 }
 InModuleScope ToolFoundations {
     Describe Test-ValidPathFragment {
-        iex (DescribeHeader)
-
         It 'returns true.' {
             'good\frag' | Test-ValidPathFragment | Should be $true
             'good/frag' | Test-ValidPathFragment | Should be $true
