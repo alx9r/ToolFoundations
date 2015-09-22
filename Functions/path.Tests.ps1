@@ -53,3 +53,42 @@ Describe Test-ValidFilename{
         $s | Test-ValidFileName | Should be $false
     }
 }
+InModuleScope ToolFoundations {
+    Describe Test-ValidPathFragment {
+        iex (DescribeHeader)
+
+        It 'returns true.' {
+            'good\frag' | Test-ValidPathFragment | Should be $true
+            'good/frag' | Test-ValidPathFragment | Should be $true
+        }
+        it 'return false.' {
+            'bad\path/fragment' | Test-ValidPathFragment | Should be $false
+            'bad/pa:h/fragment' | Test-ValidPathFragment | Should be $false
+        }
+        Context 'validates good element' {
+            Mock Test-ValidFileName -Verifiable {$true}
+            It 'returns true.' {
+                $r = 'good\frag' | Test-ValidPathFragment
+                $r | Should be $true
+
+                Assert-MockCalled Test-ValidFileName -Times 1 {
+                    $FileName -eq 'good'
+                }
+                Assert-MockCalled Test-ValidFileName -Times 1 {
+                    $FileName -eq 'frag'
+                }
+            }
+        }
+        Context 'validates bad element' {
+            Mock Test-ValidFileName -Verifiable {$false}
+            It 'returns true.' {
+                $r = 'bad\frag' | Test-ValidPathFragment
+                $r | Should be $false
+
+                Assert-MockCalled Test-ValidFileName -Times 1 {
+                    $FileName -eq 'bad'
+                }
+            }
+        }
+    }
+}

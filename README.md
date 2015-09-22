@@ -15,6 +15,7 @@ ToolFoundations is a collection of PowerShell helper functions that I commonly u
 * [`Test-ValidDomainName`](./Functions/domainName.ps1) - a PowerShell implementation of [the generally-accepted method for regex validation of a domain name](http://stackoverflow.com/a/20204811/1404637)
 * [`Test-ValidDriveLetter`](./Functions/path.ps1) - regex validation of windows drive letters
 * [`Test-ValidFileName`](./Functions/path.ps1) - regex validation of windows file names
+* [`Test-ValidPathFragment`](./Functions/path.ps1) - validation of path fragments
 
 ## Compatibility
 
