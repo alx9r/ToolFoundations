@@ -12,7 +12,8 @@ ToolFoundations is a collection of PowerShell helper functions that I commonly u
 * [`Expand-String`](./Functions/string.ps1) - terse delayed expansion of variables in strings
 * [`ConvertTo-RegexEscapedString`](./Functions/regex.ps1) - a pipelinable wrapper for the .NET `Regex.Escape` method
 * [`Test-ValidRegex`](./Functions/regex.ps1) - a PowerShell implementation of [the generally-accepted method for validating regex using .NET](https://stackoverflow.com/a/1775017/1404637)
-* [`Test-ValidDomainName`](./Functions/domainName.ps1) - a PowerShell implementation of [the generally-acceptd methof for regex validation of a domain name](http://stackoverflow.com/a/20204811/1404637)
+* [`Test-ValidDomainName`](./Functions/domainName.ps1) - a PowerShell implementation of [the generally-accepted method for regex validation of a domain name](http://stackoverflow.com/a/20204811/1404637)
+* [`Test-ValidDriveLetter`](./Functions/path.ps1) - regex validation of windows drive letters
 
 ## Compatibility
 
