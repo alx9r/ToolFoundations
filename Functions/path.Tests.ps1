@@ -1,9 +1,6 @@
-Describe Test-ValidDriveLetter {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
+Import-Module ToolFoundations -Force
 
+Describe Test-ValidDriveLetter {
     It 'returns true for good drive letter.' {
         'a' | Test-ValidDriveLetter | Should be $true
         'A' | Test-ValidDriveLetter | Should be $true
@@ -16,11 +13,6 @@ Describe Test-ValidDriveLetter {
     }
 }
 Describe Test-ValidFilename{
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
-
     It 'returns true for valid filename.' {
         'a' | Test-ValidFileName | Should be $true
         'a.b' | Test-ValidFileName | Should be $true
@@ -54,19 +46,19 @@ Describe Test-ValidFilename{
     }
 }
 InModuleScope ToolFoundations {
-    Describe Test-ValidPathFragment {
+    Describe Test-ValidFilePathFragment {
         It 'returns true.' {
-            'good\frag' | Test-ValidPathFragment | Should be $true
-            'good/frag' | Test-ValidPathFragment | Should be $true
+            'good\frag' | Test-ValidFilePathFragment | Should be $true
+            'good/frag' | Test-ValidFilePathFragment | Should be $true
         }
         it 'return false.' {
-            'bad\path/fragment' | Test-ValidPathFragment | Should be $false
-            'bad/pa:h/fragment' | Test-ValidPathFragment | Should be $false
+            'bad\path/fragment' | Test-ValidFilePathFragment | Should be $false
+            'bad/pa:h/fragment' | Test-ValidFilePathFragment | Should be $false
         }
         Context 'validates good element' {
             Mock Test-ValidFileName -Verifiable {$true}
             It 'returns true.' {
-                $r = 'good\frag' | Test-ValidPathFragment
+                $r = 'good\frag' | Test-ValidFilePathFragment
                 $r | Should be $true
 
                 Assert-MockCalled Test-ValidFileName -Times 1 {
@@ -80,11 +72,86 @@ InModuleScope ToolFoundations {
         Context 'validates bad element' {
             Mock Test-ValidFileName -Verifiable {$false}
             It 'returns true.' {
-                $r = 'bad\frag' | Test-ValidPathFragment
+                $r = 'bad\frag' | Test-ValidFilePathFragment
                 $r | Should be $false
 
                 Assert-MockCalled Test-ValidFileName -Times 1 {
                     $FileName -eq 'bad'
+                }
+            }
+        }
+    }
+}
+Describe ConvertTo-FilePathWithoutPrefix {
+    It 'PowerShell Windows path' {
+        $r = 'c:\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be 'c:\path'
+    }
+    It 'UNC path' {
+        $r = '\\server\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be '\\server\path'
+    }
+    It 'PowerShell Windows Path' {
+        $r = 'FileSystem::c:\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be 'c:\path'
+    }
+    It 'long prefix PowerShell Windows Path' {
+        $r = 'Microsoft.PowerShell.Core\FileSystem::c:\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be 'c:\path'
+    }
+    It 'PowerShell UNC Path' {
+        $r = 'FileSystem::\\server\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be '\\server\path'
+    }
+    It 'long prefix PowerShell UNC Path' {
+        $r = 'Microsoft.PowerShell.Core\FileSystem::\\server\path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be '\\server\path'        
+    }
+    It 'URI Windows Path' {
+        $r = 'file:///c:/path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be 'c:/path'
+    }
+    It 'URI UNC Path' {
+        $r = 'file://server/path' | ConvertTo-FilePathWithoutPrefix
+        $r | Should be '//server/path'
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Get-FilePathType {
+        Context 'Windows path' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            It 'returns correct type.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'windows'
+            }
+        }
+        Context 'UNC path' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            It 'returns correct type' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'UNC'
+            }
+        }
+        Context 'strips prefix' {
+            Mock ConvertTo-FilePathWithoutPrefix -Verifiable
+            Mock Write-Error
+            It 'invokes strip function' {
+                $r = 'path' | Get-FilePathType
+                
+                Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'unidentified' {
+            Mock ConvertTo-FilePathWithoutPrefix {'not a real path'}
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Could not identify type of Path path'
                 }
             }
         }

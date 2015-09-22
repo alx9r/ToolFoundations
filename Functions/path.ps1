@@ -58,7 +58,7 @@ function Test-ValidFileName
         return $true
     }
 }
-function Test-ValidPathFragment
+function Test-ValidFilePathFragment
 {
     [CmdletBinding()]
     param
@@ -93,5 +93,64 @@ function Test-ValidPathFragment
         }
 
         return $true
+    }
+}
+function ConvertTo-FilePathWithoutPrefix
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        # PowerShell Windows Path
+        $masks = '^FileSystem::(.*)',
+                 '^MicroSoft.PowerShell.Core\\FileSystem::(.*)',
+                 '^file:///([A-Za-z]:.*)',
+                 '^file:(?!///)(//.*)'
+
+        foreach ( $mask in $masks )
+        {
+            if ( $Path -match $mask )
+            {
+                return $Path -replace $mask,'$1'
+            }
+        }
+
+        return $Path
+    }
+}
+function Get-FilePathType
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
+        if ( $noprefix -match '^[A-Za-z]:')
+        {
+            return 'windows'
+        }
+        if ( $noprefix -match '^\\\\[A-Za-z]')
+        {
+            return 'UNC'
+        }
+
+        Write-Error "Could not identify type of Path $Path"
+        return $false
     }
 }
