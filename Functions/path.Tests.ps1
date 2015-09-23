@@ -207,7 +207,7 @@ InModuleScope ToolFoundations {
                 'path' | Test-ValidUncFilePath
 
                 Assert-MockCalled Test-ValidFilePathFragment -Times 1 {
-                    $PathFragment -eq '\path'
+                    $Path -eq '\path'
                 }
             }
         }
@@ -300,7 +300,7 @@ InModuleScope ToolFoundations {
                 'path' | Test-ValidWindowsFilePath
 
                 Assert-MockCalled Test-ValidFilePathFragment -Times 1 {
-                    $PathFragment -eq '\path'
+                    $Path -eq '\path'
                 }
             }
         }
@@ -342,17 +342,37 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+        It 'produces correct results.' {
+            'file://domain.name/c$/path/fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+            'file://domain.name/c$/path/fragment' | Get-PartOfUncPath DriveLetter | Should be 'c'
+            'file://domain.name/c$/path/fragment' | Get-PartOfUncPath Path | Should be '/path/fragment'
+            'file://domain.name/path/fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+            'file://domain.name/path/fragment' | Get-PartOfUncPath DriveLetter | Should be $false
+            'file://domain.name/path/fragment' | Get-PartOfUncPath Path | Should be '/path/fragment'
+            'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+            'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath DriveLetter | Should be 'c'
+            'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath Path | Should be '\path\fragment'
+            'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+            'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath DriveLetter | Should be $false
+            'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath Path | Should be '\path\fragment'
+        }
     }
-    Describe 'Get-PartOfUncPath DomainName ' {
+    Describe 'Get-PartOfUncPath DomainName' {
         Context 'correct results' {
             Mock ConvertTo-FilePathWithoutPrefix {$Path}
             It 'produces correct results' {
                 '\\domain.name\path' | Get-PartOfUncPath DomainName | Should be 'domain.name'
                 '\domain.name\path' | Get-PartOfUncPath DomainName | Should be $false
                 'domain.name\path' | Get-PartOfUncPath DomainName | Should be $false
-                '//domain.name/path' | Get-PartOfUncPath DomainName | Should be $false
-                '\\domainname/path' | Get-PartOfUncPath DomainName | Should be 'domainname/path'
+                '//domain.name/path' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+                '/domain.name/path' | Get-PartOfUncPath DomainName | Should be $false
+                'domain.name\path' | Get-PartOfUncPath DomainName | Should be $false
+                '\\domainname/path' | Get-PartOfUncPath DomainName | Should be 'domainname'
+                '//domainname\path' | Get-PartOfUncPath DomainName | Should be 'domainname'
                 '\\domain.name' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+                '//domain.name' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+                '/\domain.name' | Get-PartOfUncPath DomainName | Should be $false
+                '\/domain.name' | Get-PartOfUncPath DomainName | Should be $false
             }
         }
     }
@@ -364,31 +384,46 @@ InModuleScope ToolFoundations {
                 '\\domain\c$' | Get-PartOfUncPath DriveLetter | Should be 'c'
                 '\\domain\c$\' | Get-PartOfUncPath DriveLetter | Should be 'c'
                 '\\domain\cc$\'  | Get-PartOfUncPath DriveLetter | Should be 'cc'
+                '//domain/c$' | Get-PartOfUncPath DriveLetter | Should be 'c'
+                '//domain/c$/' | Get-PartOfUncPath DriveLetter | Should be 'c'
+                '//domain/cc$/'  | Get-PartOfUncPath DriveLetter | Should be 'cc'
                 '\\domain\c'  | Get-PartOfUncPath DriveLetter | Should be $false
                 '\\domain\c\'  | Get-PartOfUncPath DriveLetter | Should be $false
                 '\\domain\c\c$'  | Get-PartOfUncPath DriveLetter | Should be $false
-                '\\domain/c$'  | Get-PartOfUncPath DriveLetter | Should be $false
-                '\\domain/c$/'  | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain/c$'  | Get-PartOfUncPath DriveLetter | Should be 'c'
+                '\\domain/c$/'  | Get-PartOfUncPath DriveLetter | Should be 'c'
             }
         }
     }
-    Describe 'Get-PartOfUncPath PathFragment'{
+    Describe 'Get-PartOfUncPath Path'{
         Context 'correct results' {
             Mock ConvertTo-FilePathWithoutPrefix {$Path}
             It 'produces correct results' {
-                '\\domain' | Get-PartOfUncPath PathFragment | Should be $false
-                '\\domain\c$' | Get-PartOfUncPath PathFragment | Should be $false
-                '\\domain\c$\' | Get-PartOfUncPath PathFragment | Should be '\'
-                '\\domain\c$/' | Get-PartOfUncPath PathFragment | Should be '/'
-                '\\domain/c$/' | Get-PartOfUncPath PathFragment | Should be '/c$/'
-                '\\domain\c$\path' | Get-PartOfUncPath PathFragment | Should be '\path'
-                '\\domain\c$\path\frag' | Get-PartOfUncPath PathFragment | Should be '\path\frag'
-                '\\domain\c$\c$' | Get-PartOfUncPath PathFragment | Should be '\c$'
-                '\\domain' | Get-PartOfUncPath PathFragment | Should be $false
-                '\\domain\' | Get-PartOfUncPath PathFragment | Should be '\'
-                '\\domain/' | Get-PartOfUncPath PathFragment | Should be '/'
-                '\\domain\path' | Get-PartOfUncPath PathFragment | Should be '\path'
-                '\\domain\path\frag' | Get-PartOfUncPath PathFragment | Should be '\path\frag'
+                '\\domain' | Get-PartOfUncPath Path | Should be $false
+                '\\domain\c$' | Get-PartOfUncPath Path | Should be $false
+                '\\domain\c$\' | Get-PartOfUncPath Path | Should be '\'
+                '\\domain\c$/' | Get-PartOfUncPath Path | Should be '/'
+                '\\domain/c$/' | Get-PartOfUncPath Path | Should be '/'
+                '\\domain\c$\path' | Get-PartOfUncPath Path | Should be '\path'
+                '\\domain\c$\path\frag' | Get-PartOfUncPath Path | Should be '\path\frag'
+                '\\domain\c$\c$' | Get-PartOfUncPath Path | Should be '\c$'
+                '\\domain' | Get-PartOfUncPath Path | Should be $false
+                '\\domain\' | Get-PartOfUncPath Path | Should be '\'
+                '\\domain/' | Get-PartOfUncPath Path | Should be '/'
+                '\\domain\path' | Get-PartOfUncPath Path | Should be '\path'
+                '\\domain\path\frag' | Get-PartOfUncPath Path | Should be '\path\frag'
+                '//domain/c$' | Get-PartOfUncPath Path | Should be $false
+                '//domain/c$/' | Get-PartOfUncPath Path | Should be '/'
+                '//domain/c$\' | Get-PartOfUncPath Path | Should be '\'
+                '//domain\c$\' | Get-PartOfUncPath Path | Should be '\'
+                '//domain/c$/path' | Get-PartOfUncPath Path | Should be '/path'
+                '//domain/c$/path/frag' | Get-PartOfUncPath Path | Should be '/path/frag'
+                '//domain/c$/c$' | Get-PartOfUncPath Path | Should be '/c$'
+                '//domain' | Get-PartOfUncPath Path | Should be $false
+                '//domain/' | Get-PartOfUncPath Path | Should be '/'
+                '//domain\' | Get-PartOfUncPath Path | Should be '\'
+                '//domain/path' | Get-PartOfUncPath Path | Should be '/path'
+                '//domain/path/frag' | Get-PartOfUncPath Path | Should be '/path/frag'
             }
         }
     }

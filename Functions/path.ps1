@@ -85,21 +85,21 @@ function Test-ValidFilePathFragment
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [string]
-        $PathFragment
+        $Path
     )
     process
     {
-        if ( $PathFragment | HasMixedSlashes )
+        if ( $Path | HasMixedSlashes )
         {
-            Write-Verbose "Path fragment $PathFragment contains both forward and backslashes."
+            Write-Verbose "Path fragment $Path contains both forward and backslashes."
             return $false
         }
 
-        foreach ($level in $PathFragment.Split('\/'))
+        foreach ($level in $Path.Split('\/'))
         {
             if ( -not ($level | Test-ValidFileName) )
             {
-                Write-Verbose "Path fragment $PathFragment contains level $level that is an invalid filename."
+                Write-Verbose "Path fragment $Path contains level $level that is an invalid filename."
                 return $false
             }
         }
@@ -146,7 +146,7 @@ function Get-PartOfUncPath
         [parameter(mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('DomainName','DriveLetter','PathFragment')]
+        [ValidateSet('DomainName','DriveLetter','Path')]
         [string]
         $ComponentName,
 
@@ -161,25 +161,25 @@ function Get-PartOfUncPath
     {
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
 
-        if ( $ComponentName -ne 'PathFragment' )
+        if ( $ComponentName -ne 'Path' )
         {
             switch ($ComponentName ){
-                'DomainName'  {$mask = '^\\\\([^\\]*)'}
-                'DriveLetter' {$mask = '^\\\\[^\\]*\\([^\\\$]*)\$'}
+                'DomainName'  {$mask = '^(\\\\|\/\/)(?<result>[^\\\/]*)'}
+                'DriveLetter' {$mask = '^(\\\\|\/\/)[^\\\/]*[\\\/](?<result>[^\\\/\$]*)\$([\\\/]|$)'}
             }
-            return ([regex]::Match($noprefix,$mask)).Groups[1].Value
+            return ([regex]::Match($noprefix,$mask)).Groups['result'].Value
         }
 
         if ( $Path | Get-PartOfUncPath DriveLetter )
         {
-            $mask = '^\\\\[^\\]*\\[^\\/\$]*\$(.*)'
+            $mask = '^(\\\\|\/\/)[^\\\/]*[\\\/][^\\\/\$]*\$(?<result>([\\\/]|$).*)'
         }
         else
         {
-            $mask = '^\\\\[^\\/]*(.*)'
+            $mask = '^(\\\\|\/\/)[^\\\/]*(?<result>[\\\/].*)'
         }
 
-        return ([regex]::Match($noprefix,$mask)).Groups[1].Value
+        return ([regex]::Match($noprefix,$mask)).Groups['result'].Value
     }
 }
 function Test-ValidUncFilePath
@@ -235,7 +235,7 @@ function Test-ValidUncFilePath
 
         ### path fragment
 
-        $fragment = $Path | Get-PartOfUncPath PathFragment
+        $fragment = $Path | Get-PartOfUncPath Path
 
         if
         (
