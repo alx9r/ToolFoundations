@@ -250,6 +250,36 @@ function Test-ValidUncFilePath
         return $true
     }
 }
+function Get-PartOfWindowsPath
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('DriveLetter','Path')]
+        [string]
+        $ComponentName,
+
+        [parameter(mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
+
+        switch ($ComponentName ){
+            'DriveLetter' {$mask = '^(?<result>[A-Za-z]*):'}
+            'Path'        {$mask = '^[A-Za-z]*:(?<result>.*)'}
+        }
+        return ([regex]::Match($noprefix,$mask)).Groups['result'].Value
+    }
+}
 function Test-ValidWindowsFilePath
 {
     [CmdletBinding()]
@@ -272,11 +302,14 @@ function Test-ValidWindowsFilePath
 
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
 
-        $driveLetter,$fragment = $noprefix -split ':',2
+        $driveLetter = $noprefix | Get-PartOfWindowsPath DriveLetter
         if ( -not $driveLetter )
         {
             return $false
         }
+
+        $fragment = $noprefix | Get-PartOfWindowsPath Path
+
 
         if ( -not ($driveLetter | Test-ValidDriveLetter) )
         {
@@ -284,7 +317,11 @@ function Test-ValidWindowsFilePath
             return $false
         }
 
-        if ( -not ($fragment | Test-ValidFilePathFragment) )
+        if 
+        ( 
+            $fragment -and
+            -not ($fragment | Test-ValidFilePathFragment) 
+        )
         {
             Write-Verbose "Path $Path seems like a Windows path but $fragment is not a valid path fragment."
             return $false

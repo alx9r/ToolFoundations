@@ -428,3 +428,66 @@ InModuleScope ToolFoundations {
         }
     }
 }
+InModuleScope ToolFoundations {
+    Describe Get-PartOfWindowsPath {
+        Context 'strips prefix' {
+            Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'not Windows path'}
+            It 'invokes strip function' {
+                $r = 'path' | Get-PartOfWindowsPath DriveLetter
+
+                Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        It 'produces correct results.' {
+            'file:///c:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+            'file:///c:path.txt' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+            'file:///c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
+            'file:///c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
+            'c:\path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+            'c:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+            'c:path.txt' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+            'c:\path' | Get-PartOfWindowsPath Path | Should be '\path'
+            'c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
+            'c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
+        }
+    }
+    Describe 'Get-PartOfWindowsPath DriveLetter'{
+        Context 'correct results' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            It 'produces correct results' {
+                '\c' | Get-PartOfWindowsPath DriveLetter | Should be $false
+                '\c:' | Get-PartOfWindowsPath DriveLetter | Should be $false
+                'c' | Get-PartOfWindowsPath DriveLetter | Should be $false
+                'c:' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'c:path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'c$path' | Get-PartOfWindowsPath DriveLetter | Should be $false
+                'c$\path' | Get-PartOfWindowsPath DriveLetter | Should be $false
+                'c:\' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'c:/' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'c:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'c:\path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
+                'cc:\path' | Get-PartOfWindowsPath DriveLetter | Should be 'cc'
+                'cc:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'cc'
+            }
+        }
+    }
+    Describe 'Get-PartOfWindowsPath Path' {
+        Context 'correct results' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            It 'produces correct results' {
+                'c$path' | Get-PartOfWindowsPath Path | Should be $false
+                'c.path' | Get-PartOfWindowsPath Path | Should be $false
+                'c:' | Get-PartOfWindowsPath Path | Should be $false
+                'c:\' | Get-PartOfWindowsPath Path | Should be '\'
+                'c:/' | Get-PartOfWindowsPath Path | Should be '/'
+                'c:path' | Get-PartOfWindowsPath Path | Should be 'path'
+                'c:\path' | Get-PartOfWindowsPath Path | Should be '\path'
+                'c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
+                'c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
+                'c:\path\fragment' | Get-PartOfWindowsPath Path | Should be '\path\fragment'
+            }
+        }
+    }
+}
