@@ -400,7 +400,7 @@ function Get-FilePathType
         return 'Unknown'
     }
 }
-function ConvertTo-FilePathHashTable
+function ConvertTo-FilePathObject
 {
     [CmdletBinding()]
     param
@@ -424,7 +424,7 @@ function ConvertTo-FilePathHashTable
 
         if ( $type -eq 'Windows' )
         {
-            return @{
+            return New-Object PSObject -Property @{
                 OriginalString = $Path
                 DriveLetter = $Path | Get-PartOfWindowsPath DriveLetter
                 LocalPath = $Path | Get-PartOfWindowsPath Path
@@ -434,7 +434,7 @@ function ConvertTo-FilePathHashTable
         }
         if ( $type -eq 'UNC' )
         {
-            return @{
+            return New-Object PSObject -Property @{
                 OriginalString = $Path
                 DomainName = $Path | Get-PartOfUncPath DomainName
                 DriveLetter = $Path | Get-PartOfUncPath DriveLetter
@@ -597,7 +597,7 @@ function ConvertTo-FilePathFormat
     )
     process
     {
-        $input = $Path | ConvertTo-FilePathHashTable
+        $input = $Path | ConvertTo-FilePathObject
 
         if
         (
@@ -621,7 +621,6 @@ function ConvertTo-FilePathFormat
 
         $splat = &(gbpm)
         $splat.Remove('Path')
-        return New-Object PSObject -Property $input |
-            ConvertTo-FilePathString @splat
+        return $input | ConvertTo-FilePathString @splat
     }
 }

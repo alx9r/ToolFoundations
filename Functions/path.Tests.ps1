@@ -589,12 +589,12 @@ InModuleScope ToolFoundations {
     }
 }
 InModuleScope ToolFoundations {
-    Describe ConvertTo-FilePathHashtable {
+    Describe ConvertTo-FilePathObject {
         Context 'tests file path type' {
             Mock Get-FilePathType -Verifiable
             Mock Write-Error
             It 'invokes test function.' {
-                'path' | ConvertTo-FilePathHashtable
+                'path' | ConvertTo-FilePathObject
 
                 Assert-MockCalled Get-FilePathType -Times 1 {
                     $Path -eq 'path'
@@ -605,7 +605,7 @@ InModuleScope ToolFoundations {
             Mock Get-FilePathType {'ambiguous'}
             Mock Write-Error -Verifiable
             It 'reports correct error' {
-                $r = 'path' | ConvertTO-FilePathHashTable
+                $r = 'path' | ConvertTo-FilePathObject
                 $r | Should be $false
 
                 Assert-MockCalled Write-Error -Times 1 {
@@ -617,7 +617,7 @@ InModuleScope ToolFoundations {
             Mock Get-FilePathType {'unknown'}
             Mock Write-Error -Verifiable
             It 'reports correct error' {
-                $r = 'path' | ConvertTO-FilePathHashTable
+                $r = 'path' | ConvertTo-FilePathObject
                 $r | Should be $false
 
                 Assert-MockCalled Write-Error -Times 1 {
@@ -629,7 +629,7 @@ InModuleScope ToolFoundations {
             Mock Get-FilePathType {'Windows'}
             Mock Get-PartOfWindowsPath -Verifiable
             It 'invokes Get-Part function' {
-                'path' | ConvertTo-FilePathHashTable
+                'path' | ConvertTo-FilePathObject
 
                 Assert-MockCalled Get-PartOfWindowsPath -Times 1 {
                     $PartName -eq 'Path' -and
@@ -645,7 +645,7 @@ InModuleScope ToolFoundations {
             Mock Get-FilePathType {'UNC'}
             Mock Get-PartOfUncPath -Verifiable
             It 'invokes Get-Part function' {
-                'path' | ConvertTo-FilePathHashTable
+                'path' | ConvertTo-FilePathObject
 
                 Assert-MockCalled Get-PartOfUncPath -Times 1 {
                     $PartName -eq 'DomainName' -and
@@ -668,9 +668,9 @@ InModuleScope ToolFoundations {
                 return 'path/fragment'
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should be 'path/fragment'
@@ -687,9 +687,9 @@ InModuleScope ToolFoundations {
                 return 'path/fragment/'
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should be 'path/fragment/'
@@ -705,9 +705,9 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should beNullOrEmpty
@@ -723,9 +723,9 @@ InModuleScope ToolFoundations {
                 return 'path/fragment'
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should be 'path/fragment'
@@ -743,9 +743,9 @@ InModuleScope ToolFoundations {
                 return 'path/fragment'
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should be 'path/fragment'
@@ -761,9 +761,9 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DomainName' )  { return 'domain.name' }
             }
             It 'returns correct hashtable.' {
-                $r = 'path' | ConvertTo-FilePathHashtable
+                $r = 'path' | ConvertTo-FilePathObject
 
-                $r -is [hashtable] | Should be $true
+                $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should beNullOrEmpty
