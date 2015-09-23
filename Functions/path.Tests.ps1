@@ -674,7 +674,7 @@ InModuleScope ToolFoundations {
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should beNullOrEmpty
-                $r.Segments.Count | Should be 0
+                $r.Segments | Should beNullOrEmpty
             }
         }
         Context 'UNC' {
@@ -727,7 +727,7 @@ InModuleScope ToolFoundations {
                 $r.OriginalString | Should be 'path'
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should beNullOrEmpty
-                $r.Segments.Count | Should be 0
+                $r.Segments | Should beNullOrEmpty
             }
         }
     }
