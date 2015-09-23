@@ -116,6 +116,7 @@ function Split-FilePathFragment
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -165,7 +166,7 @@ function Get-PartOfUncPath
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('DomainName','DriveLetter','Path')]
         [string]
-        $ComponentName,
+        $PartName,
 
         [parameter(mandatory                       = $true,
                    position                        = 2,
@@ -178,9 +179,9 @@ function Get-PartOfUncPath
     {
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
 
-        if ( $ComponentName -ne 'Path' )
+        if ( $PartName -ne 'Path' )
         {
-            switch ($ComponentName ){
+            switch ($PartName ){
                 'DomainName'  {$mask = '^(\\\\|\/\/)(?<result>[^\\\/]*)'}
                 'DriveLetter' {$mask = '^(\\\\|\/\/)[^\\\/]*[\\\/](?<result>[^\\\/\$]*)\$([\\\/]|$)'}
             }
@@ -277,7 +278,7 @@ function Get-PartOfWindowsPath
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('DriveLetter','Path')]
         [string]
-        $ComponentName,
+        $PartName,
 
         [parameter(mandatory                       = $true,
                    position                        = 2,
@@ -290,7 +291,7 @@ function Get-PartOfWindowsPath
     {
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
 
-        switch ($ComponentName ){
+        switch ($PartName ){
             'DriveLetter' {$mask = '^(?<result>[A-Za-z]*):'}
             'Path'        {$mask = '^[A-Za-z]*:(?<result>.*)'}
         }
@@ -379,5 +380,48 @@ function Get-FilePathType
         }
 
         return 'Unknown'
+    }
+}
+function ConvertTo-FilePathHashTable
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $type = $Path | Get-FilePathType
+
+        if ( $type -notin 'Windows','UNC' )
+        {
+            Write-Error "Path type of $Path is $type."
+            return $false
+        }
+
+        if ( $type -eq 'Windows' )
+        {
+            return @{
+                OriginalString = $Path
+                DriveLetter = $Path | Get-PartOfWindowsPath DriveLetter
+                LocalPath = $Path | Get-PartOfWindowsPath Path
+                Segments = $Path | Get-PartOfWindowsPath Path | Split-FilePathFragment
+            }
+        }
+        if ( $type -eq 'UNC' )
+        {
+            return @{
+                OriginalString = $Path
+                DomainName = $Path | Get-PartOfUncPath DomainName
+                DriveLetter = $Path | Get-PartOfUncPath DriveLetter
+                LocalPath = $Path | Get-PartOfUncPath Path
+                Segments = $Path | Get-PartOfUncPath Path | Split-FilePathFragment
+            }
+        }
     }
 }

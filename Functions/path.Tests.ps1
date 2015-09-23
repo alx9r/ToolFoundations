@@ -571,3 +571,164 @@ InModuleScope ToolFoundations {
         }
     }
 }
+InModuleScope ToolFoundations { 
+    Describe ConvertTo-FilePathHashtable {
+        Context 'tests file path type' {
+            Mock Get-FilePathType -Verifiable
+            Mock Write-Error
+            It 'invokes test function.' {
+                'path' | ConvertTo-FilePathHashtable
+
+                Assert-MockCalled Get-FilePathType -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'ambiguous type' {
+            Mock Get-FilePathType {'ambiguous'}
+            Mock Write-Error -Verifiable
+            It 'reports correct error' {
+                $r = 'path' | ConvertTO-FilePathHashTable
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Path type of path is ambiguous.'
+                }
+            }
+        }
+        Context 'unknown type' {
+            Mock Get-FilePathType {'unknown'}
+            Mock Write-Error -Verifiable
+            It 'reports correct error' {
+                $r = 'path' | ConvertTO-FilePathHashTable
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Path type of path is unknown.'
+                }
+            }
+        }
+        Context 'calls Get-Part for Windows Path' {
+            Mock Get-FilePathType {'Windows'}
+            Mock Get-PartOfWindowsPath -Verifiable
+            It 'invokes Get-Part function' {
+                'path' | ConvertTo-FilePathHashTable
+
+                Assert-MockCalled Get-PartOfWindowsPath -Times 1 {
+                    $PartName -eq 'Path' -and
+                    $Path -eq 'path'
+                }
+                Assert-MockCalled Get-PartOfWindowsPath -Times 1 {
+                    $PartName -eq 'DriveLetter' -and
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'calls Get-Part for UNC Path' {
+            Mock Get-FilePathType {'UNC'}
+            Mock Get-PartOfUncPath -Verifiable
+            It 'invokes Get-Part function' {
+                'path' | ConvertTo-FilePathHashTable
+
+                Assert-MockCalled Get-PartOfUncPath -Times 1 {
+                    $PartName -eq 'DomainName' -and
+                    $Path -eq 'path'
+                }
+                Assert-MockCalled Get-PartOfUncPath -Times 1 {
+                    $PartName -eq 'Path' -and
+                    $Path -eq 'path'
+                }
+                Assert-MockCalled Get-PartOfUncPath -Times 1 {
+                    $PartName -eq 'DriveLetter' -and
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'Windows' {
+            Mock Get-FilePathType {'Windows'}
+            Mock Get-PartOfWindowsPath {
+                if ( $PartName -eq 'DriveLetter' ) { return 'c' }
+                return 'path/fragment'
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should be 'c'
+                $r.LocalPath  | Should be 'path/fragment'
+                $r.Segments.Count | Should be 2
+                $r.Segments[0] | Should be 'path'
+                $r.Segments[1] | Should be 'fragment'
+            }
+        }
+        Context 'Windows DriveLetter Only' {
+            Mock Get-FilePathType {'Windows'}
+            Mock Get-PartOfWindowsPath {
+                if ( $PartName -eq 'DriveLetter' ) { return 'c' }
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should be 'c'
+                $r.LocalPath  | Should beNullOrEmpty
+                $r.Segments.Count | Should be 0
+            }
+        }
+        Context 'UNC' {
+            Mock Get-FilePathType {'UNC'}
+            Mock Get-PartOfUncPath {
+                if ( $PartName -eq 'DomainName' )  { return 'domain.name' }
+                if ( $PartName -eq 'DriveLetter' ) { return 'c' }
+                return 'path/fragment'
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should be 'c'
+                $r.LocalPath  | Should be 'path/fragment'
+                $r.Segments.Count | Should be 2
+                $r.Segments[0] | Should be 'path'
+                $r.Segments[1] | Should be 'fragment'
+            }
+        }
+        Context 'UNC No DriveLetter' {
+            Mock Get-FilePathType {'UNC'}
+            Mock Get-PartOfUncPath {
+                if ( $PartName -eq 'DomainName' )  { return 'domain.name' }
+                if ( $PartName -eq 'DriveLetter' ) { return }
+                return 'path/fragment'
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should beNullOrEmpty
+                $r.LocalPath  | Should be 'path/fragment'
+                $r.Segments.Count | Should be 2
+                $r.Segments[0] | Should be 'path'
+                $r.Segments[1] | Should be 'fragment'
+            }        
+        }
+        Context 'UNC DomainName Only' {
+            Mock Get-FilePathType {'UNC'}
+            Mock Get-PartOfUncPath {
+                if ( $PartName -eq 'DomainName' )  { return 'domain.name' }
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should beNullOrEmpty
+                $r.LocalPath  | Should beNullOrEmpty
+                $r.Segments.Count | Should be 0
+            }        
+        }
+    }
+}
