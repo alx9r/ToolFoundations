@@ -14,7 +14,7 @@ The alias gbpm for Get-BoundParams can be use to obtain the current cmdlet's bou
 
 A test for the existence of a parameter in an advanced function then becomes the following:
 
-  if ( 'SomeParameter' -in (&(gbpm)).Keys )
+  if ( (&(gbpm)).Keys -contains 'SomeParameter' )
 
 
 .OUTPUTS
@@ -28,7 +28,7 @@ A scriptblock that evaluates to the cmdlet's bound parameters.
         {
             if
             (
-                'p1' -in (&(gbpm)).Keys -and  # tests existence of parameter
+                (&(gbpm)).Keys -contains 'p1' -and  # tests existence of parameter
                 -not $p1                      # tests value of parameter
             )
             {
