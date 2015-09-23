@@ -398,7 +398,7 @@ function ConvertTo-FilePathHashTable
     {
         $type = $Path | Get-FilePathType
 
-        if ( $type -notin 'Windows','UNC' )
+        if ( 'Windows','UNC' -notcontains $type )
         {
             Write-Error "Path type of $Path is $type."
             return $false
