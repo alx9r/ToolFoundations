@@ -82,6 +82,25 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe Split-FilePathFragment {
+    It 'produces correct result.' {
+        $r = 'path/fragment' | Split-FilePathFragment
+        $r[0] | Should be 'path'
+        $r[1] | Should be 'fragment'
+        $r.Count | Should be '2'
+
+        $r = 'path\fragment' | Split-FilePathFragment
+        $r[0] | Should be 'path'
+        $r[1] | Should be 'fragment'
+        $r.Count | Should be '2'
+
+        $r = 'c:\path\fragment' | Split-FilePathFragment
+        $r[0] | Should be 'c:'
+        $r[1] | Should be 'path'
+        $r[2] | Should be 'fragment'
+        $r.Count | Should be '3'
+    }
+}
 Describe ConvertTo-FilePathWithoutPrefix {
     It 'PowerShell Windows path' {
         $r = 'c:\path' | ConvertTo-FilePathWithoutPrefix

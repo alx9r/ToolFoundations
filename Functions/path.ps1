@@ -107,6 +107,23 @@ function Test-ValidFilePathFragment
         return $true
     }
 }
+function Split-FilePathFragment
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $Path.Split('\/')
+    }
+}
 function ConvertTo-FilePathWithoutPrefix
 {
     [CmdletBinding()]
