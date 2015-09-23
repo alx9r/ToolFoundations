@@ -335,10 +335,10 @@ function Test-ValidWindowsFilePath
             return $false
         }
 
-        if 
-        ( 
+        if
+        (
             $fragment -and
-            -not ($fragment | Test-ValidFilePathFragment) 
+            -not ($fragment | Test-ValidFilePathFragment)
         )
         {
             Write-Verbose "Path $Path seems like a Windows path but $fragment is not a valid path fragment."

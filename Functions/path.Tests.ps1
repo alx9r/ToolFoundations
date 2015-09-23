@@ -513,7 +513,7 @@ InModuleScope ToolFoundations {
 InModuleScope ToolFoundations {
     Describe Get-FilePathType {
         Context 'tests for Windows Path' {
-            Mock Test-ValidWindowsFilePath -Verifiable 
+            Mock Test-ValidWindowsFilePath -Verifiable
             It 'invokes test function' {
                 'path' | Get-FilePathType
 
@@ -523,7 +523,7 @@ InModuleScope ToolFoundations {
             }
         }
         Context 'tests for UNC Path' {
-            Mock Test-ValidUncFilePath -Verifiable 
+            Mock Test-ValidUncFilePath -Verifiable
             It 'invokes test function' {
                 'path' | Get-FilePathType
 
@@ -571,7 +571,7 @@ InModuleScope ToolFoundations {
         }
     }
 }
-InModuleScope ToolFoundations { 
+InModuleScope ToolFoundations {
     Describe ConvertTo-FilePathHashtable {
         Context 'tests file path type' {
             Mock Get-FilePathType -Verifiable
@@ -713,7 +713,7 @@ InModuleScope ToolFoundations {
                 $r.Segments.Count | Should be 2
                 $r.Segments[0] | Should be 'path'
                 $r.Segments[1] | Should be 'fragment'
-            }        
+            }
         }
         Context 'UNC DomainName Only' {
             Mock Get-FilePathType {'UNC'}
@@ -728,7 +728,7 @@ InModuleScope ToolFoundations {
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should beNullOrEmpty
                 $r.Segments.Count | Should be 0
-            }        
+            }
         }
     }
 }
