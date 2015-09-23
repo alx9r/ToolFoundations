@@ -58,6 +58,23 @@ function Test-ValidFileName
         return $true
     }
 }
+function HasMixedSlashes
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $InputString
+    )
+    process
+    {
+        $InputString -match '\\' -and $InputString -match '\/'
+    }
+}
 function Test-ValidFilePathFragment
 {
     [CmdletBinding()]
@@ -72,12 +89,7 @@ function Test-ValidFilePathFragment
     )
     process
     {
-        # test for mixed slashes
-        if
-        (
-            $PathFragment -match '\\' -and
-            $PathFragment -match '\/'
-        )
+        if ( $PathFragment | HasMixedSlashes )
         {
             Write-Verbose "Path fragment $PathFragment contains both forward and backslashes."
             return $false
@@ -126,6 +138,50 @@ function ConvertTo-FilePathWithoutPrefix
         return $Path
     }
 }
+function Get-PartOfUncPath
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('DomainName','DriveLetter','PathFragment')]
+        [string]
+        $ComponentName,
+
+        [parameter(mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
+
+        if ( $ComponentName -ne 'PathFragment' )
+        {
+            switch ($ComponentName ){
+                'DomainName'  {$mask = '^\\\\([^\\]*)'}
+                'DriveLetter' {$mask = '^\\\\[^\\]*\\([^\\\$]*)\$'}
+            }
+            return ([regex]::Match($noprefix,$mask)).Groups[1].Value
+        }
+
+        if ( $Path | Get-PartOfUncPath DriveLetter )
+        {
+            $mask = '^\\\\[^\\]*\\[^\\/\$]*\$(.*)'
+        }
+        else
+        {
+            $mask = '^\\\\[^\\/]*(.*)'
+        }
+
+        return ([regex]::Match($noprefix,$mask)).Groups[1].Value
+    }
+}
 function Test-ValidUncFilePath
 {
     [CmdletBinding()]
@@ -140,13 +196,17 @@ function Test-ValidUncFilePath
     )
     process
     {
-        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
+        if ( $Path | HasMixedSlashes )
+        {
+            Write-Verbose "Path $Path has mixed slashes."
+            return $false
+        }
 
+        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
 
         ### domain name
 
-        $mask = '^\\\\([^\\]*)'
-        $domainName = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+        $domainName = $Path | Get-PartOfUncPath DomainName
 
         if ( -not $domainName )
         {
@@ -161,11 +221,10 @@ function Test-ValidUncFilePath
 
         ### drive letter
 
-        $mask = '^\\\\[^\\]*\\([^\\\$]*)\$'
-        $driveLetter = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+        $driveLetter = $Path | Get-PartOfUncPath DriveLetter
 
-        if 
-        ( 
+        if
+        (
             $driveLetter -and
             -not ($driveLetter | Test-ValidDriveLetter)
         )
@@ -176,16 +235,7 @@ function Test-ValidUncFilePath
 
         ### path fragment
 
-        if ( $driveLetter )
-        {
-            $mask = '^\\\\[^\\]*\\[^\\\$]*\$(.*)'
-        }
-        else
-        {
-            $mask = '^\\\\[^\\]*(.*)'
-        }
-        
-        $fragment = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+        $fragment = $Path | Get-PartOfUncPath PathFragment
 
         if
         (
@@ -214,8 +264,14 @@ function Test-ValidWindowsFilePath
     )
     process
     {
+        if ( $Path | HasMixedSlashes )
+        {
+            Write-Verbose "Path $Path has mixed slashes."
+            return $false
+        }
+
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
-        
+
         $driveLetter,$fragment = $noprefix -split ':',2
         if ( -not $driveLetter )
         {
@@ -233,7 +289,7 @@ function Test-ValidWindowsFilePath
             Write-Verbose "Path $Path seems like a Windows path but $fragment is not a valid path fragment."
             return $false
         }
-        
+
         return $true
     }
 }

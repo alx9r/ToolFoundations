@@ -105,7 +105,7 @@ Describe ConvertTo-FilePathWithoutPrefix {
     }
     It 'long prefix PowerShell UNC Path' {
         $r = 'Microsoft.PowerShell.Core\FileSystem::\\server\path' | ConvertTo-FilePathWithoutPrefix
-        $r | Should be '\\server\path'        
+        $r | Should be '\\server\path'
     }
     It 'URI Windows Path' {
         $r = 'file:///c:/path' | ConvertTo-FilePathWithoutPrefix
@@ -118,12 +118,23 @@ Describe ConvertTo-FilePathWithoutPrefix {
 }
 InModuleScope ToolFoundations {
     Describe Test-ValidUncFilePath {
+        Context 'mixed slashes' {
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = '\\server/path' | Test-ValidUncFilePath
+                $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path \\server/path has mixed slashes.'
+                }
+            }
+        }
         Context 'strips prefix' {
             Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'c:'}
             Mock Write-Error
             It 'invokes strip function' {
                 $r = 'path' | Test-ValidUncFilePath
-                
+
                 Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
                     $Path -eq 'path'
                 }
@@ -142,7 +153,7 @@ InModuleScope ToolFoundations {
             Mock Write-Error
             It 'tests domain name' {
                 'path' | Test-ValidUncFilePath
-                
+
                 Assert-MockCalled Test-ValidDomainName -Times 1 {
                     $DomainName -eq 'server'
                 }
@@ -167,7 +178,7 @@ InModuleScope ToolFoundations {
             Mock Test-ValidDriveLetter -Verifiable
             It 'invokes test function.' {
                 'path' | Test-ValidUncFilePath
-                
+
                 Assert-MockCalled Test-ValidDriveLetter -Times 1 {
                     $DriveLetter -eq 'c'
                 }
@@ -181,16 +192,16 @@ InModuleScope ToolFoundations {
             It 'returns false.' {
                 $r = 'path' | Test-ValidUncFilePath
                 $r | Should be $false
-                
+
                 Assert-MockCalled Write-Verbose -Times 1 {
                     $Message -eq 'Seems like a UNC path administrative share, but c is not a valid drive letter.'
-                }                
+                }
             }
         }
         Context 'test path fragment' {
             Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
             Mock Test-ValidDomainName {$true}
-            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidDriveLetter {$true}
             Mock Test-ValidFilePathFragment -Verifiable
             It 'invokes test function' {
                 'path' | Test-ValidUncFilePath
@@ -209,7 +220,7 @@ InModuleScope ToolFoundations {
             It 'returns false.' {
                 $r = 'path' | Test-ValidUncFilePath
                 $r | Should be $false
-                
+
                 Assert-MockCalled Write-Verbose -Times 1 {
                     $Message -eq 'Seems like a UNC path, but \path is not a valid path fragment.'
                 }
@@ -229,11 +240,22 @@ InModuleScope ToolFoundations {
 }
 InModuleScope ToolFoundations {
     Describe Test-ValidWindowsFilePath {
+        Context 'mixed slashes' {
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'c:\windows/path' | Test-ValidWindowsFilePath
+                $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path c:\windows/path has mixed slashes.'
+                }
+            }
+        }
         Context 'strips prefix' {
             Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'not windows path'}
             It 'invokes strip function' {
                 $r = 'path' | Test-ValidWindowsFilePath
-                
+
                 Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
                     $Path -eq 'path'
                 }
@@ -251,7 +273,7 @@ InModuleScope ToolFoundations {
             Mock Test-ValidDriveLetter -Verifiable
             It 'invokes test function.' {
                 'path' | Test-ValidWindowsFilePath
-                
+
                 Assert-MockCalled Test-ValidDriveLetter -Times 1 {
                     $DriveLetter -eq 'c'
                 }
@@ -264,15 +286,15 @@ InModuleScope ToolFoundations {
             It 'returns false.' {
                 $r = 'path' | Test-ValidWindowsFilePath
                 $r | Should be $false
-                
+
                 Assert-MockCalled Write-Verbose -Times 1 {
                     $Message -eq 'Path path seems like a Windows path but c is not a valid drive letter.'
-                }                
+                }
             }
         }
         Context 'test path fragment' {
             Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
-            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidDriveLetter {$true}
             Mock Test-ValidFilePathFragment -Verifiable
             It 'invokes test function' {
                 'path' | Test-ValidWindowsFilePath
@@ -284,13 +306,13 @@ InModuleScope ToolFoundations {
         }
         Context 'bad path fragment' {
             Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
-            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidDriveLetter {$true}
             Mock Test-ValidFilePathFragment {$false}
             Mock Write-Verbose -Verifiable
             It 'returns false.' {
                 $r = 'path' | Test-ValidWindowsFilePath
                 $r | Should be $false
-                
+
                 Assert-MockCalled Write-Verbose -Times 1 {
                     $Message -eq 'Path path seems like a Windows path but \path is not a valid path fragment.'
                 }
@@ -298,7 +320,7 @@ InModuleScope ToolFoundations {
         }
         Context 'Windows path' {
             Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
-            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidDriveLetter {$true}
             Mock Test-ValidFilePathFragment {$true}
             It 'returns true.' {
                 $r = 'path' | Test-ValidWindowsFilePath
@@ -306,5 +328,68 @@ InModuleScope ToolFoundations {
             }
         }
 
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Get-PartOfUncPath {
+        Context 'strips prefix' {
+            Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'not UNC path'}
+            It 'invokes strip function' {
+                $r = 'path' | Get-PartOfUncPath DomainName
+
+                Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+    }
+    Describe 'Get-PartOfUncPath DomainName ' {
+        Context 'correct results' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            It 'produces correct results' {
+                '\\domain.name\path' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+                '\domain.name\path' | Get-PartOfUncPath DomainName | Should be $false
+                'domain.name\path' | Get-PartOfUncPath DomainName | Should be $false
+                '//domain.name/path' | Get-PartOfUncPath DomainName | Should be $false
+                '\\domainname/path' | Get-PartOfUncPath DomainName | Should be 'domainname/path'
+                '\\domain.name' | Get-PartOfUncPath DomainName | Should be 'domain.name'
+            }
+        }
+    }
+    Describe 'Get-PartOfUncPath DriveLetter'{
+        Context 'correct results' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            It 'produces correct results' {
+                '\\domain' | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain\c$' | Get-PartOfUncPath DriveLetter | Should be 'c'
+                '\\domain\c$\' | Get-PartOfUncPath DriveLetter | Should be 'c'
+                '\\domain\cc$\'  | Get-PartOfUncPath DriveLetter | Should be 'cc'
+                '\\domain\c'  | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain\c\'  | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain\c\c$'  | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain/c$'  | Get-PartOfUncPath DriveLetter | Should be $false
+                '\\domain/c$/'  | Get-PartOfUncPath DriveLetter | Should be $false
+            }
+        }
+    }
+    Describe 'Get-PartOfUncPath PathFragment'{
+        Context 'correct results' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            It 'produces correct results' {
+                '\\domain' | Get-PartOfUncPath PathFragment | Should be $false
+                '\\domain\c$' | Get-PartOfUncPath PathFragment | Should be $false
+                '\\domain\c$\' | Get-PartOfUncPath PathFragment | Should be '\'
+                '\\domain\c$/' | Get-PartOfUncPath PathFragment | Should be '/'
+                '\\domain/c$/' | Get-PartOfUncPath PathFragment | Should be '/c$/'
+                '\\domain\c$\path' | Get-PartOfUncPath PathFragment | Should be '\path'
+                '\\domain\c$\path\frag' | Get-PartOfUncPath PathFragment | Should be '\path\frag'
+                '\\domain\c$\c$' | Get-PartOfUncPath PathFragment | Should be '\c$'
+                '\\domain' | Get-PartOfUncPath PathFragment | Should be $false
+                '\\domain\' | Get-PartOfUncPath PathFragment | Should be '\'
+                '\\domain/' | Get-PartOfUncPath PathFragment | Should be '/'
+                '\\domain\path' | Get-PartOfUncPath PathFragment | Should be '\path'
+                '\\domain\path\frag' | Get-PartOfUncPath PathFragment | Should be '\path\frag'
+            }
+        }
     }
 }
