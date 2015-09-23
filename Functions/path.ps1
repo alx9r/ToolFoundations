@@ -126,7 +126,7 @@ function ConvertTo-FilePathWithoutPrefix
         return $Path
     }
 }
-function Get-FilePathType
+function Test-ValidUncFilePath
 {
     [CmdletBinding()]
     param
@@ -141,16 +141,99 @@ function Get-FilePathType
     process
     {
         $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
-        if ( $noprefix -match '^[A-Za-z]:')
+
+
+        ### domain name
+
+        $mask = '^\\\\([^\\]*)'
+        $domainName = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+
+        if ( -not $domainName )
         {
-            return 'windows'
+            return $false
         }
-        if ( $noprefix -match '^\\\\[A-Za-z]')
+        if ( -not ($domainName | Test-ValidDomainName ) )
         {
-            return 'UNC'
+            Write-Verbose "Seems like a UNC path, but $domainName is not a valid domain name."
+            return $false
         }
 
-        Write-Error "Could not identify type of Path $Path"
-        return $false
+
+        ### drive letter
+
+        $mask = '^\\\\[^\\]*\\([^\\\$]*)\$'
+        $driveLetter = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+
+        if 
+        ( 
+            $driveLetter -and
+            -not ($driveLetter | Test-ValidDriveLetter)
+        )
+        {
+            Write-Verbose "Seems like a UNC path administrative share, but $driveLetter is not a valid drive letter."
+            return $false
+        }
+
+        ### path fragment
+
+        if ( $driveLetter )
+        {
+            $mask = '^\\\\[^\\]*\\[^\\\$]*\$(.*)'
+        }
+        else
+        {
+            $mask = '^\\\\[^\\]*(.*)'
+        }
+        
+        $fragment = ([regex]::Match($noprefix,$mask)).Groups[1].Value
+
+        if
+        (
+            $fragment -and
+            -not ($fragment | Test-ValidFilePathFragment)
+        )
+        {
+            Write-Verbose "Seems like a UNC path, but $fragment is not a valid path fragment."
+            return $false
+        }
+
+        return $true
+    }
+}
+function Test-ValidWindowsFilePath
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $noprefix = $Path | ConvertTo-FilePathWithoutPrefix
+        
+        $driveLetter,$fragment = $noprefix -split ':',2
+        if ( -not $driveLetter )
+        {
+            return $false
+        }
+
+        if ( -not ($driveLetter | Test-ValidDriveLetter) )
+        {
+            Write-Verbose "Path $Path seems like a Windows path but $driveLetter is not a valid drive letter."
+            return $false
+        }
+
+        if ( -not ($fragment | Test-ValidFilePathFragment) )
+        {
+            Write-Verbose "Path $Path seems like a Windows path but $fragment is not a valid path fragment."
+            return $false
+        }
+        
+        return $true
     }
 }

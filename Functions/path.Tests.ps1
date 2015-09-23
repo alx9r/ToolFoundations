@@ -117,43 +117,194 @@ Describe ConvertTo-FilePathWithoutPrefix {
     }
 }
 InModuleScope ToolFoundations {
-    Describe Get-FilePathType {
-        Context 'Windows path' {
-            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
-            It 'returns correct type.' {
-                $r = 'path' | Get-FilePathType
-                $r | Should be 'windows'
-            }
-        }
-        Context 'UNC path' {
-            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
-            It 'returns correct type' {
-                $r = 'path' | Get-FilePathType
-                $r | Should be 'UNC'
-            }
-        }
+    Describe Test-ValidUncFilePath {
         Context 'strips prefix' {
-            Mock ConvertTo-FilePathWithoutPrefix -Verifiable
+            Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'c:'}
             Mock Write-Error
             It 'invokes strip function' {
-                $r = 'path' | Get-FilePathType
+                $r = 'path' | Test-ValidUncFilePath
                 
                 Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
                     $Path -eq 'path'
                 }
             }
         }
-        Context 'unidentified' {
+        Context 'not UNC Path' {
             Mock ConvertTo-FilePathWithoutPrefix {'not a real path'}
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $r = 'path' | Get-FilePathType
+            It 'returns false.' {
+                $r = 'path' | Test-ValidUncFilePath
                 $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Could not identify type of Path path'
+            }
+        }
+        Context 'validates domain name' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            Mock Test-ValidDomainName -Verifiable
+            Mock Write-Error
+            It 'tests domain name' {
+                'path' | Test-ValidUncFilePath
+                
+                Assert-MockCalled Test-ValidDomainName -Times 1 {
+                    $DomainName -eq 'server'
                 }
             }
         }
+        Context 'invalid domain name' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            Mock Test-ValidDomainName {$false}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'path' | Test-ValidUncFilePath
+                $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Seems like a UNC path, but server is not a valid domain name.'
+                }
+            }
+        }
+        Context 'tests driveletter' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\c$\path'}
+            Mock Test-ValidDomainName {$true}
+            Mock Test-ValidDriveLetter -Verifiable
+            It 'invokes test function.' {
+                'path' | Test-ValidUncFilePath
+                
+                Assert-MockCalled Test-ValidDriveLetter -Times 1 {
+                    $DriveLetter -eq 'c'
+                }
+            }
+        }
+        Context 'bad driveletter' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\c$\path'}
+            Mock Test-ValidDomainName {$true}
+            Mock Test-ValidDriveLetter {$false}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'path' | Test-ValidUncFilePath
+                $r | Should be $false
+                
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Seems like a UNC path administrative share, but c is not a valid drive letter.'
+                }                
+            }
+        }
+        Context 'test path fragment' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            Mock Test-ValidDomainName {$true}
+            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidFilePathFragment -Verifiable
+            It 'invokes test function' {
+                'path' | Test-ValidUncFilePath
+
+                Assert-MockCalled Test-ValidFilePathFragment -Times 1 {
+                    $PathFragment -eq '\path'
+                }
+            }
+        }
+        Context 'bad path fragment' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            Mock Test-ValidDomainName {$true}
+            Mock Test-ValidDriveLetter {$true}
+            Mock Test-ValidFilePathFragment {$false}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'path' | Test-ValidUncFilePath
+                $r | Should be $false
+                
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Seems like a UNC path, but \path is not a valid path fragment.'
+                }
+            }
+        }
+        Context 'UNC path' {
+            Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
+            Mock Test-ValidDomainName {$true}
+            Mock Test-ValidDriveLetter {$true}
+            Mock Test-ValidFilePathFragment {$true}
+            It 'returns correct type' {
+                $r = 'path' | Test-ValidUncFilePath
+                $r | Should be $true
+            }
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Test-ValidWindowsFilePath {
+        Context 'strips prefix' {
+            Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'not windows path'}
+            It 'invokes strip function' {
+                $r = 'path' | Test-ValidWindowsFilePath
+                
+                Assert-MockCalled ConvertTo-FilePathWithoutPrefix -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'not Windows Path' {
+            Mock ConvertTo-FilePathWithoutPrefix {'not a real path'}
+            It 'returns false.' {
+                $r = 'path' | Test-ValidWindowsFilePath
+                $r | Should be $false
+            }
+        }
+        Context 'tests driveletter' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            Mock Test-ValidDriveLetter -Verifiable
+            It 'invokes test function.' {
+                'path' | Test-ValidWindowsFilePath
+                
+                Assert-MockCalled Test-ValidDriveLetter -Times 1 {
+                    $DriveLetter -eq 'c'
+                }
+            }
+        }
+        Context 'bad driveletter' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            Mock Test-ValidDriveLetter {$false}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'path' | Test-ValidWindowsFilePath
+                $r | Should be $false
+                
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path path seems like a Windows path but c is not a valid drive letter.'
+                }                
+            }
+        }
+        Context 'test path fragment' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidFilePathFragment -Verifiable
+            It 'invokes test function' {
+                'path' | Test-ValidWindowsFilePath
+
+                Assert-MockCalled Test-ValidFilePathFragment -Times 1 {
+                    $PathFragment -eq '\path'
+                }
+            }
+        }
+        Context 'bad path fragment' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidFilePathFragment {$false}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'path' | Test-ValidWindowsFilePath
+                $r | Should be $false
+                
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path path seems like a Windows path but \path is not a valid path fragment.'
+                }
+            }
+        }
+        Context 'Windows path' {
+            Mock ConvertTo-FilePathWithoutPrefix {'c:\path'}
+            Mock Test-ValidDriveLetter {$true} 
+            Mock Test-ValidFilePathFragment {$true}
+            It 'returns true.' {
+                $r = 'path' | Test-ValidWindowsFilePath
+                $r | Should be $true
+            }
+        }
+
     }
 }
