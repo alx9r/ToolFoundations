@@ -491,3 +491,64 @@ InModuleScope ToolFoundations {
         }
     }
 }
+InModuleScope ToolFoundations {
+    Describe Get-FilePathType {
+        Context 'tests for Windows Path' {
+            Mock Test-ValidWindowsFilePath -Verifiable 
+            It 'invokes test function' {
+                'path' | Get-FilePathType
+
+                Assert-MockCalled Test-ValidWindowsFilePath -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'tests for UNC Path' {
+            Mock Test-ValidUncFilePath -Verifiable 
+            It 'invokes test function' {
+                'path' | Get-FilePathType
+
+                Assert-MockCalled Test-ValidUncFilePath -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'ambiguous' {
+            Mock Test-ValidUncFilePath {$true}
+            Mock Test-ValidWindowsFilePath {$true}
+            Mock Write-Verbose -Verifiable
+            It 'returns correct value.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'ambiguous'
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'path could be Windows or UNC.'
+                }
+            }
+        }
+        Context 'windows' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$true}
+            It 'returns correct value.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'Windows'
+            }
+        }
+        Context 'UNC' {
+            Mock Test-ValidUncFilePath {$true}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'returns correct value.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'UNC'
+            }
+        }
+        Context 'unknown' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'returns correct value.' {
+                $r = 'path' | Get-FilePathType
+                $r | Should be 'unknown'
+            }
+        }
+    }
+}

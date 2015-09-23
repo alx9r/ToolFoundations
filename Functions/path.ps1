@@ -330,3 +330,37 @@ function Test-ValidWindowsFilePath
         return $true
     }
 }
+function Get-FilePathType
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $isWindows = $Path | Test-ValidWindowsFilePath
+        $isUnc = $Path | Test-ValidUncFilePath
+
+        if ( $isWindows -and $isUnc )
+        {
+            Write-Verbose "$Path could be Windows or UNC."
+            return 'ambiguous'
+        }
+        if ( $isWindows )
+        {
+            return 'Windows'
+        }
+        if ( $isUnc )
+        {
+            return 'UNC'
+        }
+
+        return 'Unknown'
+    }
+}
