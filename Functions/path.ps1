@@ -528,6 +528,28 @@ function ConvertTo-FilePathString
     )
     process
     {
+        $bp = &(gbpm)
+
+        if
+        (
+            $FilePathType -eq 'UNC' -and
+            -not $bp.DomainName
+        )
+        {
+            Write-Error 'UNC paths require a domain name but none was provided.'
+            return $false
+        }
+
+        if
+        (
+            $FilePathType -eq 'Windows' -and
+            -not $bp.DriveLetter
+        )
+        {
+            Write-Error 'Windows paths require a drive letter but none was provided.'
+            return $false
+        }
+
         if ( $Scheme -eq 'FileUri' )
         {
             $slash = '/'
@@ -621,6 +643,6 @@ function ConvertTo-FilePathFormat
 
         $splat = &(gbpm)
         $splat.Remove('Path')
-        return $input | ConvertTo-FilePathString @splat
+        return $Path | ConvertTo-FilePathObject | ConvertTo-FilePathString @splat
     }
 }

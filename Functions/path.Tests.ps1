@@ -773,82 +773,114 @@ InModuleScope ToolFoundations {
         }
     }
 }
-Describe ConvertTo-FilePathString {
-    It 'UNC' {
-        $splat = @{
-            DomainName = 'domain.name'
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+InModuleScope ToolFoundations {
+    Describe ConvertTo-FilePathString {
+        Context 'Windows=>UNC' {
+            Mock Write-Error -Verifiable
+            It 'produces correct error.' {
+                $splat = @{
+                    DriveLetter = 'c'
+                    Segments = 'path'
+                }
+                $r = ConvertTo-FilePathString -FilePathType UNC @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'UNC paths require a domain name but none was provided.'
+                }
+            }
         }
-        $r = ConvertTo-FilePathString UNC @splat
-        $r | Should be '\\domain.name\c$\path\segments\'
-    }
-    It 'UNC no trailing slash' {
-        $splat = @{
-            DomainName = 'domain.name'
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $false
+        Context 'UNC (no DriveLetter)=>Windows' {
+            Mock Write-Error -Verifiable
+            It 'produces correct error.' {
+                $splat = @{
+                    DomainName = 'DomainName'
+                    Segments = 'local','path'
+                }
+                $r = ConvertTo-FilePathString -FilePathType Windows @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Windows paths require a drive letter but none was provided.'
+                }
+            }
         }
-        $r = ConvertTo-FilePathString UNC @splat
-        $r | Should be '\\domain.name\c$\path\segments'
-    }
-    It 'UNC no drive letter' {
-        $splat = @{
-            DomainName = 'domain.name'
-            Segments = 'path','segments'
-            TrailingSlash = $false
+        It 'UNC' {
+            $splat = @{
+                DomainName = 'domain.name'
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString UNC @splat
+            $r | Should be '\\domain.name\c$\path\segments\'
         }
-        $r = ConvertTo-FilePathString UNC @splat
-        $r | Should be '\\domain.name\path\segments'
-    }
-    It 'Windows' {
-        $splat = @{
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+        It 'UNC no trailing slash' {
+            $splat = @{
+                DomainName = 'domain.name'
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $false
+            }
+            $r = ConvertTo-FilePathString UNC @splat
+            $r | Should be '\\domain.name\c$\path\segments'
         }
-        $r = ConvertTo-FilePathString Windows @splat
-        $r | Should be 'c:\path\segments\'
-    }
-    It 'UNC FileUri' {
-        $splat = @{
-            DomainName = 'domain.name'
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+        It 'UNC no drive letter' {
+            $splat = @{
+                DomainName = 'domain.name'
+                Segments = 'path','segments'
+                TrailingSlash = $false
+            }
+            $r = ConvertTo-FilePathString UNC @splat
+            $r | Should be '\\domain.name\path\segments'
         }
-        $r = ConvertTo-FilePathString UNC FileUri @splat
-        $r | Should be 'file://domain.name/c$/path/segments/'
-    }
-    It 'Windows FileUri' {
-        $splat = @{
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+        It 'Windows' {
+            $splat = @{
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString Windows @splat
+            $r | Should be 'c:\path\segments\'
         }
-        $r = ConvertTo-FilePathString Windows FileUri @splat
-        $r | Should be 'file:///c:/path/segments/'
-    }
-    It 'UNC PowerShell' {
-        $splat = @{
-            DomainName = 'domain.name'
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+        It 'UNC FileUri' {
+            $splat = @{
+                DomainName = 'domain.name'
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString UNC FileUri @splat
+            $r | Should be 'file://domain.name/c$/path/segments/'
         }
-        $r = ConvertTo-FilePathString UNC PowerShell @splat
-        $r | Should be 'FileSystem::\\domain.name\c$\path\segments\'
-    }
-    It 'Windows PowerShell' {
-        $splat = @{
-            DriveLetter = 'c'
-            Segments = 'path','segments'
-            TrailingSlash = $true
+        It 'Windows FileUri' {
+            $splat = @{
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString Windows FileUri @splat
+            $r | Should be 'file:///c:/path/segments/'
         }
-        $r = ConvertTo-FilePathString Windows PowerShell @splat
-        $r | Should be 'FileSystem::c:\path\segments\'
+        It 'UNC PowerShell' {
+            $splat = @{
+                DomainName = 'domain.name'
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString UNC PowerShell @splat
+            $r | Should be 'FileSystem::\\domain.name\c$\path\segments\'
+        }
+        It 'Windows PowerShell' {
+            $splat = @{
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString Windows PowerShell @splat
+            $r | Should be 'FileSystem::c:\path\segments\'
+        }
     }
 }
 InModuleScope ToolFoundations {
