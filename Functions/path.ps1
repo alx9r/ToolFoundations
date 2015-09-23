@@ -95,7 +95,7 @@ function Test-ValidFilePathFragment
             return $false
         }
 
-        foreach ($level in $Path.Split('\/'))
+        foreach ($level in ($Path | Split-FilePathFragment))
         {
             if ( -not ($level | Test-ValidFileName) )
             {
@@ -122,7 +122,25 @@ function Split-FilePathFragment
     )
     process
     {
-        $Path.Split('\/')
+        $Path.Split('\/') | ? { $_ -ne [string]::Empty }
+    }
+}
+function Test-FilePathForTrailingSlash
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
+        [string]
+        $Path
+    )
+    process
+    {
+        $Path -match '[\\\/]$'
     }
 }
 function ConvertTo-FilePathWithoutPrefix
@@ -411,6 +429,7 @@ function ConvertTo-FilePathHashTable
                 DriveLetter = $Path | Get-PartOfWindowsPath DriveLetter
                 LocalPath = $Path | Get-PartOfWindowsPath Path
                 Segments = $Path | Get-PartOfWindowsPath Path | Split-FilePathFragment
+                TrailingSlash = $Path | Get-PartOfWindowsPath Path | Test-FilePathForTrailingSlash
             }
         }
         if ( $type -eq 'UNC' )
@@ -421,7 +440,188 @@ function ConvertTo-FilePathHashTable
                 DriveLetter = $Path | Get-PartOfUncPath DriveLetter
                 LocalPath = $Path | Get-PartOfUncPath Path
                 Segments = $Path | Get-PartOfUncPath Path | Split-FilePathFragment
+                TrailingSlash = $Path | Get-PartOfWindowsPath Path | Test-FilePathForTrailingSlash
             }
         }
+    }
+}
+function Test-ValidFilePathParameters
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string[]]
+        $Segments,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DriveLetter,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DomainName,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [switch]
+        $TrailingSlash
+    )
+    process
+    {
+        foreach ($segment in $Segments)
+        {
+            if ( -not ($segment | Test-ValidFileName) )
+            {
+                Write-Verbose "Segment $segment is not a valid filename."
+                return $false
+            }
+        }
+
+        if ( -not ($DriveLetter | Test-ValidDriveLetter) )
+        {
+            Write-Verbose "DriveLetter $DriveLetter is not a valid drive letter."
+            return $false
+        }
+
+        if ( -not ($DomainName | Test-ValidDomainName) )
+        {
+            Write-Verbose "DomainName $DomainName is not a valid domain name."
+            return $false
+        }
+    }
+}
+function ConvertTo-FilePathString
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('Windows','UNC')]
+        [string]
+        $FilePathType,
+
+        [parameter(position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('FileUri','PowerShell')]
+        [string]
+        $Scheme,
+
+        [parameter(mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string[]]
+        $Segments,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DriveLetter,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DomainName,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [switch]
+        $TrailingSlash
+    )
+    process
+    {
+        if ( $Scheme -eq 'FileUri' )
+        {
+            $slash = '/'
+        }
+        else
+        {
+            $slash = '\'
+        }
+
+        if
+        (
+            $Scheme -eq 'FileUri' -and
+            $FilePathType -eq 'Windows'
+        )
+        {
+            $prefix = 'file:///'
+        }
+
+        if
+        (
+            $Scheme -eq 'FileUri' -and
+            $FilePathType -eq 'UNC'
+        )
+        {
+            $prefix = 'file:'
+        }
+
+        if ( $Scheme -eq 'PowerShell' )
+        {
+            $prefix = 'FileSystem::'
+        }
+
+        if ( $FilePathType -eq 'UNC' )
+        {
+            return "$prefix$($slash*2)$DomainName$slash$($DriveLetter | ?: "$DriveLetter`$$slash")$($Segments -join $slash)$($TrailingSlash | ?: $slash)"
+        }
+        if ( $FilePathType -eq 'Windows' )
+        {
+            return "$prefix$DriveLetter`:$slash$($Segments -join $slash)$($TrailingSlash | ?: $slash)"
+        }
+    }
+}
+function ConvertTo-FilePathFormat
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 3,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path,
+
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('Windows','UNC')]
+        [string]
+        $FilePathType,
+
+        [parameter(position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('FileUri','PowerShell')]
+        [string]
+        $Scheme
+    )
+    process
+    {
+        $input = $Path | ConvertTo-FilePathHashTable
+
+        if
+        (
+            $FilePathType -eq 'UNC' -and
+            -not $input.DomainName
+        )
+        {
+            Write-Error "UNC paths require a domain name but Path $Path does not seem to contain one."
+            return $false
+        }
+
+        if
+        (
+            $FilePathType -eq 'Windows' -and
+            -not $input.DriveLetter
+        )
+        {
+            Write-Error "Windows paths require a drive letter but Path $Path does not seem to contain one."
+            return $false
+        }
+
+        $splat = &(gbpm)
+        $splat.Remove('Path')
+        return New-Object PSObject -Property $input |
+            ConvertTo-FilePathString @splat
     }
 }

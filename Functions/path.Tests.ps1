@@ -99,6 +99,24 @@ Describe Split-FilePathFragment {
         $r[1] | Should be 'path'
         $r[2] | Should be 'fragment'
         $r.Count | Should be '3'
+
+        $r = 'path\fragment\' | Split-FilePathFragment
+        $r[0] | Should be 'path'
+        $r[1] | Should be 'fragment'
+        $r.Count | Should be '2'
+
+        $r = '\path\fragment' | Split-FilePathFragment
+        $r[0] | Should be 'path'
+        $r[1] | Should be 'fragment'
+        $r.Count | Should be '2'
+    }
+}
+Describe Test-FilePathForTrailingSlash {
+    It 'produces correct result.' {
+        'path/' | Test-FilePathForTrailingSlash | Should be $true
+        'path' | Test-FilePathForTrailingSlash | Should be $false
+        '/path' | Test-FilePathForTrailingSlash | Should be $false
+        'path\/' | Test-FilePathForTrailingSlash | Should be $true
     }
 }
 Describe ConvertTo-FilePathWithoutPrefix {
@@ -346,7 +364,6 @@ InModuleScope ToolFoundations {
                 $r | Should be $true
             }
         }
-
     }
 }
 InModuleScope ToolFoundations {
@@ -660,6 +677,26 @@ InModuleScope ToolFoundations {
                 $r.Segments.Count | Should be 2
                 $r.Segments[0] | Should be 'path'
                 $r.Segments[1] | Should be 'fragment'
+                $r.TrailingSlash | Should be $false
+            }
+        }
+        Context 'Windows (trailing slash)' {
+            Mock Get-FilePathType {'Windows'}
+            Mock Get-PartOfWindowsPath {
+                if ( $PartName -eq 'DriveLetter' ) { return 'c' }
+                return 'path/fragment/'
+            }
+            It 'returns correct hashtable.' {
+                $r = 'path' | ConvertTo-FilePathHashtable
+
+                $r -is [hashtable] | Should be $true
+                $r.OriginalString | Should be 'path'
+                $r.DriveLetter | Should be 'c'
+                $r.LocalPath  | Should be 'path/fragment/'
+                $r.Segments.Count | Should be 2
+                $r.Segments[0] | Should be 'path'
+                $r.Segments[1] | Should be 'fragment'
+                $r.TrailingSlash | Should be $true
             }
         }
         Context 'Windows DriveLetter Only' {
@@ -675,6 +712,7 @@ InModuleScope ToolFoundations {
                 $r.DriveLetter | Should be 'c'
                 $r.LocalPath  | Should beNullOrEmpty
                 $r.Segments | Should beNullOrEmpty
+                $r.TrailingSlash | Should beNullOrEmpty
             }
         }
         Context 'UNC' {
@@ -694,6 +732,7 @@ InModuleScope ToolFoundations {
                 $r.Segments.Count | Should be 2
                 $r.Segments[0] | Should be 'path'
                 $r.Segments[1] | Should be 'fragment'
+                $r.TrailingSlash | Should be $false
             }
         }
         Context 'UNC No DriveLetter' {
@@ -713,6 +752,7 @@ InModuleScope ToolFoundations {
                 $r.Segments.Count | Should be 2
                 $r.Segments[0] | Should be 'path'
                 $r.Segments[1] | Should be 'fragment'
+                $r.TrailingSlash | Should be $false
             }
         }
         Context 'UNC DomainName Only' {
@@ -728,7 +768,124 @@ InModuleScope ToolFoundations {
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should beNullOrEmpty
                 $r.Segments | Should beNullOrEmpty
+                $r.TrailingSlash | Should be $false
             }
+        }
+    }
+}
+Describe ConvertTo-FilePathString {
+    It 'UNC' {
+        $splat = @{
+            DomainName = 'domain.name'
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString UNC @splat
+        $r | Should be '\\domain.name\c$\path\segments\'
+    }
+    It 'UNC no trailing slash' {
+        $splat = @{
+            DomainName = 'domain.name'
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $false
+        }
+        $r = ConvertTo-FilePathString UNC @splat
+        $r | Should be '\\domain.name\c$\path\segments'
+    }
+    It 'UNC no drive letter' {
+        $splat = @{
+            DomainName = 'domain.name'
+            Segments = 'path','segments'
+            TrailingSlash = $false
+        }
+        $r = ConvertTo-FilePathString UNC @splat
+        $r | Should be '\\domain.name\path\segments'
+    }
+    It 'Windows' {
+        $splat = @{
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString Windows @splat
+        $r | Should be 'c:\path\segments\'
+    }
+    It 'UNC FileUri' {
+        $splat = @{
+            DomainName = 'domain.name'
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString UNC FileUri @splat
+        $r | Should be 'file://domain.name/c$/path/segments/'
+    }
+    It 'Windows FileUri' {
+        $splat = @{
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString Windows FileUri @splat
+        $r | Should be 'file:///c:/path/segments/'
+    }
+    It 'UNC PowerShell' {
+        $splat = @{
+            DomainName = 'domain.name'
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString UNC PowerShell @splat
+        $r | Should be 'FileSystem::\\domain.name\c$\path\segments\'
+    }
+    It 'Windows PowerShell' {
+        $splat = @{
+            DriveLetter = 'c'
+            Segments = 'path','segments'
+            TrailingSlash = $true
+        }
+        $r = ConvertTo-FilePathString Windows PowerShell @splat
+        $r | Should be 'FileSystem::c:\path\segments\'
+    }
+}
+InModuleScope ToolFoundations {
+    Describe 'ConvertTo-FilePathFormat' {
+        Context 'Windows=>UNC' {
+            Mock Write-Error -Verifiable
+            It 'produces correct error.' {
+                $r = 'c:\path' | ConvertTo-FilePathFormat -FilePathType UNC
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'UNC paths require a domain name but Path c:\path does not seem to contain one.'
+                }
+            }
+        }
+        Context 'UNC (no DriveLetter)=>Windows' {
+            Mock Write-Error -Verifiable
+            It 'produces correct error.' {
+                $r = '\\domain.name\local\path' | ConvertTo-FilePathFormat -FilePathType Windows
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Windows paths require a drive letter but Path \\domain.name\local\path does not seem to contain one.'
+                }
+            }
+        }
+        It 'UNC=>Windows' {
+            $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat -FilePathType Windows
+            $r | Should be 'c:\local\path'
+        }
+        It 'UNC=>Windows (FileUri)' {
+            $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat -FilePathType Windows -Scheme FileUri
+            $r | Should be 'file:///c:/local/path'
+        }
+        It 'UNC=>Windows (PowerShell)' {
+            $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat -FilePathType Windows -Scheme PowerShell
+            $r | Should be 'FileSystem::c:\local\path'
         }
     }
 }
