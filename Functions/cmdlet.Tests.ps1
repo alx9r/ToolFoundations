@@ -15,7 +15,7 @@ Describe Get-BoundParams {
                     1 { Get-BoundParams     }
                     2 { & (Get-BoundParams) }
                     3 { & (gbpm)            }
-                    4 { & (gbpm -in )       }
+                    4 { & (gbpm -IncludeCommonParameters ) }
                 }
             }
         }
@@ -73,7 +73,7 @@ InModuleScope ToolFoundations {
             {
                 [CmdletBinding()]
                 param()
-                process{&(gbpm -in)}
+                process{&(gbpm -IncludeCommonParameters )}
             }
         }
         AfterAll {
