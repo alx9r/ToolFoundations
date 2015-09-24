@@ -117,6 +117,8 @@ Describe Test-FilePathForTrailingSlash {
         'path' | Test-FilePathForTrailingSlash | Should be $false
         '/path' | Test-FilePathForTrailingSlash | Should be $false
         'path\/' | Test-FilePathForTrailingSlash | Should be $true
+        [string]::Empty | Test-FilePathForTrailingSlash | Should be $false
+        '' | Test-FilePathForTrailingSlash | Should be $false
     }
 }
 Describe ConvertTo-FilePathWithoutPrefix {
@@ -298,6 +300,22 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+        Context 'too long' {
+            Mock ConvertTo-FilePathWithoutPrefix {$Path}
+            Mock Test-ValidDriveLetter {$true}
+            Mock Test-ValidFilePathFragment {$true}
+            It 'fails at the correct edge case.' {
+                $s = 'c:\3456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+                '\123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+                '\123456789012345678901234567890123456789012345678901234'
+                $r = $s | Test-ValidWindowsFilePath
+                $r | Should be $true
+
+                $s+='5'
+                $r = $s | Test-ValidWindowsFilePath
+                $r | Should be $false
+            }
+        }
         Context 'not Windows Path' {
             Mock ConvertTo-FilePathWithoutPrefix {'not a real path'}
             It 'returns false.' {
@@ -381,16 +399,16 @@ InModuleScope ToolFoundations {
         It 'produces correct results.' {
             'file://domain.name/c$/path/fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
             'file://domain.name/c$/path/fragment' | Get-PartOfUncPath DriveLetter | Should be 'c'
-            'file://domain.name/c$/path/fragment' | Get-PartOfUncPath Path | Should be '/path/fragment'
+            'file://domain.name/c$/path/fragment' | Get-PartOfUncPath LocalPath | Should be '/path/fragment'
             'file://domain.name/path/fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
             'file://domain.name/path/fragment' | Get-PartOfUncPath DriveLetter | Should be $false
-            'file://domain.name/path/fragment' | Get-PartOfUncPath Path | Should be '/path/fragment'
+            'file://domain.name/path/fragment' | Get-PartOfUncPath LocalPath | Should be '/path/fragment'
             'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
             'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath DriveLetter | Should be 'c'
-            'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath Path | Should be '\path\fragment'
+            'FileSystem::\\domain.name\c$\path\fragment' | Get-PartOfUncPath LocalPath | Should be '\path\fragment'
             'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath DomainName | Should be 'domain.name'
             'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath DriveLetter | Should be $false
-            'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath Path | Should be '\path\fragment'
+            'FileSystem::\\domain.name\path\fragment' | Get-PartOfUncPath LocalPath | Should be '\path\fragment'
         }
     }
     Describe 'Get-PartOfUncPath DomainName' {
@@ -431,35 +449,35 @@ InModuleScope ToolFoundations {
             }
         }
     }
-    Describe 'Get-PartOfUncPath Path'{
+    Describe 'Get-PartOfUncPath LocalPath'{
         Context 'correct results' {
             Mock ConvertTo-FilePathWithoutPrefix {$Path}
             It 'produces correct results' {
-                '\\domain' | Get-PartOfUncPath Path | Should be $false
-                '\\domain\c$' | Get-PartOfUncPath Path | Should be $false
-                '\\domain\c$\' | Get-PartOfUncPath Path | Should be '\'
-                '\\domain\c$/' | Get-PartOfUncPath Path | Should be '/'
-                '\\domain/c$/' | Get-PartOfUncPath Path | Should be '/'
-                '\\domain\c$\path' | Get-PartOfUncPath Path | Should be '\path'
-                '\\domain\c$\path\frag' | Get-PartOfUncPath Path | Should be '\path\frag'
-                '\\domain\c$\c$' | Get-PartOfUncPath Path | Should be '\c$'
-                '\\domain' | Get-PartOfUncPath Path | Should be $false
-                '\\domain\' | Get-PartOfUncPath Path | Should be '\'
-                '\\domain/' | Get-PartOfUncPath Path | Should be '/'
-                '\\domain\path' | Get-PartOfUncPath Path | Should be '\path'
-                '\\domain\path\frag' | Get-PartOfUncPath Path | Should be '\path\frag'
-                '//domain/c$' | Get-PartOfUncPath Path | Should be $false
-                '//domain/c$/' | Get-PartOfUncPath Path | Should be '/'
-                '//domain/c$\' | Get-PartOfUncPath Path | Should be '\'
-                '//domain\c$\' | Get-PartOfUncPath Path | Should be '\'
-                '//domain/c$/path' | Get-PartOfUncPath Path | Should be '/path'
-                '//domain/c$/path/frag' | Get-PartOfUncPath Path | Should be '/path/frag'
-                '//domain/c$/c$' | Get-PartOfUncPath Path | Should be '/c$'
-                '//domain' | Get-PartOfUncPath Path | Should be $false
-                '//domain/' | Get-PartOfUncPath Path | Should be '/'
-                '//domain\' | Get-PartOfUncPath Path | Should be '\'
-                '//domain/path' | Get-PartOfUncPath Path | Should be '/path'
-                '//domain/path/frag' | Get-PartOfUncPath Path | Should be '/path/frag'
+                '\\domain' | Get-PartOfUncPath LocalPath | Should be $false
+                '\\domain\c$' | Get-PartOfUncPath LocalPath | Should be $false
+                '\\domain\c$\' | Get-PartOfUncPath LocalPath | Should be '\'
+                '\\domain\c$/' | Get-PartOfUncPath LocalPath | Should be '/'
+                '\\domain/c$/' | Get-PartOfUncPath LocalPath | Should be '/'
+                '\\domain\c$\path' | Get-PartOfUncPath LocalPath | Should be '\path'
+                '\\domain\c$\path\frag' | Get-PartOfUncPath LocalPath | Should be '\path\frag'
+                '\\domain\c$\c$' | Get-PartOfUncPath LocalPath | Should be '\c$'
+                '\\domain' | Get-PartOfUncPath LocalPath | Should be $false
+                '\\domain\' | Get-PartOfUncPath LocalPath | Should be '\'
+                '\\domain/' | Get-PartOfUncPath LocalPath | Should be '/'
+                '\\domain\path' | Get-PartOfUncPath LocalPath | Should be '\path'
+                '\\domain\path\frag' | Get-PartOfUncPath LocalPath | Should be '\path\frag'
+                '//domain/c$' | Get-PartOfUncPath LocalPath | Should be $false
+                '//domain/c$/' | Get-PartOfUncPath LocalPath | Should be '/'
+                '//domain/c$\' | Get-PartOfUncPath LocalPath | Should be '\'
+                '//domain\c$\' | Get-PartOfUncPath LocalPath | Should be '\'
+                '//domain/c$/path' | Get-PartOfUncPath LocalPath | Should be '/path'
+                '//domain/c$/path/frag' | Get-PartOfUncPath LocalPath | Should be '/path/frag'
+                '//domain/c$/c$' | Get-PartOfUncPath LocalPath | Should be '/c$'
+                '//domain' | Get-PartOfUncPath LocalPath | Should be $false
+                '//domain/' | Get-PartOfUncPath LocalPath | Should be '/'
+                '//domain\' | Get-PartOfUncPath LocalPath | Should be '\'
+                '//domain/path' | Get-PartOfUncPath LocalPath | Should be '/path'
+                '//domain/path/frag' | Get-PartOfUncPath LocalPath | Should be '/path/frag'
             }
         }
     }
@@ -479,14 +497,14 @@ InModuleScope ToolFoundations {
         It 'produces correct results.' {
             'file:///c:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
             'file:///c:path.txt' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
-            'file:///c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
-            'file:///c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
+            'file:///c:/path' | Get-PartOfWindowsPath LocalPath | Should be '/path'
+            'file:///c:path.txt' | Get-PartOfWindowsPath LocalPath | Should be 'path.txt'
             'c:\path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
             'c:/path' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
             'c:path.txt' | Get-PartOfWindowsPath DriveLetter | Should be 'c'
-            'c:\path' | Get-PartOfWindowsPath Path | Should be '\path'
-            'c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
-            'c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
+            'c:\path' | Get-PartOfWindowsPath LocalPath | Should be '\path'
+            'c:/path' | Get-PartOfWindowsPath LocalPath | Should be '/path'
+            'c:path.txt' | Get-PartOfWindowsPath LocalPath | Should be 'path.txt'
         }
     }
     Describe 'Get-PartOfWindowsPath DriveLetter'{
@@ -509,20 +527,20 @@ InModuleScope ToolFoundations {
             }
         }
     }
-    Describe 'Get-PartOfWindowsPath Path' {
+    Describe 'Get-PartOfWindowsPath LocalPath' {
         Context 'correct results' {
             Mock ConvertTo-FilePathWithoutPrefix {$Path}
             It 'produces correct results' {
-                'c$path' | Get-PartOfWindowsPath Path | Should be $false
-                'c.path' | Get-PartOfWindowsPath Path | Should be $false
-                'c:' | Get-PartOfWindowsPath Path | Should be $false
-                'c:\' | Get-PartOfWindowsPath Path | Should be '\'
-                'c:/' | Get-PartOfWindowsPath Path | Should be '/'
-                'c:path' | Get-PartOfWindowsPath Path | Should be 'path'
-                'c:\path' | Get-PartOfWindowsPath Path | Should be '\path'
-                'c:/path' | Get-PartOfWindowsPath Path | Should be '/path'
-                'c:path.txt' | Get-PartOfWindowsPath Path | Should be 'path.txt'
-                'c:\path\fragment' | Get-PartOfWindowsPath Path | Should be '\path\fragment'
+                'c$path' | Get-PartOfWindowsPath LocalPath | Should be $false
+                'c.path' | Get-PartOfWindowsPath LocalPath | Should be $false
+                'c:' | Get-PartOfWindowsPath LocalPath | Should be $false
+                'c:\' | Get-PartOfWindowsPath LocalPath | Should be '\'
+                'c:/' | Get-PartOfWindowsPath LocalPath | Should be '/'
+                'c:path' | Get-PartOfWindowsPath LocalPath | Should be 'path'
+                'c:\path' | Get-PartOfWindowsPath LocalPath | Should be '\path'
+                'c:/path' | Get-PartOfWindowsPath LocalPath | Should be '/path'
+                'c:path.txt' | Get-PartOfWindowsPath LocalPath | Should be 'path.txt'
+                'c:\path\fragment' | Get-PartOfWindowsPath LocalPath | Should be '\path\fragment'
             }
         }
     }
@@ -632,7 +650,7 @@ InModuleScope ToolFoundations {
                 'path' | ConvertTo-FilePathObject
 
                 Assert-MockCalled Get-PartOfWindowsPath -Times 1 {
-                    $PartName -eq 'Path' -and
+                    $PartName -eq 'LocalPath' -and
                     $Path -eq 'path'
                 }
                 Assert-MockCalled Get-PartOfWindowsPath -Times 1 {
@@ -652,7 +670,7 @@ InModuleScope ToolFoundations {
                     $Path -eq 'path'
                 }
                 Assert-MockCalled Get-PartOfUncPath -Times 1 {
-                    $PartName -eq 'Path' -and
+                    $PartName -eq 'LocalPath' -and
                     $Path -eq 'path'
                 }
                 Assert-MockCalled Get-PartOfUncPath -Times 1 {
@@ -667,7 +685,7 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
                 return 'path/fragment'
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -686,7 +704,7 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
                 return 'path/fragment/'
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -704,7 +722,7 @@ InModuleScope ToolFoundations {
             Mock Get-PartOfWindowsPath {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -722,7 +740,7 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
                 return 'path/fragment'
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -742,7 +760,7 @@ InModuleScope ToolFoundations {
                 if ( $PartName -eq 'DriveLetter' ) { return }
                 return 'path/fragment'
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -760,7 +778,7 @@ InModuleScope ToolFoundations {
             Mock Get-PartOfUncPath {
                 if ( $PartName -eq 'DomainName' )  { return 'domain.name' }
             }
-            It 'returns correct hashtable.' {
+            It 'returns correct object.' {
                 $r = 'path' | ConvertTo-FilePathObject
 
                 $r -is [psobject] | Should be $true
@@ -768,7 +786,7 @@ InModuleScope ToolFoundations {
                 $r.DriveLetter | Should beNullOrEmpty
                 $r.LocalPath  | Should beNullOrEmpty
                 $r.Segments | Should beNullOrEmpty
-                $r.TrailingSlash | Should be $false
+                $r.TrailingSlash | Should beNullOrEmpty
             }
         }
     }
