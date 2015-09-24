@@ -5,7 +5,7 @@
 ToolFoundations is a collection of PowerShell helper functions that I commonly use when writing other Powershell cmdlets in Powershell.
 
 ### Cmdlet Parameters and Cascading
-Out-of-the-box, accessing and cascading bound and common parameters of a Cmdlet is rather verbose.  To overcome this I use two Cmdlets:
+Out-of-the-box, accessing and cascading bound and common parameters of a Cmdlet is rather verbose.  To overcome this I use two Cmdlets from ToolFoundations:
 
 * [`Get-BoundParams`](./Functions/cmdlet.ps1) - a terse way to get the current cmdlet's bound parameters.
 * [`Get-CommonParams`](./Functions/cmdlet.ps1) - a terse way to reliably cascade common parameters (like `-Verbose`) from one cmdlet to another
@@ -43,20 +43,25 @@ Third, the alias `gbpm` is a terse way to determine whether an optional paramete
 ````
 ### Pipeline Unrolling
 
-[`Out-Collection`](./Functions/collection.ps1) reliably transmits collections through the PowerShell pipeline without loop unrolling
+[The rules that PowerShell uses to decide whether to unroll a collection](https://stackoverflow.com/q/28702588/1404637) in the pipeline [are arcane](https://stackoverflow.com/questions/28702588/in-what-conditions-does-powershell-unroll-items-in-the-pipeline#comment45704300_28707054).  Occasionally it is important to ensure that a collection is not unrolled in the PowerShell pipeline.  This requires selectively wrapping the collection in a sacrificial wrapper.  The tough part is knowing when, in general, to add a sacrificial wrapper.  That requires some trial-and-error- to get right.  That trial-and-error [has been done](https://stackoverflow.com/a/28707054/1404637) and the logic that selectively wraps a collection at just the right times is contained in [`Out-Collection`](./Functions/collection.ps1).  The result is the `Out-Collection` reliably transmits collections through the PowerShell pipeline without loop unrolling
 
 ### Better Behaved Common Cmdlets
+
+Some commonly-used Cmdlets exhibiting surprising or undesirable behavior and are re-implemented or wrapped in ToolFoundations:  
 * [`Compare-Object2`](./Functions/compareObject2.ps1) - like `Compare-Object` but accepts Null without throwing and keeps `Passthru` objects separate instead of merging them into a single one-dimensional array
 * [`Invoke-Ternary`](./Functions/invoke.ps1) - the `?:` operator with behavior enforced by unit tests
 
 ### Delayed String Interpolation
-* [`Expand-String`](./Functions/string.ps1) - terse delayed expansion of variables in strings
+Terse delayed string interpolation is [surprisingly unintuitive to implement](https://stackoverflow.com/q/28616274/1404637).  [`Expand-String`](./Functions/string.ps1) is an implementation of terse delayed expansion of variables in strings.
 
-### Pipelineable Regex Cmdlets 
+### Pipelineable Regex Cmdlets
+.NET has great Regex support.  ToolFoundations contains a couple Cmdlets that wrap that API in PowerShell-friendly pipelineable form:
 * [`ConvertTo-RegexEscapedString`](./Functions/regex.ps1) - a pipelinable wrapper for the .NET `Regex.Escape` method
 * [`Test-ValidRegex`](./Functions/regex.ps1) - a PowerShell implementation of [the generally-accepted method for validating regex using .NET](https://stackoverflow.com/a/1775017/1404637)
 
-### File Path Conversion and Validation
+### Path Validation
+PowerShell parameters are often path strings like file names, drive letters, and domain names.  These have to have certain properties to be valid.  The ToolFoundations includes the following functions that test for validity:
+
 * [`Test-ValidDomainName`](./Functions/domainName.ps1) - a PowerShell implementation of [the generally-accepted method for regex validation of a domain name](http://stackoverflow.com/a/20204811/1404637)
 * [`Test-ValidDriveLetter`](./Functions/path.ps1) - regex validation of windows drive letters
 * [`Test-ValidFileName`](./Functions/path.ps1) - regex validation of windows file names
