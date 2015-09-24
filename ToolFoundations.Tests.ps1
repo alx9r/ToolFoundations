@@ -118,4 +118,26 @@ Describe 'Style rules' {
             throw "The following files do not end with a newline: `r`n`r`n$($badFiles -join "`r`n")"
         }
     }
+    It 'doesn''t contain new operators.' {
+        $badLines = @(
+            foreach ($file in $files)
+            {
+                $lines = [System.IO.File]::ReadAllLines($file.FullName)
+                $lineCount = $lines.Count
+
+                for ($i = 0; $i -lt $lineCount; $i++)
+                {
+                    if ($lines[$i] -match '( -in | -notin | -shr | -shl )')
+                    {
+                        'File: {0}, Line: {1}' -f $file.FullName, ($i + 1)
+                    }
+                }
+            }
+        )
+
+        if ($badLines.Count -gt 0)
+        {
+            throw "The following $($badLines.Count) lines contain operators introduced after PowerShell 2.0 (e.g. in, notin, shr, shl)  : `r`n`r`n$($badLines -join "`r`n")"
+        }
+    }
 }
