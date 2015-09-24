@@ -43,7 +43,7 @@ Third, the alias `gbpm` is a terse way to determine whether an optional paramete
 ````
 ### Pipeline Unrolling
 
-[The rules that PowerShell uses to decide whether to unroll a collection](https://stackoverflow.com/q/28702588/1404637) in the pipeline [are arcane](https://stackoverflow.com/questions/28702588/in-what-conditions-does-powershell-unroll-items-in-the-pipeline#comment45704300_28707054).  Occasionally it is important to ensure that a collection is not unrolled in the PowerShell pipeline.  This requires selectively wrapping the collection in a sacrificial wrapper.  The tough part is knowing when, in general, to add a sacrificial wrapper.  That requires some trial-and-error- to get right.  That trial-and-error [has been done](https://stackoverflow.com/a/28707054/1404637) and the logic that selectively wraps a collection at just the right times is contained in [`Out-Collection`](./Functions/collection.ps1).  The result is the `Out-Collection` reliably transmits collections through the PowerShell pipeline without loop unrolling
+[The rules that PowerShell uses to decide whether to unroll a collection](https://stackoverflow.com/q/28702588/1404637) in the pipeline [are arcane](https://stackoverflow.com/questions/28702588/in-what-conditions-does-powershell-unroll-items-in-the-pipeline#comment45704300_28707054).  Occasionally it is important to ensure that a collection is not unrolled in the PowerShell pipeline.  This requires selectively wrapping the collection in a sacrificial wrapper.  The tough part is knowing when, in general, to add a sacrificial wrapper.  That requires some trial-and-error to get right.  That trial-and-error [has already been done](https://stackoverflow.com/a/28707054/1404637) and the logic that selectively wraps a collection at just the right times is contained in the [`Out-Collection` Cmdlet](./Functions/collection.ps1).  `Out-Collection` reliably transmits collections through the PowerShell pipeline without loop unrolling
 
 ### Better Behaved Common Cmdlets
 
@@ -60,12 +60,38 @@ Terse delayed string interpolation is [surprisingly unintuitive to implement](ht
 * [`Test-ValidRegex`](./Functions/regex.ps1) - a PowerShell implementation of [the generally-accepted method for validating regex using .NET](https://stackoverflow.com/a/1775017/1404637)
 
 ### Path Validation
-PowerShell parameters are often path strings like file names, drive letters, and domain names.  These have to have certain properties to be valid.  The ToolFoundations includes the following functions that test for validity:
+PowerShell parameters are often path strings like file names, drive letters, and domain names.  These have to have certain properties to be valid.  ToolFoundations includes the following functions that test for validity:
 
 * [`Test-ValidDomainName`](./Functions/domainName.ps1) - a PowerShell implementation of [the generally-accepted method for regex validation of a domain name](http://stackoverflow.com/a/20204811/1404637)
-* [`Test-ValidDriveLetter`](./Functions/path.ps1) - regex validation of windows drive letters
-* [`Test-ValidFileName`](./Functions/path.ps1) - regex validation of windows file names
-* [`Test-ValidPathFragment`](./Functions/path.ps1) - validation of path fragments
+* [`Test-ValidDriveLetter`](./Functions/filePath.ps1) - regex validation of windows drive letters
+* [`Test-ValidFileName`](./Functions/filePath.ps1) - regex validation of windows file names
+* [`Test-ValidPathFragment`](./Functions/filePath.ps1) - validation of path fragments
+* [`Test-ValidWindowsFilePath`](./Functions/filePath.ps1) - validation of Windows file paths
+* [`Test-ValidUncFilePath`](./Functions/filePath.ps1) - validation of UNC file paths
+
+### Path Conversion and Manipulation
+Different tools and APIs produce and accept a rather wide variety of file path formats.  ToolFoundations i[ncludes a variety of Cmdlets](./Functions/filePath.ps1) to manipulate file paths and change their format.  The most powerful Cmdlets for this are `ConvertTo-FilePathObject`, `ConvertTo-FilePathString`, and `ConvertTo-FilePathFormat`.  With those, you can do one line conversions like this:
+
+````PowerShell
+PS c:\> '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat
+c:\local\path
+````
+
+...and this:
+
+````PowerShell
+PS c:\> '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows PowerShell
+FileSystem::c:\local\path
+````
+
+You can also manipulate paths by simply changing properties on an object:
+
+````PowerShell
+PS c:\> $object = 'c:\local\path' | ConvertTo-FilePathObject
+PS c:\> $object.Segments += 'file.txt'
+PS c:\> $object | ConvertTo-FilePathString Windows PowerShell
+FileSystem::c:\local\path\file.txt
+````
 
 ## Compatibility
 
