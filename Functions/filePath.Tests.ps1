@@ -385,6 +385,39 @@ InModuleScope ToolFoundations {
     }
 }
 InModuleScope ToolFoundations {
+    Describe Test-ValidFilePath {
+        Context 'subtests' {
+            Mock Test-ValidUncFilePath -Verifiable {$false}
+            Mock Test-ValidWindowsFilePath -Verifiable {$false}
+            It 'invokes test functions.' {
+                'path' | Test-ValidFilePath
+
+                Assert-MockCalled Test-ValidUncFilePath -Times 1 {
+                    $Path -eq  'path'
+                }
+                Assert-MockCalled Test-ValidWindowsFilePath -Times 1 {
+                    $Path -eq  'path'
+                }
+            }
+        }
+        Context 'success' {
+            Mock Test-ValidUncFilePath {$true}
+            It 'returns true.' {
+                $r = 'path' | Test-ValidFilePath
+                $r | Should be $true
+            }
+        }
+        Context 'failure' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'returns false.' {
+                $r = 'path' | Test-ValidFilePath
+                $r | Should be $false
+            }
+        }
+    }
+}
+InModuleScope ToolFoundations {
     Describe Get-PartOfUncPath {
         Context 'strips prefix' {
             Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'not UNC path'}
