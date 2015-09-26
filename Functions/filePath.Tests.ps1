@@ -1080,7 +1080,7 @@ InModuleScope ToolFoundations {
     }
 }
 InModuleScope ToolFoundations {
-    Describe 'Join-Path2' {
+    Describe 'Join-FilePath' {
         Context 'converts to object' {
             Mock ConvertTo-FilePathObject -Verifiable {
                 New-Object PSObject -Property @{
@@ -1089,7 +1089,7 @@ InModuleScope ToolFoundations {
                 }
             }
             It 'invokes conversion for first element only' {
-                'element1','element2' | Join-Path2
+                'element1','element2' | Join-FilePath
 
                 Assert-MockCalled ConvertTo-FilePathObject -Times 1 -Exactly {
                     $Path -eq 'element1'
@@ -1099,7 +1099,7 @@ InModuleScope ToolFoundations {
         Context 'tests for trailing slash' {
             Mock Test-FilePathForTrailingSlash -Verifiable {$true}
             It 'invokes test' {
-                'element1','element2' | Join-Path2
+                'element1','element2' | Join-FilePath
 
                 Assert-MockCalled Test-FilePathForTrailingSlash -Times 1 -Exactly {
                     $Path -eq 'element2'
@@ -1107,29 +1107,29 @@ InModuleScope ToolFoundations {
             }
         }
         It 'extracts the correct slash type for unknown filepath types.' {
-            $r = 'this\resolves','to/backslashes' | Join-Path2
+            $r = 'this\resolves','to/backslashes' | Join-FilePath
             $r | Should be 'this\resolves\to\backslashes'
-            $r = 'this/resolves','to/forwardslashes' | Join-Path2
+            $r = 'this/resolves','to/forwardslashes' | Join-FilePath
             $r | Should be 'this/resolves/to/forwardslashes'
         }
         It 'joins path (1)' {
-            $r = 'a','b' | Join-Path2
+            $r = 'a','b' | Join-FilePath
             $r | Should be 'a\b'
         }
         It 'joins path (2)' {
-            $r = 'c:\path','segments' | Join-Path2
+            $r = 'c:\path','segments' | Join-FilePath
             $r | Should be 'c:\path\segments'
         }
         It 'joins path (3)' {
-            $r = 'file:///c:','path\segments' | Join-Path2
+            $r = 'file:///c:','path\segments' | Join-FilePath
             $r | Should be 'file:///c:/path/segments'
         }
         It 'joins path (4)' {
-            $r = 'c:','path\' | Join-Path2
+            $r = 'c:','path\' | Join-FilePath
             $r | Should be 'c:\path\'
         }
         It 'joins path (5)' {
-            $r = '\\domain.name','path\','segment/' | Join-Path2
+            $r = '\\domain.name','path\','segment/' | Join-FilePath
             $r | Should be '\\domain.name\path\segment\'
         }
     }

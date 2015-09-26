@@ -1065,7 +1065,7 @@ A string of the file path string if conversion is successful. False otherwise.
         return $Path | ConvertTo-FilePathObject | ConvertTo-FilePathString @splat
     }
 }
-function Join-Path2
+function Join-FilePath
 {
     [CmdletBinding()]
     param
