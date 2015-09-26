@@ -1029,7 +1029,7 @@ InModuleScope ToolFoundations {
                 TrailingSlash = $true
             }
             $r = ConvertTo-FilePathString Windows LongPowerShell @splat
-            $r | Should be 'Microsoft.PowerShell.Core\FileSystem::c:\path\segments\'           
+            $r | Should be 'Microsoft.PowerShell.Core\FileSystem::c:\path\segments\'
         }
         It 'unknown' {
             $splat = @{

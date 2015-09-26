@@ -659,7 +659,7 @@ function Get-PathDelimiter
     {
         $mask = '^[^\\\/]*(?<result>[\\\/])'
         ([regex]::Match($Path,$mask)).Groups['result'].Value
-    }    
+    }
 }
 function ConvertTo-FilePathObject
 {
@@ -740,7 +740,7 @@ This example demonstrates adding a filename to the path by way of manipulating t
                 Scheme = $scheme
             }
         }
-        
+
         $r = @{
             OriginalString = $Path
             Segments = $Path | Split-FilePathFragment
@@ -752,13 +752,13 @@ This example demonstrates adding a filename to the path by way of manipulating t
         {
             $r.Scheme = $scheme
         }
-        
+
         $delimiter = $Path | Get-PathDelimiter
         if ($delimiter)
         {
             $r.Delimiter = $delimiter
         }
-        
+
         return New-Object PSObject -Property $r
     }
 }
@@ -924,7 +924,7 @@ This example show how you can convert a plain-old Windows path to the path of an
             Write-Error "A Delimiter was provided for known FilePathType $FilePathType."
             return $false
         }
-            
+
         $slash = '\'
         if ( $Scheme -eq 'FileUri' )
         {
