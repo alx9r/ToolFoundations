@@ -1,4 +1,13 @@
-﻿function Test-ValidDriveLetter
+﻿<#
+.SYNOPSIS
+Determine whether a file path is Windows or UNC.
+
+.DESCRIPTION
+Get-FilePathType detects whether Path is a Windows or UNC path and outputs a string accordingly.
+
+.OUTPUTS
+"UNC" if Path is a UNC path. "Windows" if Path is a Windows path.  "ambiguous" or "unknown" otherwise.
+#>function Test-ValidDriveLetter
 {
 <#
 .SYNOPSIS
@@ -272,9 +281,30 @@ Path with prefix removed.
 }
 function Get-FilePathScheme
 {
+<#
+.SYNOPSIS
+Determine whether a file path uses a plain, PowerShell, or URI "scheme".
+
+.DESCRIPTION
+Get-FilePathScheme detects whether Path uses a plain, PowerShell, LongPowerShell, or FileUri "scheme" and outputs a string accordingly. Get-FilePathScheme accepts formatting "schemes" as follows:
+
+    Scheme         | Examples
+    ---------------+---------------------
+    plain          | c:\local\path,
+                   | \\domain.name\c$\local\path
+    FileUri        | file:///c:/local/path
+                   | file://domain.name/c$/local/path
+    PowerShell     | FileSystem::c:\local\path
+                   | FileSystem::\\domain.name\c$\local\path
+    LongPowerShell | Microsoft.PowerShell.Core\FileSystem::c:\local\path
+
+.OUTPUTS
+"plain", "FileUri", "PowerShell", or "LongPowerShell" if the "scheme" is identified.  "unknown" otherwise.
+#>
     [CmdletBinding()]
     param
     (
+        # The path whose scheme to detect.
         [parameter(mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipeline               = $true,
@@ -642,8 +672,18 @@ Get-FilePathType detects whether Path is a Windows or UNC path and outputs a str
         return 'unknown'
     }
 }
-function Get-PathDelimiter
+function Get-FilePathDelimiter
 {
+<#
+.SYNOPSIS
+Detect the delimiter used to separate path segments.
+
+.DESCRIPTION
+Get-FilePathDelimiter detects whether Path uses backward or forward slashes to separate path segments.  It makes this decision by detecting the first slash in Path.
+
+.OUTPUTS
+"/" if the first slash in Path is a forward slash, "\" if it is a backward slash, empty string otherwise.
+#>
     [CmdletBinding()]
     param
     (
@@ -668,13 +708,17 @@ function ConvertTo-FilePathObject
 Convert a file path string to an object.
 
 .DESCRIPTION
-ConvertTo-FilePathObject converts a Windows or UNC path string to an object representing its constituent parts.  Those constituent parts can then be manipulated on the object and converted to a new path string using ConvertTo-FilePathString.  ConvertTo-FilePathObject accepts formatting schemes as follows:
+ConvertTo-FilePathObject converts a Windows or UNC path string to an object representing its constituent parts.  Those constituent parts can then be manipulated on the object and converted to a new path string using ConvertTo-FilePathString.  ConvertTo-FilePathObject accepts formatting "schemes" as follows:
 
-    Scheme     | Examples
-    -----------+---------------------
-    none       | c:\local\path, \\domain.name\c$\local\path
-    URI        | file:///c:/local/path, file://domain.name/c$/local/path
-    PowerShell | FileSystem::c:\local\path, FileSystem:\\domain.name\c$\local\path
+    Scheme         | Examples
+    ---------------+---------------------
+    plain          | c:\local\path,
+                   | \\domain.name\c$\local\path
+    FileUri        | file:///c:/local/path
+                   | file://domain.name/c$/local/path
+    PowerShell     | FileSystem::c:\local\path
+                   | FileSystem::\\domain.name\c$\local\path
+    LongPowerShell | Microsoft.PowerShell.Core\FileSystem::c:\local\path
 
 The objects produced by ConvertTo-FilePathObject are deliberately designed to match the input parameters of ConvertTo-FilePathString to support pipelining.  See the examples.
 
@@ -694,6 +738,10 @@ An object representing the constituent parts of Path if Path is a recognized for
     # FileSystem::c:\local\path\file.txt
 
 This example demonstrates adding a filename to the path by way of manipulating the Segments property on the resultant object.  The object is then converted to a Windows file path formatted as a PowerShell path.
+.EXAMPLE
+    'file:///c:/path' | ConvertTo-FilePathObject | ConvertTo-FilePathString -Scheme PowerShell
+    # FileSystem::c:\path
+This example demonstrates how the output of ConvertTo-FilePathObject matches the parameters of ConvertTo-FilePathString.  This means that you can use the PowerShell's pipeline parameter binding semantics to convert from one scheme to another.
 .LINK
     ConvertTo-FilePathObject
     Test-ValidFilePathObject
@@ -753,7 +801,7 @@ This example demonstrates adding a filename to the path by way of manipulating t
             $r.Scheme = $scheme
         }
 
-        $delimiter = $Path | Get-PathDelimiter
+        $delimiter = $Path | Get-FilePathDelimiter
         if ($delimiter)
         {
             $r.Delimiter = $delimiter
@@ -815,16 +863,19 @@ function ConvertTo-FilePathString
 Convert to a file path strings of a specified format.
 
 .DESCRIPTION
-ConvertTo-FilePathString converts a bunch of parameters to Windows and UNC "file path types" formatted using URI and PowerShell "schemes".  The six formatting possibilities are as follows:
+ConvertTo-FilePathString converts a bunch of parameters to Windows and UNC "file path types" formatted using URI and PowerShell "schemes".  The eight formatting possibilities are as follows:
 
- FilePathType | Scheme     | Example
- -------------+------------+-----------------------------------------
- Windows                     c:\local\path
- Windows        FileUri      file:///c:/local/path
- Windows        PowerShell   FileSystem::c:\local\path
- UNC                         \\domain.name\c$\local\path
- UNC            FileUri      file://domain.name/c$/local/path
- UNC            PowerShell   FileSystem::\\domain.name\c$\local\path
+ FilePathType | Scheme         | Example
+ -------------+----------------+-------------------------------------------------------------------
+ Windows        plain            c:\local\path
+ Windows        FileUri          file:///c:/local/path
+ Windows        PowerShell       FileSystem::c:\local\path
+ Windows        LongPowerShell   Microsoft.PowerShell.Core\FileSystem::\c:\path
+ UNC            plain            \\domain.name\c$\local\path
+ UNC            FileUri          file://domain.name/c$/local/path
+ UNC            PowerShell       FileSystem::\\domain.name\c$\local\path
+ UNC            LongPowerShell   Microsoft.PowerShell.Core\FileSystem::\\domain.name\c$\local\path
+
 
 Conversion to any combination of FilePathType and Scheme is supported provided all elements required to compose the output string are provided as parameters.
 
@@ -983,16 +1034,19 @@ function ConvertTo-FilePathFormat
 Convert file path strings from one format to another.
 
 .DESCRIPTION
-ConvertTo-FilePathFormat converts between Windows and UNC "file path types" formatted using URI and PowerShell "schemes".  The six possibilities are as follows:
+ConvertTo-FilePathFormat converts between Windows and UNC "file path types" formatted using URI and PowerShell "schemes".  The eight formatting possibilities are as follows:
 
- FilePathType | Scheme     | Example
- -------------+------------+-----------------------------------------
- Windows                     c:\local\path
- Windows        FileUri      file:///c:/local/path
- Windows        PowerShell   FileSystem::c:\local\path
- UNC                         \\domain.name\c$\local\path
- UNC            FileUri      file://domain.name/c$/local/path
- UNC            PowerShell   FileSystem::\\domain.name\c$\local\path
+ FilePathType | Scheme         | Example
+ -------------+----------------+-------------------------------------------------------------------
+ Windows        plain            c:\local\path
+ Windows        FileUri          file:///c:/local/path
+ Windows        PowerShell       FileSystem::c:\local\path
+ Windows        LongPowerShell   Microsoft.PowerShell.Core\FileSystem::\c:\path
+ UNC            plain            \\domain.name\c$\local\path
+ UNC            FileUri          file://domain.name/c$/local/path
+ UNC            PowerShell       FileSystem::\\domain.name\c$\local\path
+ UNC            LongPowerShell   Microsoft.PowerShell.Core\FileSystem::\\domain.name\c$\local\path
+
 
 Conversion between any combination of FilePathType and Scheme is supported provided all elements required to compose the output string can be extracted from Path.  For example, "\\domain.name\c$\local\path" can be converted to "c:\local\path".  The reverse conversion cannot be made using ConvertTo-FilePathFormat because there is no domain name in "c:\local\path".  See ConvertTo-FilePathString for an example of converting "c:\local\path" to "\\domain.name\c$\local\path" by injecting the domain.name into the conversion.
 
@@ -1014,8 +1068,7 @@ A string of the file path string if conversion is successful. False otherwise.
     param
     (
         # The file path type to convert Path to.
-        [parameter(mandatory                       = $true,
-                   position                        = 1,
+        [parameter(position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('Windows','UNC')]
         [string]
@@ -1024,7 +1077,7 @@ A string of the file path string if conversion is successful. False otherwise.
         # The formatting scheme to convert Path to.
         [parameter(position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('FileUri','PowerShell')]
+        [ValidateSet('FileUri','PowerShell','LongPowerShell','plain')]
         [string]
         $Scheme,
 
@@ -1067,11 +1120,44 @@ A string of the file path string if conversion is successful. False otherwise.
 }
 function Join-FilePath
 {
+<#
+.SYNOPSIS
+Joins file path elements.
+
+.DESCRIPTION
+Join-FilePath joins the file path Elements piped to it.  Elements are examined and manipulated as follows:
+
+    * The first Element is decomposed to object form by ConvertTo-FilePathObject and form the basis of the output Path.  This means that path-wide properties like whether the path will be output as a plain or PowerShell path are determined from the first element.
+    * All Elements are split using Split-FilePathFragment to determine the path segments.
+    * The last element is inspected for a trailing slash using Test-FilePathForTrailingSlash to determine whether the output will have a trailing slash.
+
+Join-FilePath does not resolve paths so that resolution of joined paths can be delayed until after subsequent manipulation.
+
+Join-FilePath does test file path segments, domain names, or drive letters for validity because those characters may be substituted by further string manipulation prior to use.  Use Test-ValidFilePath to test for validity.
+
+.OUTPUTS
+The path representing the joining of all Elements in the pipeline.
+
+.EXAMPLE
+    'a','b' | Join-FilePath
+    # a\b
+.EXAMPLE
+    'c:\path','segments' | Join-FilePath
+    # c:\path\segments
+.EXAMPLE
+    'file:///c:','path\segments' | Join-FilePath
+    # file:///c:/path/segments
+.EXAMPLE
+    '\\domain.name','path\','segment/' | Join-FilePath
+    # \\domain.name\path\segment\
+.LINK
+    ConvertTo-FilePathObject
+    Test-ValidFilePath
+#>
     [CmdletBinding()]
     param
     (
         [parameter(mandatory                       = $true,
-                   position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [string]

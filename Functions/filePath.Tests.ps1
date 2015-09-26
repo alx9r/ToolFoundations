@@ -677,14 +677,18 @@ InModuleScope ToolFoundations {
         }
     }
 }
-Describe Get-PathDelimiter {
+Describe Get-FilePathDelimiter {
     It 'gets correct delimiter (1)' {
-        $r = 'delimiter/is\forward\slash' | Get-PathDelimiter
+        $r = 'delimiter/is\forward\slash' | Get-FilePathDelimiter
         $r | Should be '/'
     }
     It 'gets correct delimiter (2)' {
-        $r = 'delimiter\is\backward/slash' | Get-PathDelimiter
+        $r = 'delimiter\is\backward/slash' | Get-FilePathDelimiter
         $r | Should be '\'
+    }
+    It 'returns empty string' {
+        $r = 'no delimiter' | Get-FilePathDelimiter
+        $r -eq [string]::Empty | Should be $true
     }
 }
 InModuleScope ToolFoundations {
@@ -872,18 +876,18 @@ InModuleScope ToolFoundations {
         }
         Context 'gets delimiter' {
             Mock Get-FilePathType {'unknown'}
-            Mock Get-PathDelimiter -Verifiable
+            Mock Get-FilePathDelimiter -Verifiable
             It 'invokes get function' {
                 'path' | ConvertTo-FilePathObject
 
-                Assert-MockCalled Get-PathDelimiter -Times 1 {
+                Assert-MockCalled Get-FilePathDelimiter -Times 1 {
                     $Path -eq 'path'
                 }
             }
         }
         Context 'unknown' {
             Mock Get-FilePathType {'unknown'}
-            Mock Get-PathDelimiter { '\' }
+            Mock Get-FilePathDelimiter { '\' }
             It 'returns correct object' {
                 $r = 'unknown:\\file\path\type' | ConvertTo-FilePathObject
 
@@ -1131,6 +1135,18 @@ InModuleScope ToolFoundations {
         It 'joins path (5)' {
             $r = '\\domain.name','path\','segment/' | Join-FilePath
             $r | Should be '\\domain.name\path\segment\'
+        }
+        It 'does not resolve ..' {
+            $r = 'c:','..' | Join-FilePath
+            $r | Should be 'c:\..'
+        }
+        It 'does not resolve .' {
+            $r = 'c:','.' | Join-FilePath
+            $r | Should be 'c:\.'
+        }
+        It 'accepts invalid file characters.' {
+            $r = 'c:','||' | Join-FilePath
+            $r | Should be 'c:\||'
         }
     }
 }
