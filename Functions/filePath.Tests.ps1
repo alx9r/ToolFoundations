@@ -122,7 +122,7 @@ Describe Test-FilePathForTrailingSlash {
     }
 }
 Describe ConvertTo-FilePathWithoutPrefix {
-    It 'PowerShell Windows path' {
+    It 'Windows path' {
         $r = 'c:\path' | ConvertTo-FilePathWithoutPrefix
         $r | Should be 'c:\path'
     }
@@ -153,6 +153,44 @@ Describe ConvertTo-FilePathWithoutPrefix {
     It 'URI UNC Path' {
         $r = 'file://server/path' | ConvertTo-FilePathWithoutPrefix
         $r | Should be '//server/path'
+    }
+}
+Describe Get-FilePathScheme {
+    It 'Windows path' {
+        $r = 'c:\path' | Get-FilePathScheme
+        $r | Should be 'plain'
+    }
+    It 'UNC path' {
+        $r = '\\server\path' | Get-FilePathScheme
+        $r | Should be 'plain'
+    }
+    It 'PowerShell Windows Path' {
+        $r = 'FileSystem::c:\path' | Get-FilePathScheme
+        $r | Should be 'PowerShell'
+    }
+    It 'long prefix PowerShell Windows Path' {
+        $r = 'Microsoft.PowerShell.Core\FileSystem::c:\path' | Get-FilePathScheme
+        $r | Should be 'LongPowerShell'
+    }
+    It 'PowerShell UNC Path' {
+        $r = 'FileSystem::\\server\path' | Get-FilePathScheme
+        $r | Should be 'PowerShell'
+    }
+    It 'long prefix PowerShell UNC Path' {
+        $r = 'Microsoft.PowerShell.Core\FileSystem::\\server\path' | Get-FilePathScheme
+        $r | Should be 'LongPowerShell'
+    }
+    It 'URI Windows Path' {
+        $r = 'file:///c:/path' | Get-FilePathScheme
+        $r | Should be 'URI'
+    }
+    It 'URI UNC Path' {
+        $r = 'file://server/path' | Get-FilePathScheme
+        $r | Should be 'URI'
+    }
+    It 'unknown' {
+        $r = 'unknown:\\scheme' | Get-FilePathScheme
+        $r | Should be 'unknown'
     }
 }
 InModuleScope ToolFoundations {

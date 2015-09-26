@@ -254,7 +254,6 @@ Path with prefix removed.
     )
     process
     {
-        # PowerShell Windows Path
         $masks = '^FileSystem::(.*)',
                  '^MicroSoft.PowerShell.Core\\FileSystem::(.*)',
                  '^file:///([A-Za-z]:.*)',
@@ -269,6 +268,42 @@ Path with prefix removed.
         }
 
         return $Path
+    }
+}
+function Get-FilePathScheme
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $masks = @{
+            plain          = '^[A-Za-z]:',
+                             '^\\\\[A-Za-z0-9]'
+            PowerShell     = '^FileSystem::(.*)'
+            LongPowerShell = '^MicroSoft.PowerShell.Core\\FileSystem::(.*)'
+            URI =            '^file:///([A-Za-z]:.*)',
+                             '^file:(?!///)(//.*)'
+        }
+
+        foreach ( $schemeName in $masks.Keys )
+        {
+            foreach ( $mask in $masks.$schemeName )
+            {
+                if ( $Path -match $mask )
+                {
+                    return $schemeName
+                }
+            }
+        }
+        return 'unknown'
     }
 }
 function Get-PartOfUncPath
