@@ -1150,3 +1150,35 @@ InModuleScope ToolFoundations {
         }
     }
 }
+InModuleScope ToolFoundations {
+    Describe Resolve-FilePathSegments {
+        It 'correctly resolves simple lists.' {
+            $r = 'a','b','c' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'b'
+            $r[2] | Should be 'c'
+            $r.Count | Should be 3
+        }
+        It 'correctly resolves .' {
+            $r = 'a','.','b' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'b'
+            $r.Count | Should be 2
+        }
+        It 'correctly resolves ..' {
+            $r = 'a','..','b' | Resolve-FilePathSegments
+            $r | Should be 'b'
+        }
+        Context 'too many ..' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $r = 'a','..','..' | Resolve-FilePathSegments
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Path could not be resolved because too many ".." segments were provided.'
+                }
+            }
+        }
+    }
+}

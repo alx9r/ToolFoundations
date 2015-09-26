@@ -1187,3 +1187,47 @@ The path representing the joining of all Elements in the pipeline.
         $object | ConvertTo-FilePathString @ts
     }
 }
+Function Resolve-FilePathSegments
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Segment
+    )
+    begin
+    {
+        $segments = @()
+    }
+    process
+    {
+        if ($Segment -eq '..')
+        {
+            if ($segments.Count -eq 0)
+            {
+                Write-Error 'Path could not be resolved because too many ".." segments were provided.'
+                return $false
+            }
+            if ( $segments.Count -eq 1 )
+            {
+                $segments = @()
+            }
+            else
+            {
+                $segments = $segments[0..($segments.Count-1)]
+            }
+        }
+
+        if ('..','.' -notcontains $Segment)
+        {
+            $segments += $Segment
+        }
+    }
+    end
+    {
+        return $segments
+    }
+}
