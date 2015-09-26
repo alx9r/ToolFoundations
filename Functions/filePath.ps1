@@ -527,6 +527,41 @@ True if Path is known-valid.  False otherwise.
         return $true
     }
 }
+function Test-ValidFilePath
+{
+<#
+.SYNOPSIS
+Test whether a string is a valid file path.
+
+.DESCRIPTION
+Test-ValidFilePath determines whether Path is a valid Windows or UNC file path.  It invokes Test-ValidUncFilePath and Test-ValidWindowsFilePath.
+
+.OUTPUTS
+True if Path is known-valid.  False otherwise.
+#>
+    [CmdletBinding()]
+    param
+    (
+        # The path string to test for validity.
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        foreach ($test in 'Test-ValidUncFilePath','Test-ValidWindowsFilePath')
+        {
+            if ( $Path | & $test )
+            {
+                return $true
+            }
+        }
+        return $false
+    }
+}
 function Get-FilePathType
 {
 <#
