@@ -182,11 +182,11 @@ Describe Get-FilePathScheme {
     }
     It 'URI Windows Path' {
         $r = 'file:///c:/path' | Get-FilePathScheme
-        $r | Should be 'URI'
+        $r | Should be 'FileUri'
     }
     It 'URI UNC Path' {
         $r = 'file://server/path' | Get-FilePathScheme
-        $r | Should be 'URI'
+        $r | Should be 'FileUri'
     }
     It 'unknown' {
         $r = 'unknown:\\scheme' | Get-FilePathScheme
@@ -677,12 +677,22 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe Get-PathDelimiter {
+    It 'gets correct delimiter (1)' {
+        $r = 'delimiter/is\forward\slash' | Get-PathDelimiter
+        $r | Should be '/'
+    }
+    It 'gets correct delimiter (2)' {
+        $r = 'delimiter\is\backward/slash' | Get-PathDelimiter
+        $r | Should be '\'
+    }
+}
 InModuleScope ToolFoundations {
     Describe ConvertTo-FilePathObject {
-        Context 'tests file path type' {
+        Context 'gets file path type' {
             Mock Get-FilePathType -Verifiable
             Mock Write-Error
-            It 'invokes test function.' {
+            It 'invokes get function.' {
                 'path' | ConvertTo-FilePathObject
 
                 Assert-MockCalled Get-FilePathType -Times 1 {
@@ -695,27 +705,23 @@ InModuleScope ToolFoundations {
             Mock Write-Error -Verifiable
             It 'reports correct error' {
                 $r = 'path' | ConvertTo-FilePathObject
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Path type of path is ambiguous.'
-                }
+                $r.FilePathType | Should be 'ambiguous'
             }
         }
-        Context 'unknown type' {
-            Mock Get-FilePathType {'unknown'}
-            Mock Write-Error -Verifiable
-            It 'reports correct error' {
-                $r = 'path' | ConvertTo-FilePathObject
-                $r | Should be $false
+        Context 'gets file scheme' {
+            Mock Get-FilePathType {'Windows'}
+            Mock Get-FilePathScheme -Verifiable
+            It 'invokes get function' {
+                'path' | ConvertTo-FilePathObject
 
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Path type of path is unknown.'
+                Assert-MockCalled Get-FilePathScheme -Time 1 {
+                    $Path -eq 'path'
                 }
             }
         }
         Context 'calls Get-Part for Windows Path' {
             Mock Get-FilePathType {'Windows'}
+            Mock Get-FilePathScheme {'plain'}
             Mock Get-PartOfWindowsPath -Verifiable
             It 'invokes Get-Part function' {
                 'path' | ConvertTo-FilePathObject
@@ -732,6 +738,7 @@ InModuleScope ToolFoundations {
         }
         Context 'calls Get-Part for UNC Path' {
             Mock Get-FilePathType {'UNC'}
+            Mock Get-FilePathScheme {'plain'}
             Mock Get-PartOfUncPath -Verifiable
             It 'invokes Get-Part function' {
                 'path' | ConvertTo-FilePathObject
@@ -750,8 +757,9 @@ InModuleScope ToolFoundations {
                 }
             }
         }
-        Context 'Windows' {
+        Context 'Windows, plain' {
             Mock Get-FilePathType {'Windows'}
+            Mock Get-FilePathScheme {'plain'}
             Mock Get-PartOfWindowsPath {
                 if ( $PartName -eq 'DriveLetter' ) { return 'c' }
                 return 'path/fragment'
@@ -767,6 +775,8 @@ InModuleScope ToolFoundations {
                 $r.Segments[0] | Should be 'path'
                 $r.Segments[1] | Should be 'fragment'
                 $r.TrailingSlash | Should be $false
+                $r.Scheme | Should be 'plain'
+                $r.FilePathType | Should be 'Windows'
             }
         }
         Context 'Windows (trailing slash)' {
@@ -860,6 +870,33 @@ InModuleScope ToolFoundations {
                 $r.TrailingSlash | Should beNullOrEmpty
             }
         }
+        Context 'gets delimiter' {
+            Mock Get-FilePathType {'unknown'}
+            Mock Get-PathDelimiter -Verifiable
+            It 'invokes get function' {
+                'path' | ConvertTo-FilePathObject
+
+                Assert-MockCalled Get-PathDelimiter -Times 1 {
+                    $Path -eq 'path'
+                }
+            }
+        }
+        Context 'unknown' {
+            Mock Get-FilePathType {'unknown'}
+            Mock Get-PathDelimiter { '\' }
+            It 'returns correct object' {
+                $r = 'unknown:\\file\path\type' | ConvertTo-FilePathObject
+
+                $r -is [psobject] | Should be $true
+                $r.OriginalString | Should be 'unknown:\\file\path\type'
+                $r.Segments[0] | Should be 'unknown:'
+                $r.Segments[1] | Should be 'file'
+                $r.Segments.Count | Should be 4
+                $r.TrailingSlash | Should be $false
+                $r.Scheme | Should beNullOrEmpty
+                $r.Delimiter | Should be '\'
+            }
+        }
     }
 }
 InModuleScope ToolFoundations {
@@ -891,6 +928,21 @@ InModuleScope ToolFoundations {
 
                 Assert-MockCalled Write-Error -Times 1 {
                     $Message -eq 'Windows paths require a drive letter but none was provided.'
+                }
+            }
+        }
+        Context 'Delimiter for known FilePathType' {
+            Mock Write-Error -Verifiable
+            It 'produces correct error' {
+                $splat = @{
+                    DriveLetter = 'c'
+                    Delimiter = '\'
+                }
+                $r = ConvertTo-FilePathString -FilePathType Windows @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'A Delimiter was provided for known FilePathType Windows.'
                 }
             }
         }
@@ -970,6 +1022,23 @@ InModuleScope ToolFoundations {
             $r = ConvertTo-FilePathString Windows PowerShell @splat
             $r | Should be 'FileSystem::c:\path\segments\'
         }
+        It 'Windows LongPowerShell' {
+            $splat = @{
+                DriveLetter = 'c'
+                Segments = 'path','segments'
+                TrailingSlash = $true
+            }
+            $r = ConvertTo-FilePathString Windows LongPowerShell @splat
+            $r | Should be 'Microsoft.PowerShell.Core\FileSystem::c:\path\segments\'           
+        }
+        It 'unknown' {
+            $splat = @{
+                Segments = 'path','segments'
+                Delimiter = '\'
+            }
+            $r = ConvertTo-FilePathString unknown @splat
+            $r | Should be 'path\segments'
+        }
     }
 }
 InModuleScope ToolFoundations {
@@ -1007,6 +1076,61 @@ InModuleScope ToolFoundations {
         It 'UNC=>Windows (PowerShell)' {
             $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat -FilePathType Windows -Scheme PowerShell
             $r | Should be 'FileSystem::c:\local\path'
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe 'Join-Path2' {
+        Context 'converts to object' {
+            Mock ConvertTo-FilePathObject -Verifiable {
+                New-Object PSObject -Property @{
+                    FilePathType = 'unknown'
+                    Segments = 'element1'
+                }
+            }
+            It 'invokes conversion for first element only' {
+                'element1','element2' | Join-Path2
+
+                Assert-MockCalled ConvertTo-FilePathObject -Times 1 -Exactly {
+                    $Path -eq 'element1'
+                }
+            }
+        }
+        Context 'tests for trailing slash' {
+            Mock Test-FilePathForTrailingSlash -Verifiable {$true}
+            It 'invokes test' {
+                'element1','element2' | Join-Path2
+
+                Assert-MockCalled Test-FilePathForTrailingSlash -Times 1 -Exactly {
+                    $Path -eq 'element2'
+                }
+            }
+        }
+        It 'extracts the correct slash type for unknown filepath types.' {
+            $r = 'this\resolves','to/backslashes' | Join-Path2
+            $r | Should be 'this\resolves\to\backslashes'
+            $r = 'this/resolves','to/forwardslashes' | Join-Path2
+            $r | Should be 'this/resolves/to/forwardslashes'
+        }
+        It 'joins path (1)' {
+            $r = 'a','b' | Join-Path2
+            $r | Should be 'a\b'
+        }
+        It 'joins path (2)' {
+            $r = 'c:\path','segments' | Join-Path2
+            $r | Should be 'c:\path\segments'
+        }
+        It 'joins path (3)' {
+            $r = 'file:///c:','path\segments' | Join-Path2
+            $r | Should be 'file:///c:/path/segments'
+        }
+        It 'joins path (4)' {
+            $r = 'c:','path\' | Join-Path2
+            $r | Should be 'c:\path\'
+        }
+        It 'joins path (5)' {
+            $r = '\\domain.name','path\','segment/' | Join-Path2
+            $r | Should be '\\domain.name\path\segment\'
         }
     }
 }

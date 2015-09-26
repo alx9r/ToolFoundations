@@ -289,7 +289,7 @@ function Get-FilePathScheme
                              '^\\\\[A-Za-z0-9]'
             PowerShell     = '^FileSystem::(.*)'
             LongPowerShell = '^MicroSoft.PowerShell.Core\\FileSystem::(.*)'
-            URI =            '^file:///([A-Za-z]:.*)',
+            FileUri        = '^file:///([A-Za-z]:.*)',
                              '^file:(?!///)(//.*)'
         }
 
@@ -642,6 +642,25 @@ Get-FilePathType detects whether Path is a Windows or UNC path and outputs a str
         return 'unknown'
     }
 }
+function Get-PathDelimiter
+{
+    [CmdletBinding()]
+    param
+    (
+        # The path whose type to determine.
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $mask = '^[^\\\/]*(?<result>[\\\/])'
+        ([regex]::Match($Path,$mask)).Groups['result'].Value
+    }    
+}
 function ConvertTo-FilePathObject
 {
 <#
@@ -694,11 +713,7 @@ This example demonstrates adding a filename to the path by way of manipulating t
     {
         $type = $Path | Get-FilePathType
 
-        if ( 'Windows','UNC' -notcontains $type )
-        {
-            Write-Error "Path type of $Path is $type."
-            return $false
-        }
+        $scheme = $Path | Get-FilePathScheme
 
         if ( $type -eq 'Windows' )
         {
@@ -708,6 +723,8 @@ This example demonstrates adding a filename to the path by way of manipulating t
                 LocalPath = $Path | Get-PartOfWindowsPath LocalPath
                 Segments = $Path | Get-PartOfWindowsPath LocalPath | Split-FilePathFragment
                 TrailingSlash = $Path | Get-PartOfWindowsPath LocalPath | Test-FilePathForTrailingSlash
+                FilePathType = $type
+                Scheme = $scheme
             }
         }
         if ( $type -eq 'UNC' )
@@ -719,8 +736,30 @@ This example demonstrates adding a filename to the path by way of manipulating t
                 LocalPath = $Path | Get-PartOfUncPath LocalPath
                 Segments = $Path | Get-PartOfUncPath LocalPath | Split-FilePathFragment
                 TrailingSlash = $Path | Get-PartOfUncPath LocalPath | Test-FilePathForTrailingSlash
+                FilePathType = $type
+                Scheme = $scheme
             }
         }
+        
+        $r = @{
+            OriginalString = $Path
+            Segments = $Path | Split-FilePathFragment
+            TrailingSlash = $Path | Test-FilePathForTrailingSlash
+            FilePathType = $type
+        }
+
+        if ($scheme -ne 'unknown')
+        {
+            $r.Scheme = $scheme
+        }
+        
+        $delimiter = $Path | Get-PathDelimiter
+        if ($delimiter)
+        {
+            $r.Delimiter = $delimiter
+        }
+        
+        return New-Object PSObject -Property $r
     }
 }
 function Test-ValidFilePathParameters
@@ -815,22 +854,21 @@ This example show how you can convert a plain-old Windows path to the path of an
         [parameter(mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('Windows','UNC')]
+        [ValidateSet('Windows','UNC','unknown')]
         [string]
         $FilePathType,
 
         # The formatting scheme to convert the other paramters to.
         [parameter(position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('FileUri','PowerShell')]
+        [ValidateSet('FileUri','PowerShell','LongPowerShell','plain')]
         [string]
-        $Scheme,
+        $Scheme='plain',
 
         # The segments of the local path.  For example, to convert to 'c:\local\path' Segments should be 'local','path'
-        [parameter(mandatory                       = $true,
-                   ValueFromPipelineByPropertyName = $true)]
+        [parameter(ValueFromPipelineByPropertyName = $true)]
         [string[]]
-        $Segments,
+        $Segments=[string]::Empty,
 
         # The DriveLetter to include in the file path.
         [parameter(ValueFromPipelineByPropertyName = $true)]
@@ -845,7 +883,13 @@ This example show how you can convert a plain-old Windows path to the path of an
         # Whether or not to include a trailing slash.
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [switch]
-        $TrailingSlash
+        $TrailingSlash,
+
+        # the delimiter to use for unknown FilePathType
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Delimiter='\'
+
     )
     process
     {
@@ -871,13 +915,24 @@ This example show how you can convert a plain-old Windows path to the path of an
             return $false
         }
 
+        if
+        (
+            $FilePathType -ne 'unknown' -and
+            $bp.Keys -contains 'Delimiter'
+        )
+        {
+            Write-Error "A Delimiter was provided for known FilePathType $FilePathType."
+            return $false
+        }
+            
+        $slash = '\'
         if ( $Scheme -eq 'FileUri' )
         {
             $slash = '/'
         }
-        else
+        elseif ( $FilePathType -eq 'unknown' )
         {
-            $slash = '\'
+            $slash = $Delimiter
         }
 
         if
@@ -902,6 +957,10 @@ This example show how you can convert a plain-old Windows path to the path of an
         {
             $prefix = 'FileSystem::'
         }
+        if ( $Scheme -eq 'LongPowerShell' )
+        {
+            $prefix = 'Microsoft.PowerShell.Core\FileSystem::'
+        }
 
         if ( $FilePathType -eq 'UNC' )
         {
@@ -910,6 +969,10 @@ This example show how you can convert a plain-old Windows path to the path of an
         if ( $FilePathType -eq 'Windows' )
         {
             return "$prefix$DriveLetter`:$slash$($Segments -join $slash)$($TrailingSlash | ?: $slash)"
+        }
+        if ( $FilePathType -eq 'unknown' )
+        {
+            return "$($Segments -join $slash)$($TrailingSlash | ?: $slash)"
         }
     }
 }
@@ -1000,5 +1063,41 @@ A string of the file path string if conversion is successful. False otherwise.
         $splat = &(gbpm)
         $splat.Remove('Path')
         return $Path | ConvertTo-FilePathObject | ConvertTo-FilePathString @splat
+    }
+}
+function Join-Path2
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Element
+    )
+    begin
+    {
+        $firstElement = $true
+    }
+    process
+    {
+        if ( $firstElement )
+        {
+            $object = $Element | ConvertTo-FilePathObject
+            $firstElement = $false
+        }
+        else
+        {
+            $object.Segments = @($object.Segments) +($Element | Split-FilePathFragment)
+        }
+    }
+    end
+    {
+        $ts = @{
+            TrailingSlash = $Element | Test-FilePathForTrailingSlash
+        }
+        $object | ConvertTo-FilePathString @ts
     }
 }
