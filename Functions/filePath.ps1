@@ -1,13 +1,4 @@
-﻿<#
-.SYNOPSIS
-Determine whether a file path is Windows or UNC.
-
-.DESCRIPTION
-Get-FilePathType detects whether Path is a Windows or UNC path and outputs a string accordingly.
-
-.OUTPUTS
-"UNC" if Path is a UNC path. "Windows" if Path is a Windows path.  "ambiguous" or "unknown" otherwise.
-#>function Test-ValidDriveLetter
+﻿function Test-ValidDriveLetter
 {
 <#
 .SYNOPSIS
@@ -830,7 +821,21 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
         return New-Object PSObject -Property $r
     }
 }
-function Test-ValidFilePathParameters
+<#
+.SYNOPSIS
+Tests file path parameters for validity.
+
+.DESCRIPTION
+Test-ValidFilePathParams tests parameters that are critical to input to ConvertTo-FilePathString for validity.  Test-ValidFilePathParams checks the following:
+
+    * Segments using Test-ValidFileName
+    * DriverLetter using Test-ValidDriveLetter
+    * DomainName using Test-ValidDomainName
+
+.OUTPUTS
+True if the parameters are valid.  False otherwise.
+#>
+function Test-ValidFilePathParams
 {
     [CmdletBinding()]
     param
@@ -846,14 +851,11 @@ function Test-ValidFilePathParameters
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [string]
-        $DomainName,
-
-        [parameter(ValueFromPipelineByPropertyName = $true)]
-        [switch]
-        $TrailingSlash
+        $DomainName
     )
     process
     {
+        $bp = &(gbpm)
         foreach ($segment in $Segments)
         {
             if ( -not ($segment | Test-ValidFileName) )
@@ -863,17 +865,27 @@ function Test-ValidFilePathParameters
             }
         }
 
-        if ( -not ($DriveLetter | Test-ValidDriveLetter) )
+        if
+        (
+            $bp.Keys -contains 'DriveLetter' -and
+            -not ($DriveLetter | Test-ValidDriveLetter)
+        )
         {
             Write-Verbose "DriveLetter $DriveLetter is not a valid drive letter."
             return $false
         }
 
-        if ( -not ($DomainName | Test-ValidDomainName) )
+        if
+        (
+            $bp.Keys -contains 'DomainName' -and
+            -not ($DomainName | Test-ValidDomainName)
+        )
         {
             Write-Verbose "DomainName $DomainName is not a valid domain name."
             return $false
         }
+
+        return $true
     }
 }
 function ConvertTo-FilePathString
