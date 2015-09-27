@@ -1247,5 +1247,12 @@ InModuleScope ToolFoundations {
             $r = 'c:\a\.\b' | Resolve-FilePath
             $r | Should be 'c:\a\b'
         }
+        Context 'cannot resolve' {
+            Mock Resolve-FilePathSegments {$false}
+            It 'returns false.' {
+                $r = 'path' | Resolve-FilePath
+                $r | Should be $false
+            }
+        }
     }
 }

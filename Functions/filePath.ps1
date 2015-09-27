@@ -180,10 +180,10 @@ True if Path is known-valid.  False otherwise.
                 return $false
             }
 
-            if 
-            ( 
+            if
+            (
                '.','..' -notcontains $level -and
-                -not ($level | Test-ValidFileName) 
+                -not ($level | Test-ValidFileName)
             )
             {
                 Write-Verbose "Path fragment $Path contains level $level that is an invalid filename."
@@ -743,7 +743,7 @@ ConvertTo-FilePathObject converts a Windows or UNC path string to an object repr
 The objects produced by ConvertTo-FilePathObject are deliberately designed to match the input parameters of ConvertTo-FilePathString to support pipelining.  See the examples.
 
 .OUTPUTS
-An object representing the constituent parts of Path if Path is a recognized format.  False otherwise.
+An object representing the constituent parts of Path if Path is a recognized format.
 
 .EXAMPLE
     'c:\local\path' | ConvertTo-FilePathObject | % DriveLetter
@@ -1209,9 +1209,28 @@ The path representing the joining of all Elements in the pipeline.
 }
 Function Resolve-FilePathSegments
 {
+<#
+.SYNOPSIS
+Resolve file path segments in the pipeline.
+
+.DESCRIPTION
+Resolve-FilePathSegments resolves file path segments in the pipeline according to customary interpretation of "." and ".." segments.
+
+.OUTPUTS
+A list of path segments representing the resolved path if successful.  False otherwise.
+.EXAMPLE
+    'a','..','b' | Resolve-FilePathSegments
+    # b
+.EXAMPLE
+    'a','b','.','c' | Resolve-FilePathSegments
+    # a
+    # b
+    # c
+#>
     [CmdletBinding()]
     param
     (
+        # A segment to resolve.
         [parameter(mandatory                       = $true,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
@@ -1253,9 +1272,29 @@ Function Resolve-FilePathSegments
 }
 function Resolve-FilePath
 {
+<#
+.SYNOPSIS
+Resolve a file path.
+
+.DESCRIPTION
+Resolve-FilePath resolves a file path according to customary interpretation of "." and ".." segments.
+
+.OUTPUTS
+The resolved path if successful. False otherwise.
+.EXAMPLE
+    'a/../b/c' | Resolve-FilePath
+    # b/c
+.EXAMPLE
+    'file://domain.name/c$/a/../b/c' | Resolve-FilePath
+    # file://domain.name/c$/b/c
+.EXAMPLE
+    'FileSystem::c:\a\b\c' | Resolve-FilePath
+    # FileSystem::c:\a\b\c
+#>
     [CmdletBinding()]
     param
     (
+        # The path to resolve.
         [parameter(mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipeline               = $true,
@@ -1265,13 +1304,19 @@ function Resolve-FilePath
     )
     process
     {
-        return $Path | 
-            ConvertTo-FilePathObject |
-            % {
-                $_.Segments = $_.Segments | 
+        $object = $Path | ConvertTo-FilePathObject
+
+        if
+        ( -not
+            (
+                $object.Segments = $object.Segments |
                     Resolve-FilePathSegments
-                $_
-            } |
-            ConvertTo-FilePathString
+            )
+        )
+        {
+            return $false
+        }
+
+        return $object | ConvertTo-FilePathString
     }
 }
