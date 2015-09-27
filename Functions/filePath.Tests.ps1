@@ -728,11 +728,11 @@ InModuleScope ToolFoundations {
     Describe New-FilePathObject {
         function CountProps
         {
-            $args[0] |
-                Get-Member |
-                ? {$_.MemberType -eq 'NoteProperty' } |
-                Measure-Object |
-                % Count
+            (
+                $args[0] |
+                    Get-Member |
+                    ? {$_.MemberType -eq 'NoteProperty' } 
+            ).Count
         }
         function IsProp
         {
