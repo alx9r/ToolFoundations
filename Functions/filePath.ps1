@@ -162,9 +162,29 @@ True if Path is known-valid.  False otherwise.
             return $false
         }
 
+        $segmentIndex = 0
         foreach ($level in ($Path | Split-FilePathFragment))
         {
-            if ( -not ($level | Test-ValidFileName) )
+            if ($level -ne '..')
+            {
+                $segmentIndex++
+            }
+            else
+            {
+                $segmentIndex--
+            }
+
+            if ($segmentIndex -lt 0)
+            {
+                Write-Verbose "Path fragment $Path contains too many `"..`""
+                return $false
+            }
+
+            if 
+            ( 
+               '.','..' -notcontains $level -and
+                -not ($level | Test-ValidFileName) 
+            )
             {
                 Write-Verbose "Path fragment $Path contains level $level that is an invalid filename."
                 return $false
@@ -1217,7 +1237,7 @@ Function Resolve-FilePathSegments
             }
             else
             {
-                $segments = $segments[0..($segments.Count-1)]
+                $segments = $segments[0..($segments.Count-2)]
             }
         }
 
@@ -1229,5 +1249,29 @@ Function Resolve-FilePathSegments
     end
     {
         return $segments
+    }
+}
+function Resolve-FilePath
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        return $Path | 
+            ConvertTo-FilePathObject |
+            % {
+                $_.Segments = $_.Segments | 
+                    Resolve-FilePathSegments
+                $_
+            } |
+            ConvertTo-FilePathString
     }
 }

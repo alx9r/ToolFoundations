@@ -80,6 +80,39 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+        Context '.. OK' {
+            Mock Test-ValidFileName {$FileName -ne '..'}
+            It 'returns true.' {
+                $r = 'a/../b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context '. OK' {
+            Mock Test-ValidFileName {$FileName -ne '.'}
+            It 'returns true.' {
+                $r = 'a/./b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context 'many . OK' {
+            Mock Test-ValidFileName {$FileName -ne '.'}
+            It 'returns true.' {
+                $r = 'a/././././b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context 'too many ..' {
+            Mock Test-ValidFileName { $FileName -ne '..'}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'a/../../b' | Test-ValidFilePathFragment
+                $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path fragment a/../../b contains too many ".."'
+                }
+            }
+        }
     }
 }
 Describe Split-FilePathFragment {
@@ -1165,9 +1198,15 @@ InModuleScope ToolFoundations {
             $r[1] | Should be 'b'
             $r.Count | Should be 2
         }
-        It 'correctly resolves ..' {
+        It 'correctly resolves .. (1)' {
             $r = 'a','..','b' | Resolve-FilePathSegments
             $r | Should be 'b'
+        }
+        It 'correctly resolves .. (2)' {
+            $r = 'a','b','..','c' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'c'
+            $r.Count | Should be 2
         }
         Context 'too many ..' {
             Mock Write-Error -Verifiable
@@ -1179,6 +1218,34 @@ InModuleScope ToolFoundations {
                     $Message -eq 'Path could not be resolved because too many ".." segments were provided.'
                 }
             }
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Resolve-FilePath {
+        It 'preserves a resolved path fragment.' {
+            $r = 'a/b/c' | Resolve-FilePath
+            $r | Should be 'a/b/c'
+        }
+        It 'preserves a resolved PowerShell Windows path.' {
+            $r = 'FileSystem::c:\a\b\c' | Resolve-FilePath
+            $r | Should  be 'FileSystem::c:\a\b\c'
+        }
+        It 'resolves a path fragment.' {
+            $r = 'a/../b/c' | Resolve-FilePath
+            $r | Should be 'b/c'
+        }
+        It 'resolves a PowerShell Windows path.' {
+            $r = 'FileSystem::c:\a\..\b\c' | Resolve-FilePath
+            $r | Should be 'FileSystem::c:\b\c'
+        }
+        It 'resolves a FileUri UNC path.' {
+            $r = 'file://domain.name/c$/a/../b/c' | Resolve-FilePath
+            $r | Should be 'file://domain.name/c$/b/c'
+        }
+        It 'resolves .' {
+            $r = 'c:\a\.\b' | Resolve-FilePath
+            $r | Should be 'c:\a\b'
         }
     }
 }
