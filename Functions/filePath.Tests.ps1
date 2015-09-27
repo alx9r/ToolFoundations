@@ -731,7 +731,7 @@ InModuleScope ToolFoundations {
             (
                 $args[0] |
                     Get-Member |
-                    ? {$_.MemberType -eq 'NoteProperty' } 
+                    ? {$_.MemberType -eq 'NoteProperty' }
             ).Count
         }
         function IsProp
