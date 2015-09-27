@@ -1,13 +1,4 @@
-﻿<#
-.SYNOPSIS
-Determine whether a file path is Windows or UNC.
-
-.DESCRIPTION
-Get-FilePathType detects whether Path is a Windows or UNC path and outputs a string accordingly.
-
-.OUTPUTS
-"UNC" if Path is a UNC path. "Windows" if Path is a Windows path.  "ambiguous" or "unknown" otherwise.
-#>function Test-ValidDriveLetter
+﻿function Test-ValidDriveLetter
 {
 <#
 .SYNOPSIS
@@ -162,9 +153,29 @@ True if Path is known-valid.  False otherwise.
             return $false
         }
 
+        $segmentIndex = 0
         foreach ($level in ($Path | Split-FilePathFragment))
         {
-            if ( -not ($level | Test-ValidFileName) )
+            if ($level -ne '..')
+            {
+                $segmentIndex++
+            }
+            else
+            {
+                $segmentIndex--
+            }
+
+            if ($segmentIndex -lt 0)
+            {
+                Write-Verbose "Path fragment $Path contains too many `"..`""
+                return $false
+            }
+
+            if
+            (
+               '.','..' -notcontains $level -and
+                -not ($level | Test-ValidFileName)
+            )
             {
                 Write-Verbose "Path fragment $Path contains level $level that is an invalid filename."
                 return $false
@@ -723,7 +734,7 @@ ConvertTo-FilePathObject converts a Windows or UNC path string to an object repr
 The objects produced by ConvertTo-FilePathObject are deliberately designed to match the input parameters of ConvertTo-FilePathString to support pipelining.  See the examples.
 
 .OUTPUTS
-An object representing the constituent parts of Path if Path is a recognized format.  False otherwise.
+An object representing the constituent parts of Path if Path is a recognized format.
 
 .EXAMPLE
     'c:\local\path' | ConvertTo-FilePathObject | % DriveLetter
@@ -810,7 +821,21 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
         return New-Object PSObject -Property $r
     }
 }
-function Test-ValidFilePathParameters
+<#
+.SYNOPSIS
+Tests file path parameters for validity.
+
+.DESCRIPTION
+Test-ValidFilePathParams tests parameters that are critical to input to ConvertTo-FilePathString for validity.  Test-ValidFilePathParams checks the following:
+
+    * Segments using Test-ValidFileName
+    * DriverLetter using Test-ValidDriveLetter
+    * DomainName using Test-ValidDomainName
+
+.OUTPUTS
+True if the parameters are valid.  False otherwise.
+#>
+function Test-ValidFilePathParams
 {
     [CmdletBinding()]
     param
@@ -826,14 +851,11 @@ function Test-ValidFilePathParameters
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [string]
-        $DomainName,
-
-        [parameter(ValueFromPipelineByPropertyName = $true)]
-        [switch]
-        $TrailingSlash
+        $DomainName
     )
     process
     {
+        $bp = &(gbpm)
         foreach ($segment in $Segments)
         {
             if ( -not ($segment | Test-ValidFileName) )
@@ -843,17 +865,27 @@ function Test-ValidFilePathParameters
             }
         }
 
-        if ( -not ($DriveLetter | Test-ValidDriveLetter) )
+        if
+        (
+            $bp.Keys -contains 'DriveLetter' -and
+            -not ($DriveLetter | Test-ValidDriveLetter)
+        )
         {
             Write-Verbose "DriveLetter $DriveLetter is not a valid drive letter."
             return $false
         }
 
-        if ( -not ($DomainName | Test-ValidDomainName) )
+        if
+        (
+            $bp.Keys -contains 'DomainName' -and
+            -not ($DomainName | Test-ValidDomainName)
+        )
         {
             Write-Verbose "DomainName $DomainName is not a valid domain name."
             return $false
         }
+
+        return $true
     }
 }
 function ConvertTo-FilePathString
@@ -1160,6 +1192,7 @@ The path representing the joining of all Elements in the pipeline.
         [parameter(mandatory                       = $true,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Element
     )
@@ -1169,9 +1202,29 @@ The path representing the joining of all Elements in the pipeline.
     }
     process
     {
+        if ( $error )
+        {
+            return
+        }
+        if
+        (
+            $firstElement -and
+            $Element -eq [string]::Empty
+        )
+        {
+            Write-Error 'Could not infer file path format because first Element is empty string.'
+            $error = $true
+            return
+        }
+
         if ( $firstElement )
         {
             $object = $Element | ConvertTo-FilePathObject
+            if ( $object.FilePathType -eq 'unknown' )
+            {
+                $object.Segments = @($Element)
+            }
+
             $firstElement = $false
         }
         else
@@ -1181,9 +1234,126 @@ The path representing the joining of all Elements in the pipeline.
     }
     end
     {
+        if ( $error )
+        {
+            return $false
+        }
         $ts = @{
             TrailingSlash = $Element | Test-FilePathForTrailingSlash
         }
         $object | ConvertTo-FilePathString @ts
+    }
+}
+Function Resolve-FilePathSegments
+{
+<#
+.SYNOPSIS
+Resolve file path segments in the pipeline.
+
+.DESCRIPTION
+Resolve-FilePathSegments resolves file path segments in the pipeline according to customary interpretation of "." and ".." segments.
+
+.OUTPUTS
+A list of path segments representing the resolved path if successful.  False otherwise.
+.EXAMPLE
+    'a','..','b' | Resolve-FilePathSegments
+    # b
+.EXAMPLE
+    'a','b','.','c' | Resolve-FilePathSegments
+    # a
+    # b
+    # c
+#>
+    [CmdletBinding()]
+    param
+    (
+        # A segment to resolve.
+        [parameter(mandatory                       = $true,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Segment
+    )
+    begin
+    {
+        $segments = @()
+    }
+    process
+    {
+        if ($Segment -eq '..')
+        {
+            if ($segments.Count -eq 0)
+            {
+                Write-Error 'Path could not be resolved because too many ".." segments were provided.'
+                return $false
+            }
+            if ( $segments.Count -eq 1 )
+            {
+                $segments = @()
+            }
+            else
+            {
+                $segments = $segments[0..($segments.Count-2)]
+            }
+        }
+
+        if ('..','.' -notcontains $Segment)
+        {
+            $segments += $Segment
+        }
+    }
+    end
+    {
+        return $segments
+    }
+}
+function Resolve-FilePath
+{
+<#
+.SYNOPSIS
+Resolve a file path.
+
+.DESCRIPTION
+Resolve-FilePath resolves a file path according to customary interpretation of "." and ".." segments.
+
+.OUTPUTS
+The resolved path if successful. False otherwise.
+.EXAMPLE
+    'a/../b/c' | Resolve-FilePath
+    # b/c
+.EXAMPLE
+    'file://domain.name/c$/a/../b/c' | Resolve-FilePath
+    # file://domain.name/c$/b/c
+.EXAMPLE
+    'FileSystem::c:\a\b\c' | Resolve-FilePath
+    # FileSystem::c:\a\b\c
+#>
+    [CmdletBinding()]
+    param
+    (
+        # The path to resolve.
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Path
+    )
+    process
+    {
+        $object = $Path | ConvertTo-FilePathObject
+
+        if
+        ( -not
+            (
+                $object.Segments = $object.Segments |
+                    Resolve-FilePathSegments
+            )
+        )
+        {
+            return $false
+        }
+
+        return $object | ConvertTo-FilePathString
     }
 }

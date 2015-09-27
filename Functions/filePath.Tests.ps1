@@ -80,6 +80,39 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+        Context '.. OK' {
+            Mock Test-ValidFileName {$FileName -ne '..'}
+            It 'returns true.' {
+                $r = 'a/../b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context '. OK' {
+            Mock Test-ValidFileName {$FileName -ne '.'}
+            It 'returns true.' {
+                $r = 'a/./b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context 'many . OK' {
+            Mock Test-ValidFileName {$FileName -ne '.'}
+            It 'returns true.' {
+                $r = 'a/././././b' | Test-ValidFilePathFragment
+                $r | Should be $true
+            }
+        }
+        Context 'too many ..' {
+            Mock Test-ValidFileName { $FileName -ne '..'}
+            Mock Write-Verbose -Verifiable
+            It 'returns false.' {
+                $r = 'a/../../b' | Test-ValidFilePathFragment
+                $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Path fragment a/../../b contains too many ".."'
+                }
+            }
+        }
     }
 }
 Describe Split-FilePathFragment {
@@ -904,6 +937,92 @@ InModuleScope ToolFoundations {
     }
 }
 InModuleScope ToolFoundations {
+    Describe Test-ValidFilePathParams {
+        Context 'success.' {
+            Mock Test-ValidFileName {$true}
+            It 'returns true.' {
+                $r = Test-ValidFilePathParams -Segments 'segment'
+                $r | Should be $true
+            }
+        }
+        Context 'tests segments' {
+            Mock Test-ValidFileName -Verifiable {$true}
+            It 'invokes test function.' {
+                Test-ValidFilePathParams -Segments 'segment1','segment2'
+
+                Assert-MockCalled Test-ValidFileName -Times 1 {
+                    $FileName -eq 'segment1'
+                }
+                Assert-MockCalled Test-ValidFileName -Times 1 {
+                    $FileName -eq 'segment2'
+                }
+            }
+        }
+        Context 'tests drive letter' {
+            Mock Test-ValidFileName {$true}
+            Mock Test-ValidDriveLetter
+            It 'invokes test function.' {
+                $splat = @{
+                    Segments = 'segment'
+                    DriveLetter = 'c'
+                }
+                Test-ValidFilePathParams @splat
+
+                Assert-MockCalled Test-ValidDriveLetter -Times 1 {
+                    $DriveLetter -eq 'c'
+                }
+            }
+        }
+        Context 'tests domain name' {
+            Mock Test-ValidFileName {$true}
+            Mock Test-ValidDriveLetter {$true}
+            Mock Test-ValidDomainName -Verifiable
+            It 'invokes test function.' {
+                $splat = @{
+                    Segments = 'segment'
+                    DomainName = 'domain.name'
+                }
+                Test-ValidFilePathParams @splat
+
+                Assert-MockCalled Test-ValidDomainName -Times 1 {
+                    $DomainName -eq 'domain.name'
+                }
+            }
+        }
+        Context 'bad segment' {
+            Mock Test-ValidFileName {$false}
+            It 'returns false.' {
+                $r = Test-ValidFilePathParams -Segments 'segment'
+                $r | Should be $false
+            }
+        }
+        Context 'bad drive letter' {
+            Mock Test-ValidFileName {$true}
+            Mock Test-ValidDriveLetter {$false}
+            It 'returns false.' {
+                $splat = @{
+                    Segments = 'segment'
+                    DriveLetter = 'c'
+                }
+                $r = Test-ValidFilePathParams @splat
+                $r | Should be $false
+            }
+        }
+        Context 'bad domain name' {
+            Mock Test-ValidFileName {$true}
+            Mock Test-ValidDomainName {$false}
+            It 'returns false.' {
+                $splat = @{
+                    Segments = 'segment'
+                    DomainName = 'domain.name'
+                }
+                $r = Test-ValidFilePathParams @splat
+                $r | Should be $false
+            }
+        }
+    }
+}
+InModuleScope ToolFoundations {
     Describe ConvertTo-FilePathString {
         Context 'Windows=>UNC' {
             Mock Write-Error -Verifiable
@@ -1136,6 +1255,10 @@ InModuleScope ToolFoundations {
             $r = '\\domain.name','path\','segment/' | Join-FilePath
             $r | Should be '\\domain.name\path\segment\'
         }
+        It 'joins path (6)' {
+            $r = '\\domain.name2\a\b','c' | Join-FilePath
+            $r | Should be '\\domain.name2\a\b\c'
+        }
         It 'does not resolve ..' {
             $r = 'c:','..' | Join-FilePath
             $r | Should be 'c:\..'
@@ -1147,6 +1270,94 @@ InModuleScope ToolFoundations {
         It 'accepts invalid file characters.' {
             $r = 'c:','||' | Join-FilePath
             $r | Should be 'c:\||'
+        }
+        It 'accepts empty string.' {
+            $r = 'c:',[string]::Empty,'path' | Join-FilePath
+            $r | Should be 'c:\path'
+        }
+        Context 'empty first element empty string' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $r = [string]::Empty,'c:',[string]::Empty,'path' | Join-FilePath
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Could not infer file path format because first Element is empty string.'
+                }
+            }
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Resolve-FilePathSegments {
+        It 'correctly resolves simple lists.' {
+            $r = 'a','b','c' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'b'
+            $r[2] | Should be 'c'
+            $r.Count | Should be 3
+        }
+        It 'correctly resolves .' {
+            $r = 'a','.','b' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'b'
+            $r.Count | Should be 2
+        }
+        It 'correctly resolves .. (1)' {
+            $r = 'a','..','b' | Resolve-FilePathSegments
+            $r | Should be 'b'
+        }
+        It 'correctly resolves .. (2)' {
+            $r = 'a','b','..','c' | Resolve-FilePathSegments
+            $r[0] | Should be 'a'
+            $r[1] | Should be 'c'
+            $r.Count | Should be 2
+        }
+        Context 'too many ..' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $r = 'a','..','..' | Resolve-FilePathSegments
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Path could not be resolved because too many ".." segments were provided.'
+                }
+            }
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Resolve-FilePath {
+        It 'preserves a resolved path fragment.' {
+            $r = 'a/b/c' | Resolve-FilePath
+            $r | Should be 'a/b/c'
+        }
+        It 'preserves a resolved PowerShell Windows path.' {
+            $r = 'FileSystem::c:\a\b\c' | Resolve-FilePath
+            $r | Should  be 'FileSystem::c:\a\b\c'
+        }
+        It 'resolves a path fragment.' {
+            $r = 'a/../b/c' | Resolve-FilePath
+            $r | Should be 'b/c'
+        }
+        It 'resolves a PowerShell Windows path.' {
+            $r = 'FileSystem::c:\a\..\b\c' | Resolve-FilePath
+            $r | Should be 'FileSystem::c:\b\c'
+        }
+        It 'resolves a FileUri UNC path.' {
+            $r = 'file://domain.name/c$/a/../b/c' | Resolve-FilePath
+            $r | Should be 'file://domain.name/c$/b/c'
+        }
+        It 'resolves .' {
+            $r = 'c:\a\.\b' | Resolve-FilePath
+            $r | Should be 'c:\a\b'
+        }
+        Context 'cannot resolve' {
+            Mock Resolve-FilePathSegments {$false}
+            It 'returns false.' {
+                $r = 'path' | Resolve-FilePath
+                $r | Should be $false
+            }
         }
     }
 }
