@@ -1180,6 +1180,7 @@ The path representing the joining of all Elements in the pipeline.
         [parameter(mandatory                       = $true,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Element
     )
@@ -1189,9 +1190,29 @@ The path representing the joining of all Elements in the pipeline.
     }
     process
     {
+        if ( $error )
+        {
+            return
+        }
+        if
+        (
+            $firstElement -and
+            $Element -eq [string]::Empty
+        )
+        {
+            Write-Error 'Could not infer file path format because first Element is empty string.'
+            $error = $true
+            return
+        }
+
         if ( $firstElement )
         {
             $object = $Element | ConvertTo-FilePathObject
+            if ( $object.FilePathType -eq 'unknown' )
+            {
+                $object.Segments = @($Element)
+            }
+
             $firstElement = $false
         }
         else
@@ -1201,6 +1222,10 @@ The path representing the joining of all Elements in the pipeline.
     }
     end
     {
+        if ( $error )
+        {
+            return $false
+        }
         $ts = @{
             TrailingSlash = $Element | Test-FilePathForTrailingSlash
         }

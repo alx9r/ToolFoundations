@@ -1169,6 +1169,10 @@ InModuleScope ToolFoundations {
             $r = '\\domain.name','path\','segment/' | Join-FilePath
             $r | Should be '\\domain.name\path\segment\'
         }
+        It 'joins path (6)' {
+            $r = '\\domain.name2\a\b','c' | Join-FilePath
+            $r | Should be '\\domain.name2\a\b\c'
+        }
         It 'does not resolve ..' {
             $r = 'c:','..' | Join-FilePath
             $r | Should be 'c:\..'
@@ -1180,6 +1184,21 @@ InModuleScope ToolFoundations {
         It 'accepts invalid file characters.' {
             $r = 'c:','||' | Join-FilePath
             $r | Should be 'c:\||'
+        }
+        It 'accepts empty string.' {
+            $r = 'c:',[string]::Empty,'path' | Join-FilePath
+            $r | Should be 'c:\path'
+        }
+        Context 'empty first element empty string' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $r = [string]::Empty,'c:',[string]::Empty,'path' | Join-FilePath
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Could not infer file path format because first Element is empty string.'
+                }
+            }
         }
     }
 }
