@@ -725,6 +725,224 @@ Describe Get-FilePathDelimiter {
     }
 }
 InModuleScope ToolFoundations {
+    Describe New-FilePathObject {
+        function CountProps
+        {
+            $args[0] |
+                Get-Member |
+                ? {$_.MemberType -eq 'NoteProperty' } |
+                Measure-Object |
+                % Count
+        }
+        function IsProp
+        {
+            param($Object,$PropertyName)
+            [bool](
+                $Object |
+                    Get-Member |
+                    ? {$_.Name -eq $PropertyName }
+            )
+        }
+        It 'passes through all properties' {
+            $splat = @{
+                FilePathType = 'UNC'
+                Scheme = 'FileUri'
+                DomainName = 'domain.name'
+                DriveLetter = 'c'
+                Segments = 'segments'
+                TrailingSlash = $true
+            }
+            $r = New-FilePathObject @splat
+
+            $r.FilePathType | Should be 'UNC'
+            $r.Scheme | Should be 'FileUri'
+            $r.DomainName | Should be 'domain.name'
+            $r.DriveLetter | Should be 'c'
+            $r.Segments | Should be 'segments'
+            $r.TrailingSlash | Should be $true
+            CountProps $r | Should be 6
+        }
+        It 'creates correct empty properties (UNC).' {
+            $splat = @{
+                FilePathType = 'UNC'
+                DomainName = 'domain.name'
+            }
+            $r = New-FilePathObject @splat
+
+            IsProp $r 'Scheme' | Should be $true
+            $r.Scheme | Should be 'plain'
+            IsProp $r 'DriveLetter' | Should be $true
+            $r.DriveLetter | Should beNullOrEmpty
+            IsProp $r 'Segments' | Should be $true
+            $r.Segments | Should beNullOrEmpty
+            $r.Segments -is [array] | Should be $true
+            $r.TrailingSlash | Should be $false
+            CountProps $r | Should be 6
+        }
+        It 'creates correct empty properties (Windows).' {
+            $splat = @{
+                FilePathType = 'Windows'
+                DriveLetter = 'c'
+            }
+            $r = New-FilePathObject @splat
+
+            IsProp $r 'Scheme' | Should be $true
+            $r.Scheme | Should be 'plain'
+            IsProp $r 'Segments' | Should be $true
+            $r.Segments | Should beNullOrEmpty
+            $r.Segments -is [array] | Should be $true
+            $r.TrailingSlash | Should be $false
+            CountProps $r | Should be 5
+        }
+        Context 'Scheme for Unknown' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'Unknown'
+                    Scheme = 'FileUri'
+                    Delimiter = '/'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Scheme cannot be provided for unknown FilePathType'
+                }
+            }
+        }
+        Context 'Delimiter for Windows' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'Windows'
+                    Delimiter = '/'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Delimiter cannot be provided for Windows FilePathType.'
+                }
+            }
+        }
+        Context 'No Delimiter for unknown' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'unknown'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'Delimiter must be provided for unknown FilePathType'
+                }
+            }
+        }
+        Context 'No DomainName for UNC' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'UNC'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'DomainName must be provided for UNC FilePathType.'
+                }
+            }
+        }
+        Context 'DomainName for Windows' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'Windows'
+                    DomainName = 'domain.name'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'DomainName cannot be provided for Windows FilePathType.'
+                }
+            }
+        }
+        Context 'No DriveLetter for Windows' {
+            Mock Write-Error -Verifiable
+            It 'reports correct error.' {
+                $splat = @{
+                    FilePathType = 'Windows'
+                }
+                $r = New-FilePathObject @splat
+                $r | Should be $false
+
+                Assert-MockCalled Write-Error -Times 1 {
+                    $Message -eq 'DriveLetter must be provided for Windows FilePathType.'
+                }
+            }
+        }
+    }
+}
+Describe 'New-FilePathObject integration' {
+    Context 'Windows' {
+        $h = @{}
+        It 'pipe to ConvertTo-FilePathString' {
+            $splat = @{
+                FilePathType = 'Windows'
+                DriveLetter = 'c'
+            }
+            $h.FilePath = New-FilePathObject @splat
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be 'c:\'
+        }
+        It 'Segments += ,pipe to ConvertTo-FilePathString' {
+            $h.FilePath.Segments += 'a'
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be 'c:\a'
+        }
+        It 'trailing slash , pipe to ConvertTo-FilePathString' {
+            $h.FilePath.TrailingSlash = $true
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be 'c:\a\'
+        }
+    }
+    Context 'UNC' {
+        $h = @{}
+        It 'pipe to ConvertTo-FilePathString' {
+            $splat = @{
+                FilePathType = 'UNC'
+                DomainName = 'domain.name'
+            }
+            $h.FilePath = New-FilePathObject @splat
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be '\\domain.name\'
+        }
+        It 'Segments +=' {
+            $h.FilePath.Segments += 'a'
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be '\\domain.name\a'
+        }
+        It 'trailing slash' {
+            $h.FilePath.TrailingSlash = $true
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be '\\domain.name\a\'
+        }
+        It 'FileUri' {
+            $h.FilePath.Scheme = 'FileUri'
+            $r = $h.FilePath | ConvertTo-FilePathString
+
+            $r | Should be 'file://domain.name/a/'
+        }
+    }
+}
+InModuleScope ToolFoundations {
     Describe ConvertTo-FilePathObject {
         Context 'gets file path type' {
             Mock Get-FilePathType -Verifiable
