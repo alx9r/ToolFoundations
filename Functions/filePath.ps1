@@ -712,6 +712,151 @@ Get-FilePathDelimiter detects whether Path uses backward or forward slashes to s
         ([regex]::Match($Path,$mask)).Groups['result'].Value
     }
 }
+function New-FilePathObject
+{
+<#
+.SYNOPSIS
+Create a new file path object.
+
+.DESCRIPTION
+New-FilePathObject creates a new file path object according to the parameters provided.  New-FilePathObject deliberately checks for parameters and creates file path object properties to make the object as appropriate as possible for pipeing to ConvertTo-FilePathString.
+
+.OUTPUTS
+The file path object if successful.  False otherwise.
+.LINK
+    ConvertTo-FilePathString
+.EXAMPLE
+    $fp = New-FilePathObject -FilePathType UNC -DomainName domain.name
+    $fp | ConvertTo-FilePathString
+    # \\domain.name\
+    $fp.Segments += 'a'
+    $fp | ConvertTo-FilePathString
+    # \\domain.name\a
+    $fp.TrailingSlash = $true
+    $fp | ConvertTo-FilePathString
+    #\\domain.name\a\
+    $fp.Scheme = 'FileUri'
+    $fp | ConvertTo-FilePathString
+    #file://domain.name/a/
+#>
+    [CmdletBinding()]
+    param
+    (
+        # The file path type of the file path.
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('Windows','UNC','unknown')]
+        [string]
+        $FilePathType,
+
+        # The formatting scheme of the file path.
+        [parameter(position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('FileUri','PowerShell','LongPowerShell','plain')]
+        [string]
+        $Scheme='plain',
+
+        # The segments of the local path.  For example, to convert to 'c:\local\path' Segments should be 'local','path'
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string[]]
+        $Segments=@(),
+
+        # The DriveLetter to include in the file path.
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DriveLetter,
+
+        # The DomainName to include in the file path.
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $DomainName,
+
+        # Whether or not to include a trailing slash.
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [switch]
+        $TrailingSlash,
+
+        # the delimiter to use for unknown FilePathType
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $Delimiter='\'
+
+    )
+    process
+    {
+        $bp = &(gbpm)
+
+        if
+        (
+            $FilePathType -eq 'unknown' -and
+            $bp.Keys -notcontains 'Delimiter'
+        )
+        {
+            Write-Error 'Delimiter must be provided for unknown FilePathType'
+            return $false
+        }
+
+        if
+        (
+            'Windows','UNC' -contains $FilePathType -and
+            $bp.Keys -contains 'Delimiter'
+        )
+        {
+            Write-Error "Delimiter cannot be provided for $FilePathType FilePathType."
+            return $false
+        }
+
+        if
+        (
+            $FilePathType -eq 'UNC' -and
+            $bp.Keys -notcontains 'DomainName'
+        )
+        {
+            Write-Error 'DomainName must be provided for UNC FilePathType.'
+            return $false
+        }
+
+        if
+        (
+            $FilePathType -eq 'Windows' -and
+            $bp.Keys -contains 'DomainName'
+        )
+        {
+            Write-Error 'DomainName cannot be provided for Windows FilePathType.'
+            return $false
+        }
+
+        if
+        (
+            $FilePathType -eq 'Windows' -and
+            $bp.Keys -notcontains 'DriveLetter'
+        )
+        {
+            Write-Error 'DriveLetter must be provided for Windows FilePathType.'
+            return $false
+        }
+
+        foreach ($parameterName in 'DomainName','Scheme','DriveLetter')
+        {
+            if
+            (
+                $FilePathType -eq 'unknown' -and
+                $bp.Keys -contains $parameterName
+            )
+            {
+                Write-Error "$parameterName cannot be provided for unknown FilePathType"
+                return $false
+            }
+        }
+
+        $bp.TrailingSlash = $TrailingSlash
+        $bp.Segments = $Segments
+        $bp.Scheme = $Scheme
+        $bp.DriveLetter = $DriveLetter
+        return New-Object PSObject -Property $bp
+    }
+}
 function ConvertTo-FilePathObject
 {
 <#
