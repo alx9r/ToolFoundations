@@ -794,93 +794,47 @@ InModuleScope ToolFoundations {
             $r.TrailingSlash | Should be $false
             CountProps $r | Should be 5
         }
-        Context 'Scheme for Unknown' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'Unknown'
-                    Scheme = 'FileUri'
-                    Delimiter = '/'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Scheme cannot be provided for unknown FilePathType'
-                }
+        It 'throws when Scheme provided for unknown FilePathType.' {
+            $splat = @{
+                FilePathType = 'Unknown'
+                Scheme = 'FileUri'
+                Delimiter = '/'
             }
+            { New-FilePathObject @splat } | Should throw 'Parameter set cannot be resolved'
         }
-        Context 'Delimiter for Windows' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'Windows'
-                    Delimiter = '/'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Delimiter cannot be provided for Windows FilePathType.'
-                }
+        It 'throws when Delimiter provided for Windows FilePathType.' {
+            $splat = @{
+                FilePathType = 'Windows'
+                Delimiter = '/'
             }
+            { New-FilePathObject @splat } | Should throw 'Delimiter cannot be provided for Windows FilePathType'
         }
-        Context 'No Delimiter for unknown' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'unknown'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Delimiter must be provided for unknown FilePathType'
-                }
+        It 'throws when no Delimiter is provided for unknown.' {
+            $splat = @{
+                FilePathType = 'unknown'
+                DriveLetter = 'c'
             }
+            { New-FilePathObject @splat } | Should throw 'Delimiter must be provided for unknown FilePathType'
         }
-        Context 'No DomainName for UNC' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'UNC'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'DomainName must be provided for UNC FilePathType.'
-                }
+        It 'throws when no DomainName is provided for UNC.' {
+            $splat = @{
+                FilePathType = 'UNC'
+                DriveLetter = 'c'
             }
+            { New-FilePathObject @splat } | Should throw 'DomainName must be provided for UNC FilePathType'
         }
-        Context 'DomainName for Windows' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'Windows'
-                    DomainName = 'domain.name'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'DomainName cannot be provided for Windows FilePathType.'
-                }
+        It 'throws when DomainName is provided for Windows FilePathType.' {
+            $splat = @{
+                FilePathType = 'Windows'
+                DomainName = 'domain.name'
             }
+            { New-FilePathObject @splat } | Should throw 'DomainName cannot be provided for Windows FilePathType'
         }
-        Context 'No DriveLetter for Windows' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $splat = @{
-                    FilePathType = 'Windows'
-                }
-                $r = New-FilePathObject @splat
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'DriveLetter must be provided for Windows FilePathType.'
-                }
+        It 'throws when DriveLetter is not provided for Windows FilePathType.' {
+            $splat = @{
+                FilePathType = 'Windows'
             }
+            { New-FilePathObject @splat } | Should throw 'Parameter set cannot be resolved'
         }
     }
 }

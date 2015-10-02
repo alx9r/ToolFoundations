@@ -751,7 +751,11 @@ The file path object if successful.  False otherwise.
         $FilePathType,
 
         # The formatting scheme of the file path.
-        [parameter(position                        = 2,
+        [parameter(ParameterSetName                = 'Windows',
+                   position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+         [parameter(ParameterSetName                = 'UNC',
+                   position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('FileUri','PowerShell','LongPowerShell','plain')]
         [string]
@@ -763,12 +767,18 @@ The file path object if successful.  False otherwise.
         $Segments=@(),
 
         # The DriveLetter to include in the file path.
-        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [parameter(ParameterSetName                 = 'Windows',
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [parameter(ParameterSetName                = 'UNC',
+                   ValueFromPipelineByPropertyName = $true)]
         [string]
         $DriveLetter,
 
         # The DomainName to include in the file path.
-        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [parameter(ParameterSetName                = 'UNC',
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
         [string]
         $DomainName,
 
@@ -778,7 +788,9 @@ The file path object if successful.  False otherwise.
         $TrailingSlash,
 
         # the delimiter to use for unknown FilePathType
-        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [parameter(ParameterSetName                = 'unknown',
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
         [string]
         $Delimiter='\'
 
@@ -789,65 +801,50 @@ The file path object if successful.  False otherwise.
 
         if
         (
-            $FilePathType -eq 'unknown' -and
-            $bp.Keys -notcontains 'Delimiter'
+            $bp.Keys -notcontains 'Delimiter' -and
+            $FilePathType -eq 'unknown'
         )
         {
-            Write-Error 'Delimiter must be provided for unknown FilePathType'
-            return $false
-        }
-
-        if
-        (
-            'Windows','UNC' -contains $FilePathType -and
-            $bp.Keys -contains 'Delimiter'
-        )
-        {
-            Write-Error "Delimiter cannot be provided for $FilePathType FilePathType."
-            return $false
-        }
-
-        if
-        (
-            $FilePathType -eq 'UNC' -and
-            $bp.Keys -notcontains 'DomainName'
-        )
-        {
-            Write-Error 'DomainName must be provided for UNC FilePathType.'
-            return $false
-        }
-
-        if
-        (
-            $FilePathType -eq 'Windows' -and
-            $bp.Keys -contains 'DomainName'
-        )
-        {
-            Write-Error 'DomainName cannot be provided for Windows FilePathType.'
-            return $false
-        }
-
-        if
-        (
-            $FilePathType -eq 'Windows' -and
-            $bp.Keys -notcontains 'DriveLetter'
-        )
-        {
-            Write-Error 'DriveLetter must be provided for Windows FilePathType.'
-            return $false
-        }
-
-        foreach ($parameterName in 'DomainName','Scheme','DriveLetter')
-        {
-            if
-            (
-                $FilePathType -eq 'unknown' -and
-                $bp.Keys -contains $parameterName
+            throw New-Object System.ArgumentException(
+                'Delimiter must be provided for unknown FilePathType',
+                'Delimiter'
             )
-            {
-                Write-Error "$parameterName cannot be provided for unknown FilePathType"
-                return $false
-            }
+        }
+
+        if
+        (
+            $bp.Keys -contains 'Delimiter' -and
+            $FilePathType -ne 'unknown'
+        )
+        {
+            throw New-Object System.ArgumentException(
+                "Delimiter cannot be provided for $FilePathType FilePathType",
+                'Delimiter'
+            )
+        }
+
+        if
+        (
+            $bp.Keys -notcontains 'DomainName' -and
+            $FilePathType -eq 'UNC'
+        )
+        {
+            throw New-Object System.ArgumentException(
+                'DomainName must be provided for UNC FilePathType',
+                'DomainName'
+            )
+        }
+
+        if
+        (
+            $bp.Keys -contains 'DomainName' -and
+            $FilePathType -eq 'Windows'
+        )
+        {
+            throw New-Object System.ArgumentException(
+                'DomainName cannot be provided for Windows FilePathType',
+                'DomainName'
+            )
         }
 
         $bp.TrailingSlash = $TrailingSlash
