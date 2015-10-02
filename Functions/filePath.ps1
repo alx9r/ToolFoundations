@@ -1002,9 +1002,9 @@ function Test-ValidFilePathParams
     {
         $bp = &(gbpm)
 
-        if 
-        ( 
-            $invalidSegment = $Segments | 
+        if
+        (
+            $invalidSegment = $Segments |
                 ? { -not ($_ | Test-ValidFileName) } |
                 Select -First 1
         )
