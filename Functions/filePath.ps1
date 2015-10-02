@@ -1001,13 +1001,16 @@ function Test-ValidFilePathParams
     process
     {
         $bp = &(gbpm)
-        foreach ($segment in $Segments)
+
+        if 
+        ( 
+            $invalidSegment = $Segments | 
+                ? { -not ($_ | Test-ValidFileName) } |
+                Select -First 1
+        )
         {
-            if ( -not ($segment | Test-ValidFileName) )
-            {
-                Write-Verbose "Segment $segment is not a valid filename."
-                return $false
-            }
+            Write-Verbose "Segment $invalidSegment is not a valid filename."
+            return $false
         }
 
         if
