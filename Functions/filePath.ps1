@@ -631,14 +631,11 @@ True if Path is known-valid.  False otherwise.
     )
     process
     {
-        foreach ($test in 'Test-ValidUncFilePath','Test-ValidWindowsFilePath')
-        {
-            if ( $Path | & $test )
-            {
-                return $true
-            }
-        }
-        return $false
+        $valid = 'Test-ValidUncFilePath',
+                 'Test-ValidWindowsFilePath' |
+                    ? { $Path | & $_ }
+
+        return [bool]$valid
     }
 }
 function Get-FilePathType
