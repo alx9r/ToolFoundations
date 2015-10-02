@@ -335,16 +335,18 @@ Get-FilePathScheme detects whether Path uses a plain, PowerShell, LongPowerShell
                              '^file:(?!///)(//.*)'
         }
 
-        foreach ( $schemeName in $masks.Keys )
+
+        $match = $masks.Keys |
+            ? {
+                $masks.$_ | ? { $Path -match $_ }
+            } |
+            Select -First 1
+
+        if ( $match )
         {
-            foreach ( $mask in $masks.$schemeName )
-            {
-                if ( $Path -match $mask )
-                {
-                    return $schemeName
-                }
-            }
+            return $match
         }
+
         return 'unknown'
     }
 }
