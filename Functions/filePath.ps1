@@ -279,12 +279,13 @@ Path with prefix removed.
                  '^file:///([A-Za-z]:.*)',
                  '^file:(?!///)(//.*)'
 
-        foreach ( $mask in $masks )
+        $match = $masks |
+            ? { $Path -match $_ } |
+            Select -First 1
+
+        if ( $match )
         {
-            if ( $Path -match $mask )
-            {
-                return $Path -replace $mask,'$1'
-            }
+            return $Path -replace $match,'$1'
         }
 
         return $Path
@@ -334,16 +335,18 @@ Get-FilePathScheme detects whether Path uses a plain, PowerShell, LongPowerShell
                              '^file:(?!///)(//.*)'
         }
 
-        foreach ( $schemeName in $masks.Keys )
+
+        $match = $masks.Keys |
+            ? {
+                $masks.$_ | ? { $Path -match $_ }
+            } |
+            Select -First 1
+
+        if ( $match )
         {
-            foreach ( $mask in $masks.$schemeName )
-            {
-                if ( $Path -match $mask )
-                {
-                    return $schemeName
-                }
-            }
+            return $match
         }
+
         return 'unknown'
     }
 }
@@ -628,14 +631,11 @@ True if Path is known-valid.  False otherwise.
     )
     process
     {
-        foreach ($test in 'Test-ValidUncFilePath','Test-ValidWindowsFilePath')
-        {
-            if ( $Path | & $test )
-            {
-                return $true
-            }
-        }
-        return $false
+        $valid = 'Test-ValidUncFilePath',
+                 'Test-ValidWindowsFilePath' |
+                    ? { $Path | & $_ }
+
+        return [bool]$valid
     }
 }
 function Get-FilePathType
@@ -1001,13 +1001,16 @@ function Test-ValidFilePathParams
     process
     {
         $bp = &(gbpm)
-        foreach ($segment in $Segments)
+
+        if
+        (
+            $invalidSegment = $Segments |
+                ? { -not ($_ | Test-ValidFileName) } |
+                Select -First 1
+        )
         {
-            if ( -not ($segment | Test-ValidFileName) )
-            {
-                Write-Verbose "Segment $segment is not a valid filename."
-                return $false
-            }
+            Write-Verbose "Segment $invalidSegment is not a valid filename."
+            return $false
         }
 
         if

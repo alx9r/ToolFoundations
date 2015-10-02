@@ -1209,9 +1209,14 @@ InModuleScope ToolFoundations {
         }
         Context 'bad segment' {
             Mock Test-ValidFileName {$false}
+            Mock Write-Verbose -Verifiable
             It 'returns false.' {
                 $r = Test-ValidFilePathParams -Segments 'segment'
                 $r | Should be $false
+
+                Assert-MockCalled Write-Verbose -Times 1 {
+                    $Message -eq 'Segment segment is not a valid filename.'
+                }
             }
         }
         Context 'bad drive letter' {
