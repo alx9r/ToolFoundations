@@ -279,12 +279,13 @@ Path with prefix removed.
                  '^file:///([A-Za-z]:.*)',
                  '^file:(?!///)(//.*)'
 
-        foreach ( $mask in $masks )
+        $match = $masks |
+            ? { $Path -match $_ } |
+            Select -First 1
+
+        if ( $match )
         {
-            if ( $Path -match $mask )
-            {
-                return $Path -replace $mask,'$1'
-            }
+            return $Path -replace $match,'$1'
         }
 
         return $Path
