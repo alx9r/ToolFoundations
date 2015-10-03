@@ -1503,16 +1503,13 @@ InModuleScope ToolFoundations {
             $r = 'c:',[string]::Empty,'path' | Join-FilePath
             $r | Should be 'c:\path'
         }
-        Context 'empty first element empty string' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $r = [string]::Empty,'c:',[string]::Empty,'path' | Join-FilePath
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Could not infer file path format because first Element is empty string.'
-                }
-            }
+        It 'accepts empty string as first element.' {
+            $r = [string]::Empty,'a','b' | Join-FilePath
+            $r | Should be 'a\b'
+        }
+        It 'accepts a single empty string.' {
+            $r = [String]::Empty | Join-FilePath
+            $r -eq [string]::Empty | Should be $true
         }
     }
 }
