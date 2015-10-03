@@ -261,7 +261,6 @@ InModuleScope ToolFoundations {
         }
         Context 'strips prefix' {
             Mock ConvertTo-FilePathWithoutPrefix -Verifiable {'c:'}
-            Mock Write-Error
             It 'invokes strip function' {
                 $r = 'path' | Test-ValidUncFilePath
 
@@ -280,7 +279,6 @@ InModuleScope ToolFoundations {
         Context 'validates domain name' {
             Mock ConvertTo-FilePathWithoutPrefix {'\\server\path'}
             Mock Test-ValidDomainName -Verifiable
-            Mock Write-Error
             It 'tests domain name' {
                 'path' | Test-ValidUncFilePath
 
@@ -975,7 +973,6 @@ InModuleScope ToolFoundations {
     Describe ConvertTo-FilePathObject {
         Context 'gets file path type' {
             Mock Get-FilePathType -Verifiable
-            Mock Write-Error
             It 'invokes get function.' {
                 'path' | ConvertTo-FilePathObject
 
@@ -986,7 +983,6 @@ InModuleScope ToolFoundations {
         }
         Context 'ambiguous type' {
             Mock Get-FilePathType {'ambiguous'}
-            Mock Write-Error -Verifiable
             It 'reports correct error' {
                 $r = 'path' | ConvertTo-FilePathObject
                 $r.FilePathType | Should be 'ambiguous'
