@@ -1538,16 +1538,9 @@ InModuleScope ToolFoundations {
             $r[1] | Should be 'c'
             $r.Count | Should be 2
         }
-        Context 'too many ..' {
-            Mock Write-Error -Verifiable
-            It 'reports correct error.' {
-                $r = 'a','..','..' | Resolve-FilePathSegments
-                $r | Should be $false
-
-                Assert-MockCalled Write-Error -Times 1 {
-                    $Message -eq 'Path could not be resolved because too many ".." segments were provided.'
-                }
-            }
+        It 'throws on too many ..' {
+            { 'a','..','..' | Resolve-FilePathSegments } |
+                Should throw 'Path could not be resolved because too many ".." segments were provided.'
         }
     }
 }

@@ -1504,8 +1504,10 @@ A list of path segments representing the resolved path if successful.  False oth
         {
             if ($segments.Count -eq 0)
             {
-                Write-Error 'Path could not be resolved because too many ".." segments were provided.'
-                return $false
+                throw New-Object System.ArgumentException(
+                    'Path could not be resolved because too many ".." segments were provided.',
+                    'Segment'
+                )
             }
             if ( $segments.Count -eq 1 )
             {
