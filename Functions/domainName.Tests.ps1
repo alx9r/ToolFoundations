@@ -20,6 +20,7 @@ Describe Test-ValidDomainName {
         'asd-.jkl' | Test-ValidDomainName | Should be $false
         'as_d.jkl' | Test-ValidDomainName | Should be $false
         'asdf.qw_r.jkl' | Test-ValidDomainName | Should be $false
+        [string]::Empty | Test-ValidDomainName | Should be $false
     }
     It 'correctly bounds label lengths.' {
         '012345678901234567890123456789012345678901234567890123456789012.jkl' |

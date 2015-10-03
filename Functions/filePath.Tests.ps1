@@ -10,6 +10,7 @@ Describe Test-ValidDriveLetter {
         'aa' | Test-ValidDriveLetter | Should be $false
         '_' | Test-ValidDriveLetter | Should be $false
         '1' | Test-ValidDriveLetter | Should be $false
+        [string]::Empty | Test-ValidDriveLetter | Should be $false
     }
 }
 Describe Test-ValidFilename{
@@ -44,6 +45,10 @@ Describe Test-ValidFilename{
         $s.Length | Should be 256
         $s | Test-ValidFileName | Should be $false
     }
+    It 'returns false for empty string.' {
+        $r = [string]::Empty | Test-ValidFileName
+        $r | Should be $false
+    }
 }
 InModuleScope ToolFoundations {
     Describe Test-ValidFilePathFragment {
@@ -54,6 +59,9 @@ InModuleScope ToolFoundations {
         it 'return false.' {
             'bad\path/fragment' | Test-ValidFilePathFragment | Should be $false
             'bad/pa:h/fragment' | Test-ValidFilePathFragment | Should be $false
+        }
+        it 'returns true for empty string.' {
+            [string]::Empty | Test-ValidFilePathFragment | Should be $true
         }
         Context 'validates good element' {
             Mock Test-ValidFileName -Verifiable {$true}
@@ -142,6 +150,10 @@ Describe Split-FilePathFragment {
         $r[0] | Should be 'path'
         $r[1] | Should be 'fragment'
         $r.Count | Should be '2'
+
+        $r = [string]::Empty | Split-FilePathFragment
+        $r -is [array] | Should be $true
+        $r.Count | Should be 0
     }
 }
 Describe Test-FilePathForTrailingSlash {
@@ -187,6 +199,10 @@ Describe ConvertTo-FilePathWithoutPrefix {
         $r = 'file://server/path' | ConvertTo-FilePathWithoutPrefix
         $r | Should be '//server/path'
     }
+    It 'empty string' {
+        $r = [string]::Empty | ConvertTo-FilePathWithoutPrefix
+        $r -eq [string]::Empty | Should be $true
+    }
 }
 Describe Get-FilePathScheme {
     It 'Windows path' {
@@ -223,6 +239,10 @@ Describe Get-FilePathScheme {
     }
     It 'unknown' {
         $r = 'unknown:\\scheme' | Get-FilePathScheme
+        $r | Should be 'unknown'
+    }
+    It 'empty string' {
+        $r = [string]::Empty | Get-FilePathScheme
         $r | Should be 'unknown'
     }
 }
@@ -341,9 +361,17 @@ InModuleScope ToolFoundations {
             Mock Test-ValidDomainName {$true}
             Mock Test-ValidDriveLetter {$true}
             Mock Test-ValidFilePathFragment {$true}
-            It 'returns correct type' {
+            It 'returns correct true' {
                 $r = 'path' | Test-ValidUncFilePath
                 $r | Should be $true
+            }
+        }
+        Context 'empty string' {
+            Mock ConvertTo-FilePathWithoutPrefix {[string]::Empty}
+            Mock Test-ValidDomainName {$false}
+            It 'returns false.' {
+                $r = [string]::Empty | Test-ValidUncFilePath
+                $r | Should be $false
             }
         }
     }
@@ -453,6 +481,14 @@ InModuleScope ToolFoundations {
                 $r | Should be $true
             }
         }
+        Context 'empty string' {
+            Mock ConvertTo-FilePathWithoutPrefix { [string]::Empty }
+            Mock Test-ValidDriveLetter {$false}
+            It 'returns false.' {
+                $r = [string]::Empty | Test-ValidWindowsFilePath
+                $r | Should be $false
+            }
+        }
     }
 }
 InModuleScope ToolFoundations {
@@ -483,6 +519,14 @@ InModuleScope ToolFoundations {
             Mock Test-ValidWindowsFilePath {$false}
             It 'returns false.' {
                 $r = 'path' | Test-ValidFilePath
+                $r | Should be $false
+            }
+        }
+        Context 'empty string' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'returns false.' {
+                $r = [string]::Empty | Test-ValidFilePath
                 $r | Should be $false
             }
         }
@@ -708,6 +752,14 @@ InModuleScope ToolFoundations {
                 $r | Should be 'unknown'
             }
         }
+        Context 'empty string' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'returns correct value.' {
+                $r = [string]::Empty | Get-FilePathType
+                $r | should be 'unknown'
+            }
+        }
     }
 }
 Describe Get-FilePathDelimiter {
@@ -721,6 +773,10 @@ Describe Get-FilePathDelimiter {
     }
     It 'returns empty string' {
         $r = 'no delimiter' | Get-FilePathDelimiter
+        $r -eq [string]::Empty | Should be $true
+    }
+    It 'accepts empty string' {
+        $r = [string]::Empty | Get-FilePathDelimiter
         $r -eq [string]::Empty | Should be $true
     }
 }
@@ -1134,6 +1190,20 @@ InModuleScope ToolFoundations {
                 $r -is [psobject] | Should be $true
                 $r.OriginalString | Should be 'element'
                 $r.Segments | Should be 'element'
+                $r.TrailingSlash | Should be $false
+                $r.Scheme | Should beNullOrEmpty
+                $r.Delimiter | Should be '\'
+            }
+        }
+        Context 'empty string' {
+            Mock Get-FilePathType {'unknown'}
+            Mock Get-FilePathDelimiter {$false}
+            It 'returns correct object' {
+                $r = [string]::Empty | ConvertTo-FilePathObject
+
+                $r -is [psobject] | Should be $true
+                $r.OriginalString -eq [string]::Empty | Should be $true
+                $r.Segments | Should beNullOrEmpty
                 $r.TrailingSlash | Should be $false
                 $r.Scheme | Should beNullOrEmpty
                 $r.Delimiter | Should be '\'

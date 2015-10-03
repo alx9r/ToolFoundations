@@ -32,6 +32,7 @@ http://stackoverflow.com/a/20204811/1404637
         [Parameter(Mandatory         = $true,
                    Position          = 1,
                    ValueFromPipeline = $true)]
+        [AllowEmptyString()]
         [string]
         $DomainName
     )

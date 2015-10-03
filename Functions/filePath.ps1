@@ -21,6 +21,7 @@ True if DriveLetter is valid.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyname = $true)]
+        [AllowEmptyString()]
         [string]
         $DriveLetter
     )
@@ -56,6 +57,7 @@ True if FileName is known valid.  False otherwise.
         [parameter(mandatory=$true,
                    position=1,
                    ValueFromPipeline=$true)]
+        [AllowEmptyString()]
         [string]
         $FileName
     )
@@ -111,6 +113,7 @@ True if Path contains both backward and forward slashes.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -142,6 +145,7 @@ True if Path is known-valid.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -211,7 +215,7 @@ A list of only the segments of Path.
     )
     process
     {
-        $Path.Split('\/') | ? { $_ -ne [string]::Empty }
+        Out-Collection @( $Path.Split('\/') | ? { $_ -ne [string]::Empty } )
     }
 }
 function Test-FilePathForTrailingSlash
@@ -269,6 +273,7 @@ Path with prefix removed.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -321,6 +326,7 @@ Get-FilePathScheme detects whether Path uses a plain, PowerShell, LongPowerShell
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -379,6 +385,7 @@ A string representation of path part extracted from Path.  Empty string otherwis
                    position                        = 2,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -432,6 +439,7 @@ True if Path is known-valid.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -520,6 +528,7 @@ A string representation of path part extracted from Path.  Empty string otherwis
                    position                        = 2,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -559,6 +568,7 @@ True if Path is known-valid.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -626,6 +636,7 @@ True if Path is known-valid.  False otherwise.
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -658,6 +669,7 @@ Get-FilePathType detects whether Path is a Windows or UNC path and outputs a str
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -703,6 +715,7 @@ Get-FilePathDelimiter detects whether Path uses backward or forward slashes to s
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -989,6 +1002,7 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $Path
     )
@@ -1074,10 +1088,12 @@ True if the parameters are valid.  False otherwise.
         $Segments,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $DriveLetter,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
+        [AllowEmptyString()]
         [string]
         $DomainName
     )
