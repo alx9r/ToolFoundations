@@ -712,6 +712,10 @@ Get-FilePathDelimiter detects whether Path uses backward or forward slashes to s
         ([regex]::Match($Path,$mask)).Groups['result'].Value
     }
 }
+
+# The following Cmdlets rely on ParameterSet resolution which doesn't work as expected in PowerShell 2.
+if ($PSVersionTable.PSVersion.Major -gt 2)
+{
 function Assert-ValidFilePathObjectParams
 {
     [CmdletBinding()]
@@ -1575,4 +1579,5 @@ The resolved path if successful. False otherwise.
 
         return $object | ConvertTo-FilePathString
     }
+}
 }

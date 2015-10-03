@@ -724,6 +724,10 @@ Describe Get-FilePathDelimiter {
         $r -eq [string]::Empty | Should be $true
     }
 }
+
+# The following Cmdlets rely on ParameterSet resolution which doesn't work as expected in PowerShell 2.
+if ($PSVersionTable.PSVersion.Major -gt 2)
+{
 Describe Assert-ValidFilePathObjectParams {
     It 'throws when Scheme provided for unknown FilePathType.' {
         $splat = @{
@@ -1514,4 +1518,5 @@ InModuleScope ToolFoundations {
             }
         }
     }
+}
 }
