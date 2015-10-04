@@ -812,12 +812,13 @@ Describe Assert-ValidFilePathObjectParams {
         }
         { Assert-ValidFilePathObjectParams @splat } | Should throw 'DomainName must be provided for UNC FilePathType'
     }
-    It 'throws when DomainName is provided for Windows FilePathType.' {
+    It 'does not throw when DomainName is provided for Windows FilePathType.' {
         $splat = @{
             FilePathType = 'Windows'
+            DriveLetter = 'c'
             DomainName = 'domain.name'
         }
-        { Assert-ValidFilePathObjectParams @splat } | Should throw 'DomainName cannot be provided for Windows FilePathType'
+        { Assert-ValidFilePathObjectParams @splat } | Should not throw
     }
     It 'throws when DriveLetter is not provided for Windows FilePathType.' {
         $splat = @{
@@ -899,6 +900,22 @@ Describe New-FilePathObject {
         $splat = @{
             FilePathType = 'Windows'
             DriveLetter = 'c'
+        }
+        $r = New-FilePathObject @splat
+
+        IsProp $r 'Scheme' | Should be $true
+        $r.Scheme | Should be 'plain'
+        IsProp $r 'Segments' | Should be $true
+        $r.Segments | Should beNullOrEmpty
+        $r.Segments -is [array] | Should be $true
+        $r.TrailingSlash | Should be $false
+        CountProps $r | Should be 5
+    }
+    It 'accepts and discards DomainName (Windows).' {
+        $splat = @{
+            FilePathType = 'Windows'
+            DriveLetter = 'c'
+            DomainName = 'domain.name'
         }
         $r = New-FilePathObject @splat
 
@@ -1422,6 +1439,19 @@ Describe ConvertTo-FilePathString {
         $r = ConvertTo-FilePathString unknown @splat
         $r | Should be 'path\segments'
     }
+    It 'accepts disuse of DomainName' {
+        $splat = @{
+            FilePathType = 'UNC'
+            DriveLetter = 'c'
+            Segments = 'local','path'
+            DomainName = 'domain.name'
+        }
+        $object = New-FilePathObject @splat
+        $r = $object | ConvertTo-FilePathString Windows
+
+        $r | Should be 'c:\local\path'
+
+    }
 }
 Describe 'ConvertTo-FilePathString integrations' {
     It 'performs help Example 1' {
@@ -1432,7 +1462,8 @@ Describe 'ConvertTo-FilePathString integrations' {
         $r = 'c:\local\path' | ConvertTo-FilePathObject | ConvertTo-FilePathString UNC FileUri -DomainName domain.name
     }
     It 'handles disuse of domain name.' {
-        $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathObject | ConvertTo-FilePathString Windows
+        $object = '\\domain.name\c$\local\path' | ConvertTo-FilePathObject
+        $r = $object | ConvertTo-FilePathString Windows
         $r | Should be 'c:\local\path'
     }
 }
@@ -1460,7 +1491,7 @@ Describe ConvertTo-FilePathFormat {
 }
 Describe 'ConvertTo-FilePathFormat integrations' {
     It 'help Example 1.' {
-        $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat
+        $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows
         $r | Should be 'c:\local\path'
     }
     It 'help Example 2.' {
