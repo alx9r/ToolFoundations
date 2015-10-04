@@ -812,12 +812,13 @@ Describe Assert-ValidFilePathObjectParams {
         }
         { Assert-ValidFilePathObjectParams @splat } | Should throw 'DomainName must be provided for UNC FilePathType'
     }
-    It 'throws when DomainName is provided for Windows FilePathType.' {
+    It 'does not throw when DomainName is provided for Windows FilePathType.' {
         $splat = @{
             FilePathType = 'Windows'
+            DriveLetter = 'c'
             DomainName = 'domain.name'
         }
-        { Assert-ValidFilePathObjectParams @splat } | Should throw 'DomainName cannot be provided for Windows FilePathType'
+        { Assert-ValidFilePathObjectParams @splat } | Should not throw
     }
     It 'throws when DriveLetter is not provided for Windows FilePathType.' {
         $splat = @{
@@ -910,6 +911,22 @@ Describe New-FilePathObject {
         $r.TrailingSlash | Should be $false
         CountProps $r | Should be 5
     }
+    It 'accepts and discards DomainName (Windows).' {
+        $splat = @{
+            FilePathType = 'Windows'
+            DriveLetter = 'c'
+            DomainName = 'domain.name'
+        }
+        $r = New-FilePathObject @splat
+
+        IsProp $r 'Scheme' | Should be $true
+        $r.Scheme | Should be 'plain'
+        IsProp $r 'Segments' | Should be $true
+        $r.Segments | Should beNullOrEmpty
+        $r.Segments -is [array] | Should be $true
+        $r.TrailingSlash | Should be $false
+        CountProps $r | Should be 5
+    }
 }
 Describe 'New-FilePathObject integration' {
     Context 'Windows' {
@@ -937,7 +954,7 @@ Describe 'New-FilePathObject integration' {
             $r | Should be 'c:\a\'
         }
     }
-    Context 'UNC' {
+    Context 'UNC (help Example 1)' {
         $h = @{}
         It 'pipe to ConvertTo-FilePathString' {
             $splat = @{
@@ -1207,6 +1224,26 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe 'ConvertTo-FilePathObject integrations' {
+    It 'help Example 1.' {
+        $r = 'c:\local\path' | ConvertTo-FilePathObject | % DriveLetter
+        $r | Should be 'c'
+    }
+    It 'help Example 2.' {
+        $r = 'c:\local\path' | ConvertTo-FilePathObject | % Segments | Select -Last 1
+        $r | Should be 'path'
+    }
+    It 'help Example 3.' {
+        $object = 'c:\local\path' | ConvertTo-FilePathObject
+        $object.Segments += 'file.txt'
+        $r = $object | ConvertTo-FilePathString Windows PowerShell
+        $r | Should be 'FileSystem::c:\local\path\file.txt'
+    }
+    It 'help Example 4.' {
+        $r = 'file:///c:/path' | ConvertTo-FilePathObject | ConvertTo-FilePathString -Scheme PowerShell
+        $r | Should be 'FileSystem::c:\path'
+    }
+}
 InModuleScope ToolFoundations {
     Describe Test-ValidFilePathParams {
         Context 'success.' {
@@ -1402,8 +1439,35 @@ Describe ConvertTo-FilePathString {
         $r = ConvertTo-FilePathString unknown @splat
         $r | Should be 'path\segments'
     }
+    It 'accepts disuse of DomainName' {
+        $splat = @{
+            FilePathType = 'UNC'
+            DriveLetter = 'c'
+            Segments = 'local','path'
+            DomainName = 'domain.name'
+        }
+        $object = New-FilePathObject @splat
+        $r = $object | ConvertTo-FilePathString Windows
+
+        $r | Should be 'c:\local\path'
+
+    }
 }
-Describe 'ConvertTo-FilePathFormat' {
+Describe 'ConvertTo-FilePathString integrations' {
+    It 'performs help Example 1' {
+        $r = ConvertTo-FilePathString Windows FileUri -DriveLetter c -Segments 'local','path'
+        $r | Should be 'file:///c:/local/path'
+    }
+    It 'performs help Example 2' {
+        $r = 'c:\local\path' | ConvertTo-FilePathObject | ConvertTo-FilePathString UNC FileUri -DomainName domain.name
+    }
+    It 'handles disuse of domain name.' {
+        $object = '\\domain.name\c$\local\path' | ConvertTo-FilePathObject
+        $r = $object | ConvertTo-FilePathString Windows
+        $r | Should be 'c:\local\path'
+    }
+}
+Describe ConvertTo-FilePathFormat {
     It 'throws on Windows=>UNC conversion.' {
         { 'c:\path' | ConvertTo-FilePathFormat -FilePathType UNC } |
             Should throw 'UNC paths require a domain name but Path c:\path does not seem to contain one.'
@@ -1422,6 +1486,16 @@ Describe 'ConvertTo-FilePathFormat' {
     }
     It 'converts UNC=>Windows (PowerShell)' {
         $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat -FilePathType Windows -Scheme PowerShell
+        $r | Should be 'FileSystem::c:\local\path'
+    }
+}
+Describe 'ConvertTo-FilePathFormat integrations' {
+    It 'help Example 1.' {
+        $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows
+        $r | Should be 'c:\local\path'
+    }
+    It 'help Example 2.' {
+        $r = '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows PowerShell
         $r | Should be 'FileSystem::c:\local\path'
     }
 }
@@ -1509,6 +1583,24 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe 'Join-FilePath integrations' {
+    It 'help Example 1' {
+        $r = 'a','b' | Join-FilePath
+        $r | Should be 'a\b'
+    }
+    It 'help Example 2' {
+        $r = 'c:\path','segments' | Join-FilePath
+        $r = 'c:\path\segments'
+    }
+    It 'help Example 3' {
+        $r = 'file:///c:','path\segments' | Join-FilePath
+        $r | Should be 'file:///c:/path/segments'
+    }
+    It 'help Example 4' {
+        $r = '\\domain.name','path\','segment/' | Join-FilePath
+        $r | Should be '\\domain.name\path\segment\'
+    }
+}
 InModuleScope ToolFoundations {
     Describe Resolve-FilePathSegments {
         It 'correctly resolves simple lists.' {
@@ -1538,6 +1630,19 @@ InModuleScope ToolFoundations {
             { 'a','..','..' | Resolve-FilePathSegments } |
                 Should throw 'Path could not be resolved because too many ".." segments were provided.'
         }
+    }
+}
+Describe 'Resolve-FilePathSegments integrations' {
+    It 'help Example 1' {
+        $r = 'a','..','b' | Resolve-FilePathSegments
+        $r | Should be 'b'
+    }
+    It 'help Example 2' {
+        $r = 'a','b','.','c' | Resolve-FilePathSegments
+        $r[0] | Should be 'a'
+        $r[1] | Should be 'b'
+        $r[2] | Should be 'c'
+        $r.Count | Should be 3
     }
 }
 InModuleScope ToolFoundations {
@@ -1573,6 +1678,20 @@ InModuleScope ToolFoundations {
                 $r | Should be $false
             }
         }
+    }
+}
+Describe 'Resolve-FilePath integrations' {
+    It 'help Example 1' {
+        $r = 'a/../b/c' | Resolve-FilePath
+        $r | Should be 'b/c'
+    }
+    It 'help Example 2' {
+        $r = 'file://domain.name/c$/a/../b/c' | Resolve-FilePath
+        $r | Should be 'file://domain.name/c$/b/c'
+    }
+    It 'help Example 3' {
+        $r = 'FileSystem::c:\a\b\c' | Resolve-FilePath
+        $r | Should be FileSystem::c:\a\b\c
     }
 }
 }

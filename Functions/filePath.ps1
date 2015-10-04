@@ -829,18 +829,6 @@ function Assert-ValidFilePathObjectParams
 
         if
         (
-            $bp.Keys -contains 'DomainName' -and
-            $FilePathType -eq 'Windows'
-        )
-        {
-            throw New-Object System.ArgumentException(
-                'DomainName cannot be provided for Windows FilePathType',
-                'DomainName'
-            )
-        }
-
-        if
-        (
             $FilePathType -eq 'Windows' -and
             $DriveLetter -eq [string]::Empty
         )
@@ -946,6 +934,16 @@ The file path object if successful.  False otherwise.
         $bp.Segments = $Segments
         $bp.Scheme = $Scheme
         $bp.DriveLetter = $DriveLetter
+
+        if
+        (
+            $FilePathType -eq 'Windows' -and
+            $bp.Keys -contains 'DomainName'
+        )
+        {
+            $bp.Remove('DomainName')
+        }
+
         return New-Object PSObject -Property $bp
     }
 }
@@ -1318,7 +1316,7 @@ Conversion between any combination of FilePathType and Scheme is supported provi
 A string of the file path string if conversion is successful. False otherwise.
 
 .EXAMPLE
-    '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat
+    '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows
     # c:\local\path
 .EXAMPLE
     '\\domain.name\c$\local\path' | ConvertTo-FilePathFormat Windows PowerShell
@@ -1384,9 +1382,7 @@ A string of the file path string if conversion is successful. False otherwise.
         $splat = &(gbpm)
         $splat.Remove('Path')
 
-        return $inputObject |
-            Select-Object -Property * -ExcludeProperty DomainName |
-            ConvertTo-FilePathString @splat
+        return $inputObject | ConvertTo-FilePathString @splat
     }
 }
 function Join-FilePath
