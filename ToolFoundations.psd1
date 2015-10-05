@@ -4,7 +4,7 @@
 ModuleToProcess = 'ToolFoundations.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.1.0'
+ModuleVersion = '0.2.0'
 
 # ID used to uniquely identify this module
 GUID = 'c609520d-f4ac-416a-8ac4-ebfc8dffd664'
