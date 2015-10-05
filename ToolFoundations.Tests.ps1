@@ -52,10 +52,8 @@ Describe "manifest and changelog" {
             It "is tagged with a valid version" {
                 $thisCommit = git.exe log --decorate --oneline HEAD~1..HEAD
 
-                if ($thisCommit -match 'tag:\s*(\d+(?:\.\d+)*)')
-                {
-                    $script:tagVersion = $matches[1]
-                }
+                $mask = 'tag:\s*(?<version>[0-9]*\.[0-9]*\.[0-9]*)'
+                $script:tagVersion = [regex]::Match($thisCommit,$mask).Groups['version'].Value
 
                 $script:tagVersion                  | Should Not BeNullOrEmpty
                 $script:tagVersion -as [Version]    | Should Not BeNullOrEmpty
