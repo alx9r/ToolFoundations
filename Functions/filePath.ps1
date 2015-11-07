@@ -1236,9 +1236,9 @@ This example show how you can convert a plain-old Windows path to the path of an
 
         Assert-ValidFilePathObjectParams @bp
 
-        if ( 'FilePathType' -notin $bp.Keys )
+        if ( $bp.Keys -notcontains 'FilePathType' )
         {
-            if ( 'DomainName' -in $bp.Keys )
+            if ( $bp.Keys -contains 'DomainName' )
             {
                 $FilePathType = 'UNC'
             }
