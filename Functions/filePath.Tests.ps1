@@ -1450,7 +1450,22 @@ Describe ConvertTo-FilePathString {
         $r = $object | ConvertTo-FilePathString Windows
 
         $r | Should be 'c:\local\path'
-
+    }
+    It 'correctly infers UNC' {
+        $splat = @{
+            DriveLetter = 'c'
+            Segments = 'local','path'
+        }
+        $r = ConvertTo-FilePathString @splat
+        $r | Should be 'c:\local\path'
+    }
+    It 'correctly infers Windows' {
+        $splat = @{
+            DomainName = 'domain.name'
+            Segments = 'local','path'
+        }
+        $r = ConvertTo-FilePathString @splat
+        $r | Should be '\\domain.name\local\path'
     }
 }
 Describe 'ConvertTo-FilePathString integrations' {
