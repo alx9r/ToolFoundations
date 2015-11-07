@@ -735,8 +735,7 @@ function Assert-ValidFilePathObjectParams
     param
     (
         # The file path type of the file path.
-        [parameter(mandatory                       = $true,
-                   position                        = 1,
+        [parameter(position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('Windows','UNC','unknown')]
         [string]
@@ -871,7 +870,7 @@ The file path object if successful.  False otherwise.
     param
     (
         # The file path type of the file path.
-        [parameter(mandatory                       = $true,
+        [parameter(Mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('Windows','UNC','unknown')]
@@ -1179,8 +1178,7 @@ This example show how you can convert a plain-old Windows path to the path of an
     param
     (
         # The file path type to convert the other parameters to.
-        [parameter(mandatory                       = $true,
-                   position                        = 1,
+        [parameter(position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
         [ValidateSet('Windows','UNC','unknown')]
         [string]
@@ -1237,6 +1235,18 @@ This example show how you can convert a plain-old Windows path to the path of an
         $bp = &(gbpm)
 
         Assert-ValidFilePathObjectParams @bp
+
+        if ( 'FilePathType' -notin $bp.Keys )
+        {
+            if ( 'DomainName' -in $bp.Keys )
+            {
+                $FilePathType = 'UNC'
+            }
+            else
+            {
+                $FilePathType = 'Windows'
+            }
+        }
 
         $slash = '\'
         if ( $Scheme -eq 'FileUri' )
