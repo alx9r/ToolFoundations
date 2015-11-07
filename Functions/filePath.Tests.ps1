@@ -841,6 +841,24 @@ Describe Assert-ValidFilePathObjectParams {
         }
         { Assert-ValidFilePathObjectParams @splat } | Should not throw
     }
+    It 'does not throw when inferring UNC path.' {
+        $splat = @{
+            DomainName  = 'domain.name'
+        }
+        { Assert-ValidFilePathObjectParams @splat } | Should not throw
+    }
+    It 'does not throw when inferring Windows path.' {
+        $splat = @{
+            DriveLetter = 'a'
+        }
+        { Assert-ValidFilePathObjectParams @splat } | Should not throw
+    }
+    It 'throws when path type cannot be inferred.' {
+        $splat = @{
+            Segments = 'local','path'
+        }
+        { Assert-ValidFilePathObjectParams @splat } | Should throw
+    }
 }
 Describe New-FilePathObject {
     function CountProps
