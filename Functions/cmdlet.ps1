@@ -1,6 +1,7 @@
 Set-Alias gbpm Get-BoundParams
 Set-Alias gcp Get-CommonParams
 Set-Alias '>>' ConvertTo-ParamObject
+Set-Alias icms Invoke-CommandSafely
 
 Function Get-BoundParams
 {
@@ -428,7 +429,7 @@ function Get-Parameters
             % {$_.Name}
     }
 }
-function Test-ValidSplatParams
+function Test-ValidParams
 {
     [CmdletBinding()]
     param
@@ -495,6 +496,36 @@ function Test-ValidSplatParams
         }
 
         return $true
+    }
+}
+function Invoke-CommandSafely
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position                        = 1,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $CmdletName,
+
+        [Parameter(Position                        = 2,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [hashtable]
+        $SplatParams,
+
+        [Parameter(Position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $ParameterSetName
+    )
+    process
+    {
+        $bp = &(gbpm)
+        Test-ValidParams @bp -fa Throw | Out-Null
+
+        & $CmdletName @SplatParams
     }
 }
 }

@@ -459,7 +459,7 @@ InModuleScope ToolFoundations {
             }
         }
     }
-    Describe Test-ValidSplatParams {
+    Describe Test-ValidParams {
         Context 'success.' {
             Mock Get-Parameters -Verifiable { 'a','b' }
             It 'returns true.' {
@@ -467,7 +467,7 @@ InModuleScope ToolFoundations {
                     CmdletName  = 'Do-Something'
                     SplatParams = @{a=1;b=2}
                 }
-                $r = Test-ValidSplatParams @splat
+                $r = Test-ValidParams @splat
                 $r | Should be $true
 
                 Assert-MockCalled Get-Parameters -Times 1 {
@@ -484,7 +484,7 @@ InModuleScope ToolFoundations {
                 }
                 try
                 {
-                    Test-ValidSplatParams @splat -FailAction Throw
+                    Test-ValidParams @splat -FailAction Throw
                 }
                 catch
                 {
@@ -504,7 +504,7 @@ InModuleScope ToolFoundations {
                 }
                 try
                 {
-                    Test-ValidSplatParams @splat -FailAction Throw
+                    Test-ValidParams @splat -FailAction Throw
                 }
                 catch
                 {
@@ -514,6 +514,53 @@ InModuleScope ToolFoundations {
                 }
                 $threw | Should be $true
             }
+        }
+    }
+}
+InModuleScope ToolFoundations {
+    Describe Invoke-CommandSafely {
+        function Test
+        {
+            [CmdletBinding()]
+            param
+            (
+                [Parameter(Mandatory=$true)]
+                $x
+            )
+            process
+            {
+                return $x
+            }
+        }
+
+        It 'throws on missing param.' {
+            $splat = @{}
+            { Invoke-CommandSafely Test $splat } | Should throw
+        }
+        Context 'does not invoke' {
+            Mock Test -Verifiable
+            It 'does not invoke on missing param.' {
+                $splat = @{}
+                try
+                {
+                    Invoke-CommandSafely Test $splat
+                }
+                catch [System.ArgumentException]
+                {
+                    $throws = $true
+                }
+
+                $throws | Should be $true
+
+                Assert-MockCalled Test -Times 0
+            }
+        }
+        It 'invokes on good params.' {
+            $splat = @{
+                x = 100
+            }
+            $r = Invoke-CommandSafely Test $splat
+            $r | Should be 100
         }
     }
 }
