@@ -49,6 +49,7 @@ True if FileName is known valid.  False otherwise.
 
 .LINK
     https://stackoverflow.com/a/62888/1404637
+    Publish-Failure
 #>
     [CmdletBinding()]
     param
@@ -59,34 +60,54 @@ True if FileName is known valid.  False otherwise.
                    ValueFromPipeline=$true)]
         [AllowEmptyString()]
         [string]
-        $FileName
+        $FileName,
+
+        # The FailAction passed to Publish-Failure when a test fails.
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Verbose'
     )
     process
     {
         # https://stackoverflow.com/a/62888/1404637
 
+        # empty string
+        if ( $FileName -eq [string]::Empty )
+        {
+            &(Publish-Failure 'Filename is an empty string.','FileName' ([System.ArgumentException]) $FailAction)
+            return $false
+        }
+
         # bad characters
-        $escapedBadChars = ( ([char[]]'<>:"/\|?*') | ConvertTo-RegexEscapedString ) -join '|'
+        $badChars = [char[]]'<>:"/\|?*'
+        $escapedBadChars = ( $badChars | ConvertTo-RegexEscapedString ) -join '|'
         if ( $FileName -match "($escapedBadChars)" )
         {
+            &(Publish-Failure "FileName $FileName contains one of these bad characters: $badChars",'FileName' ([System.ArgumentException]) $FailAction)
             return $false
         }
 
         # all periods
         if ( $FileName -match '^\.*$' )
         {
+            &(Publish-Failure "FileName $FileName is all periods.",'FileName' ([System.ArgumentException]) $FailAction)
             return $false
         }
 
         # reserved DOS names
-        if ( $FileName -match '^(PRN|AUX|NUL|CON|COM[1-9]|LPT[1-9])(\.?|\..*)$' )
+        $regex = '^(PRN|AUX|NUL|CON|COM[1-9]|LPT[1-9])(\.?|\..*)$'
+        if ( $FileName -match $regex )
         {
+            &(Publish-Failure "FileName $FileName contains a reserved DOS name.  It matches this regular expression: $regex",'FileName' ([System.ArgumentException]) $FailAction)
             return $false
         }
 
         # length
         if ($FileName.Length -gt 255 )
         {
+            &(Publish-Failure "FileName $FileName is longer than 255 characters.",'FileName' ([System.ArgumentException]) $FailAction)
             return $false
         }
 

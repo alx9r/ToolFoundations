@@ -24,15 +24,54 @@ Describe Test-ValidFilename{
         'inva|id' | Test-ValidFileName | Should be $false
         'c:' | Test-ValidFileName | Should be $false
     }
+    It 'throws correct exception for an invalid character.' {
+        try
+        {
+            'b<d' | Test-ValidFileName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'FileName b<d contains one of these bad characters: < > : " / \ | ? *'
+            $_.Exception.ParamName | Should be 'FileName'
+        }
+        $threw | Should be $true
+    }
     It 'returns false for all periods.' {
         '.' | Test-ValidFileName | Should be $false
         '..' | Test-ValidFileName | Should be $false
+    }
+    It 'throws correct exception for all periods.' {
+        try
+        {
+            '.' | Test-ValidFileName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'FileName . is all periods.'
+            $_.Exception.ParamName | Should be 'FileName'
+        }
+        $threw | Should be $true
     }
     It 'returns false for DOS Names.' {
         'PRN.' | Test-ValidFileName | Should be $false
         'PRN' | Test-ValidFileName | Should be $false
         'AUX.txt' | Test-ValidFileName | Should be $false
         'AUXtxt' | Test-ValidFileName | Should be $true
+    }
+    It 'throws correct exception for DOS Names.' {
+        try
+        {
+            'PRN' | Test-ValidFileName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'FileName PRN contains a reserved DOS name.  It matches this regular expression'
+            $_.Exception.ParamName | Should be 'FileName'
+        }
+        $threw | Should be $true
     }
     It 'returns false for filename that is too long.' {
         $s = '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
@@ -45,9 +84,38 @@ Describe Test-ValidFilename{
         $s.Length | Should be 256
         $s | Test-ValidFileName | Should be $false
     }
+    It 'throws correct exception for filename that is too long.' {
+        $s = '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+        '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+        '01234567890123456789012345678901234567890123456789012345'
+        try
+        {
+            $s | Test-ValidFileName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match "FileName $s is longer than 255 characters."
+            $_.Exception.ParamName | Should be 'FileName'
+        }
+        $threw | Should be $true
+    }
     It 'returns false for empty string.' {
         $r = [string]::Empty | Test-ValidFileName
         $r | Should be $false
+    }
+    It 'throws correct exception empty string.' {
+        try
+        {
+            [string]::Empty | Test-ValidFileName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'Filename is an empty string.'
+            $_.Exception.ParamName | Should be 'FileName'
+        }
+        $threw | Should be $true
     }
 }
 InModuleScope ToolFoundations {

@@ -133,3 +133,80 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe Publish-Failure {
+    Context 'specified exception' {
+        function Fail
+        {
+            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Throw)
+        }
+        It 'throws correct exception.' {
+            try
+            {
+                Fail
+            }
+            catch [System.ArgumentException]
+            {
+                $threw = $true
+
+                $_.CategoryInfo.Reason | Should be 'ArgumentException'
+                $_ | Should Match 'My Error Message'
+                $_ | Should Match 'Parameter name: param1'
+
+                if ($PSVersionTable.PSVersion.Major -ge 4)
+                {
+                    $_.ScriptStackTrace | Should Match 'at Fail, '
+                    $_.ScriptStackTrace | Should not match 'cmdlet.ps1'
+                }
+            }
+            $threw | Should be $true
+        }
+    }
+    Context 'unspecified exception type' {
+        function Fail
+        {
+            &(Publish-Failure 'My Error Message','param1' -FailAction Throw)
+        }
+        It 'throws a generic exception.' {
+            try
+            {
+                Fail
+            }
+            catch
+            {
+                $threw = $true
+
+                $_.CategoryInfo.Reason | Should be 'Exception'
+                $_ | Should Match 'My Error Message'
+            }
+            $threw | Should be $true
+        }
+    }
+    Context 'Verbose' {
+        function Fail
+        {
+            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Verbose)
+        }
+        Mock Write-Verbose -Verifiable
+        It 'reports correct error message.' {
+            Fail
+
+            Assert-MockCalled Write-Verbose -Times 1 {
+                $Message -eq 'My Error Message'
+            }
+        }
+    }
+    Context 'Error' {
+        function Fail
+        {
+            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Error)
+        }
+        Mock Write-Error -Verifiable
+        It 'reports correct error message.' {
+            Fail
+
+            Assert-MockCalled Write-Error -Times 1 {
+                $Message -eq 'My Error Message'
+            }
+        }
+    }
+}

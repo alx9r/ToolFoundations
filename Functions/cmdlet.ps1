@@ -205,3 +205,92 @@ Function Get-CommonParameterNames
     }
 }
 
+function Publish-Failure
+{
+<#
+.SYNOPSIS
+A DRY way to implement user-selectable failure actions.
+
+.DESCRIPTION
+Publish-Failure throws an exception, reports an error, or a verbose message depending on FailAction.  This allows implementation of Cmdlets that vary their failure actions without repeating code.  For example, Test-ValidFileName is used in two different ways:
+
+    1. Publicly to test whether a file name is valid.  In this case the user doesn't expect an exception to be thrown if the test fails.
+    2. Internally to assert that a file name is valid.  In this case the calling function needs Test-ValidFileName to throw an exception with the detailed reasons for failure, so that the user of the calling function sees the underlying reason for the failure.
+
+Publish-Failure allows both of the above needs to be fulfilled on a single line of code without repetition.  Here is an example:
+
+function Do-Something
+{
+    param($FileName)
+
+    $FileName | Test-ValidFilename    -FailAction Throw
+    ...
+}
+
+Normally Test-ValidFilename returns false on a failure.  However, that behavior would violate one of Scott Hanselman's rules of thumbs:
+
+    "If your functions are named well,
+    using verbs (actions) and nouns
+    (stuff to take action on) then
+    throw an exception if your method
+    can't do what it says it can."
+
+Accordingly, we need a failure of Test-ValidFilename to throw an exception rather than just silently continue.  Because we want that exception to contain detailed information about the cause of the failure, Test-ValidFilename's fail behavior needs to be changed to throw using -FailAction Throw.  This variability is implemented by Test-ValidFilename by calling Publish-Failure.  Look at the implmentation of Test-ValidFilename for an example.
+.OUTPUTS
+A scriptblock that can be invoked by the caller to publish the failure according to the parameters.  The scriptblock will either contain code that throws an exception, calls Write-Error, or Write-Verbose.
+
+.LINK
+http://www.hanselman.com/blog/GoodExceptionManagementRulesOfThumb.aspx
+Test-ValidFileName
+#>
+    [CmdletBinding()]
+    param
+    (
+        # The list of arguments for the exception when FailAction is Throw. The first element is used as the message when FailAction is Error or Verbose.
+        [Parameter(Mandatory                       = $true,
+                   Position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string[]]
+        $ArgumentList='Unspecified Error',
+
+        # the type of exception to throw for FailAction=Throw
+        [Parameter(Position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [Type]
+        $ExceptionType=[System.Exception],
+
+        # The action to take. Throw throws an exception. Error calls Write-Error.  Verbose calls Write-Verbose.
+        [Parameter(Position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Error',
+
+        # output the resulting scriptblock as code instead
+        [switch]
+        $AsCode
+    )
+    process
+    {
+        switch ($FailAction) {
+            'Error' {
+                $code = "Write-Error '$($ArgumentList[0])'"
+            }
+            'Verbose' {
+                $code = "Write-Verbose '$($ArgumentList[0])'"
+            }
+            'Throw' {
+                $argumentListString = ConvertTo-PsLiteralString $ArgumentList
+                $code = "throw New-Object -TypeName $ExceptionType -ArgumentList $argumentListString"
+            }
+        }
+
+        if ( $AsCode )
+        {
+            return $code
+        }
+
+        return [scriptblock]::Create($code)
+    }
+}
