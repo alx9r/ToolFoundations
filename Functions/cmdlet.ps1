@@ -205,3 +205,52 @@ Function Get-CommonParameterNames
     }
 }
 
+function Publish-Failure
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory                       = $true,
+                   Position                        = 1,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string[]]
+        $ArgumentList='Unspecified Error',
+
+        [Parameter(Position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [Type]
+        $ExceptionType=[System.Exception],
+
+        [Parameter(Position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Error',
+
+        [switch]
+        $AsCode
+    )
+    process
+    {
+        switch ($FailAction) {
+            'Error' {
+                $code = "Write-Error '$($ArgumentList[0])'"
+            }
+            'Verbose' {
+                $code = "Write-Verbose '$($ArgumentList[0])'"
+            }
+            'Throw' {
+                $argumentListString = ConvertTo-PsLiteralString $ArgumentList
+                $code = "throw New-Object -TypeName $ExceptionType -ArgumentList $argumentListString"
+            }
+        }
+
+        if ( $AsCode )
+        {
+            return $code
+        }
+
+        return [scriptblock]::Create($code)
+    }
+}

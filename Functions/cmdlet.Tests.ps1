@@ -133,3 +133,51 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe Publish-Failure {
+    function Fail
+    {
+        param($FailAction)
+        &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction $FailAction)
+    }
+    It 'throws correct exception.' {
+        try
+        {
+            Fail -FailAction 'Throw'
+        }
+        catch
+        {
+            $threw = $true
+
+            $_.CategoryInfo.Reason | Should be 'ArgumentException'
+            $_ | Should Match 'My Error Message'
+            $_ | Should Match 'Parameter name: param1'
+
+            if ($PSVersionTable.PSVersion.Major -ge 4)
+            {
+                $_.ScriptStackTrace | Should Match 'at Fail, '
+                $_.ScriptStackTrace | Should not match 'cmdlet.ps1'
+            }
+        }
+        $threw | Should be $true
+    }
+    Context 'Verbose' {
+        Mock Write-Verbose -Verifiable
+        It 'reports correct error message.' {
+            Fail -FailAction 'Verbose'
+
+            Assert-MockCalled Write-Verbose -Times 1 {
+                $Message -eq 'My Error Message'
+            }
+        }
+    }
+    Context 'Error' {
+        Mock Write-Error -Verifiable
+        It 'reports correct error message.' {
+            Fail -FailAction 'Error'
+
+            Assert-MockCalled Write-Error -Times 1 {
+                $Message -eq 'My Error Message'
+            }
+        }
+    }
+}
