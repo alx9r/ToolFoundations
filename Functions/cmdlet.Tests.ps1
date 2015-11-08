@@ -292,3 +292,172 @@ Describe ConvertTo-ParamObject {
         $r.array[1] | Should be 2
     }
 }
+if ($PSVersionTable.PSVersion.Major -ge 4)
+{
+InModuleScope ToolFoundations {
+    Describe Get-Parameters {
+        Context 'bad ParameterSetName' {
+            function Test-BadParameterSetName
+            {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(ParameterSetName='a')]
+                    $a
+                )
+            }
+            It 'throws correct exception.' {
+                try
+                {
+                    Get-Parameters Test-BadParameterSetName BadParameterSetName -Mode Required
+                }
+                catch [System.ArgumentException]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'Cmdlet Test-BadParameterSetName does not have ParameterSetName BadParameterSetName.'
+                    $_.Exception.ParamName | Should be 'ParameterSetName'
+                }
+                $threw | Should be $true
+            }
+        }
+        Context 'no parameters' {
+            function Test-NoParameters
+            {
+                [CmdletBinding()]
+                param()
+            }
+            It 'returns nothing.' {
+                $r = Get-Parameters Test-NoParameters
+                $r | Should beNullOrEmpty
+            }
+        }
+        Context 'invalid CmdletName' {
+            It 'throws correct exception.' {
+                try
+                {
+                    Get-Parameters Test-BadCmdletName
+                }
+                catch [System.Management.Automation.CommandNotFoundException]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match "The term 'Test-BadCmdletName' is not recognized"
+                    $_.Exception.CommandName | Should be 'Test-BadCmdletName'
+                }
+
+                $threw | Should be $true
+            }
+        }
+        Context 'single parameter set' {
+            function Test-OneParameterSet
+            {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true)]
+                    $a,
+
+                    $b
+                )
+            }
+
+            It 'reports correct parameters (required)' {
+                $r = Get-Parameters Test-OneParameterSet -Mode Required
+                $r[0] | Should be 'a'
+                $r.Count | Should be 1
+            }
+            It 'reports correct parameters (All)' {
+                $r = Get-Parameters Test-OneParameterSet -Mode All
+                $r[0] | Should be 'a'
+                $r[1] | Should be 'b'
+                $r.Count | Should be 2
+            }
+        }
+        Context 'default parameter set.' {
+            function Test-DefaultParameterSet
+            {
+                [CmdletBinding(DefaultParameterSetName = 'b')]
+                param
+                (
+                    [Parameter(ParameterSetName = 'a')]
+                    $a,
+
+                    [Parameter(Mandatory = $true, ParameterSetName = 'b')]
+                    $b,
+
+                    [Parameter(Mandatory = $true)]
+                    $c
+                )
+            }
+            It 'reports correct parameters (required)' {
+                $r = Get-Parameters Test-DefaultParameterSet -Mode Required
+                $r[0] | Should be 'b'
+                $r[1] | Should be 'c'
+            }
+            It 'reports correct parameters (all)' {
+                $r = Get-Parameters Test-DefaultParameterSet -Mode All
+                $r[0] | Should be 'b'
+                $r[1] | Should be 'c'
+            }
+        }
+        Context 'selected parameter set.' {
+            function Test-DefaultParameterSet
+            {
+                [CmdletBinding(DefaultParameterSetName = 'b')]
+                param
+                (
+                    [Parameter(Mandatory = $true,ParameterSetName = 'a')]
+                    $a,
+
+                    [Parameter(ParameterSetName = 'a')]
+                    $aoptional,
+
+                    [Parameter(ParameterSetName = 'b')]
+                    $b,
+
+                    [Parameter(Mandatory = $true)]
+                    $c
+                )
+            }
+            It 'reports correct parameters (required)' {
+                $r = Get-Parameters Test-DefaultParameterSet a -Mode Required
+                $r[0] | Should be 'a'
+                $r[1] | Should be 'c'
+            }
+            It 'reports correct parameters (all)' {
+                $r = Get-Parameters Test-DefaultParameterSet a -Mode All
+                $r[0] | Should be 'a'
+                $r[1] | Should be 'aoptional'
+                $r[2] | Should be 'c'
+            }
+        }
+        Context 'no parameter set provided' {
+            function Test-NoDefaultParameterSet
+            {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true,ParameterSetName = 'a')]
+                    $a,
+
+                    [Parameter(Mandatory = $true, ParameterSetName = 'b')]
+                    $b,
+
+                    $c
+                )
+            }
+            It 'throws correct exception.' {
+                try
+                {
+                    Get-Parameters Test-NoDefaultParameterSet -Mode Required
+                }
+                catch [System.ArgumentException]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'Cmdlet Test-NoDefaultParameterSet has more than one parameterset and no default. You must provide ParameterSetName.'
+                    $_.Exception.ParamName | Should be 'ParameterSetName'
+                }
+            }
+        }
+    }
+}
+}

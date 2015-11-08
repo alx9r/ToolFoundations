@@ -322,3 +322,110 @@ Function ConvertTo-ParamObject
         return $InputObject
     }
 }
+
+if ( $PSVersionTable.PSVersion.Major -ge 4)
+{
+function Get-Parameters
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position                        = 1,
+                   Mandatory                       = $true,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $CmdletName,
+
+        [Parameter(Position                        = 2,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $ParameterSetName,
+
+        [Parameter(Position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('Required','All')]
+        [string]
+        $Mode='All'
+    )
+    process
+    {
+        $bp = &(gbpm)
+
+        $cmd = Get-Command $CmdletName -ErrorAction Stop
+
+        if
+        (
+             $bp.Keys -notcontains 'ParameterSetName' -and
+            $cmd.ParameterSets.Count -gt 1 -and
+            -not $cmd.DefaultParameterSet
+        )
+        {
+            throw New-Object System.ArgumentException(
+                "Cmdlet $CmdletName has more than one parameterset and no default. You must provide ParameterSetName.",
+                'ParameterSetName'
+            )
+        }
+
+        if
+        (
+            $bp.Keys -contains 'ParameterSetName' -and
+            ($cmd.ParameterSets | % {$_.Name}) -notcontains $ParameterSetName
+        )
+        {
+            throw New-Object System.ArgumentException(
+                "Cmdlet $CmdletName does not have ParameterSetName $ParameterSetName.",
+                'ParameterSetName'
+            )
+        }
+
+        if ( -not ($cmd.Parameters.Keys | ? { (Get-CommonParameterNames) -notcontains $_}))
+        {
+            return
+        }
+
+        if
+        (
+            $bp.Keys -notcontains 'ParameterSetName' -and
+            $cmd.DefaultParameterSet
+        )
+        {
+            $psn = $cmd.DefaultParameterSet
+        }
+
+        if
+        (
+            $bp.Keys -notcontains 'ParameterSetName' -and
+            -not $cmd.DefaultParameterSet
+        )
+        {
+            $psn = $cmd.ParameterSets[0].Name
+        }
+
+        if
+        (
+            $bp.Keys -contains 'ParameterSetName'
+        )
+        {
+            $psn = $ParameterSetName
+        }
+
+        $parameterSet = $cmd.ParameterSets | ? { $_.Name -eq $psn }
+        $parameterSetParameterNames = $parameterSet.Parameters |
+            ? { (Get-CommonParameterNames) -notcontains $_.Name } |
+            % {$_.Name}
+
+        $help = Get-Help $CmdletName
+
+        return $help.parameters.parameter |
+            ? {
+                (
+                    $_.Required -eq $true -or
+                    $Mode -eq 'All'
+                ) -and
+                $parameterSetParameterNames -contains $_.Name
+            } |
+            % {$_.Name}
+    }
+}
+}
