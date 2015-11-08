@@ -459,5 +459,62 @@ InModuleScope ToolFoundations {
             }
         }
     }
+    Describe Test-ValidSplatParams {
+        Context 'success.' {
+            Mock Get-Parameters -Verifiable { 'a','b' }
+            It 'returns true.' {
+                $splat = @{
+                    CmdletName  = 'Do-Something'
+                    SplatParams = @{a=1;b=2}
+                }
+                $r = Test-ValidSplatParams @splat
+                $r | Should be $true
+
+                Assert-MockCalled Get-Parameters -Times 1 {
+                    $CmdletName -eq 'Do-Something'
+                }
+            }
+        }
+        Context 'missing parameter.' {
+            Mock Get-Parameters -Verifiable { 'a','b' }
+            It 'throws correct exception.' {
+                $splat = @{
+                    CmdletName  = 'Do-Something'
+                    SplatParams = @{b=2}
+                }
+                try
+                {
+                    Test-ValidSplatParams @splat -FailAction Throw
+                }
+                catch
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'Required parameter a not in SplatParams for Cmdlet Do-Something'
+                    $_.Exception.ParamName | Should be 'a'
+                }
+                $threw | Should be $true
+            }
+        }
+        Context 'extra parameter.' {
+            Mock Get-Parameters -Verifiable { 'a','b' }
+            It 'throw correct exceptions.' {
+                $splat = @{
+                    CmdletName  = 'Do-Something'
+                    SplatParams = @{a=1;b=2;c=3}
+                }
+                try
+                {
+                    Test-ValidSplatParams @splat -FailAction Throw
+                }
+                catch
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'SplatParam c provided but not a parameter of Cmdlet Do-Something'
+                    $_.Exception.ParamName | Should be 'c'
+                }
+                $threw | Should be $true
+            }
+        }
+    }
 }
 }

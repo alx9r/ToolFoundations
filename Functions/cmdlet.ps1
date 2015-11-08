@@ -428,4 +428,73 @@ function Get-Parameters
             % {$_.Name}
     }
 }
+function Test-ValidSplatParams
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position                        = 1,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $CmdletName,
+
+        [Parameter(Position                        = 2,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [hashtable]
+        $SplatParams,
+
+        [Parameter(Position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        $ParameterSetName,
+
+        [Parameter(Position                        = 4,
+                   ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Verbose'
+    )
+    process
+    {
+        foreach ( $requiredParam in (&(gbpm) | >> | Get-Parameters -Mode Required) )
+        {
+            if ( $SplatParams.Keys -notcontains $requiredParam )
+            {
+                $message = "Required parameter $requiredParam not in SplatParams for Cmdlet $CmdletName"
+                $param = $requiredParam
+            }
+        }
+
+        $allParams = (&(gbpm) | >> | Get-Parameters -Mode All)
+
+        foreach ( $splatParam in $SplatParams.Keys )
+        {
+            if (  $allParams -notcontains $splatParam )
+            {
+                $message = "SplatParam $splatParam provided but not a parameter of Cmdlet $CmdletName"
+                $param = $splatParam
+            }
+        }
+
+        if ($message)
+        {
+            Switch ($FailAction) {
+                'Throw' {
+                    throw New-Object System.ArgumentException(
+                        $message,
+                        $param
+                    )
+                }
+                'Error'   { Write-Error   $message}
+                'Verbose' { Write-Verbose $message }
+            }
+            return $false
+        }
+
+        return $true
+    }
+}
 }
