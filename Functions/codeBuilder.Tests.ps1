@@ -1,8 +1,6 @@
 Import-Module ToolFoundations -Force
 
 Describe 'ConvertTo-PsLiteralString' {
-    iex (DescribeHeader)
-
     It 'correctly converts single string.' {
         $s = 'asdf'
         ConvertTo-PsLiteralString $s |
