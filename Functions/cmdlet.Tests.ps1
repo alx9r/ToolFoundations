@@ -217,13 +217,13 @@ Describe ConvertTo-ParamObject {
         $r = @{a=1} | ConvertTo-ParamObject
         $r -is [psobject] | Should be true
 
-        $r | 
+        $r |
             Get-Member |
             ? {
                 $_.MemberType -like '*property*' -and
                 $_.Name -eq 'a'
             } |
-            Measure | % Count |
+            Measure | % {$_.Count} |
             Should be 1
     }
     It 'outputs a psobject with correct properties (2)' {
@@ -241,12 +241,12 @@ Describe ConvertTo-ParamObject {
         $r.hashtable.a | Should be 1
         $r.array[1] | Should be 2
 
-        $r | 
-            Get-Member | 
-            ? {$_.MemberType -like '*property*'} | 
-            % Name |
-            ? {$_ -in $h.keys} |
-            measure | % Count |
+        $r |
+            Get-Member |
+            ? {$_.MemberType -like '*property*'} |
+            % {$_.Name} |
+            ? {$h.keys -contains $_} |
+            measure | % {$_.Count} |
             Should be 5
     }
     It 'accepts an object.' {
@@ -275,15 +275,15 @@ Describe ConvertTo-ParamObject {
         $r.h -is [hashtable] | Should be $true
     }
     It 'creates correct object from PSBoundParameters.'{
-        $dict = New-Object -TypeName 'System.Collections.Generic.Dictionary`2[System.String,System.Object]'
+        $dict = New-Object 'System.Collections.Generic.Dictionary`2[System.String,System.Object]'
         ('string',    'this is a string' ),
         ('integer',   12345678 ),
         ('boolean',   $true ),
         ('hashtable', @{a=1} ),
         ('array',     @(1,2,3) ) |
-            % { 
+            % {
                 $dict.Add($_[0],$_[1])
-            }                
+            }
         $r = $dict | ConvertTo-ParamObject
         $r.string | Should be 'this is a string'
         $r.integer | Should be 12345678

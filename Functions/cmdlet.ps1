@@ -307,13 +307,13 @@ Function ConvertTo-ParamObject
     )
     process
     {
-        if 
-        ( 
+        if
+        (
             # the usual type of splat parameters
             $InputObject -is [hashtable] -or
-            
+
             # the type of PSBoundParameters
-            $InputObject -is [System.Collections.Generic.Dictionary`2[System.String,System.Object]]
+            ([string]$InputObject.GetType()) -eq 'System.Collections.Generic.Dictionary`2[System.String,System.Object]]'
         )
         {
             return New-Object psobject -Property $InputObject
