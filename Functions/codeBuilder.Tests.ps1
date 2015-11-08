@@ -105,16 +105,35 @@ Describe 'ConvertTo-PsLiteralString' {
 }
 '@
     }
+    It 'correctly changes the indentation depth.' {
+        $m = @{
+                foo = 'asdf','asdf'
+                bar = 'jkl;','jkl;','jkl;'
+            }
+        $r = ConvertTo-PsLiteralString $m -Depth 1
+        $r | Should be @'
+@{
+        bar=@(
+            'jkl;',
+            'jkl;',
+            'jkl;'
+        )
+        foo=@(
+            'asdf',
+            'asdf'
+        )
+    }
+'@
+    }
     It 'throws correct error for an unhandled type.' {
         try
         {
             ConvertTo-PsLiteralString 12345
         }
-        catch [System.ArgumentException]
+        catch [System.NotSupportedException]
         {
             $threw = $true
             $_.Exception.Message | Should Match 'Object 12345 is of type int. Conversion for this type is not implemented.'
-            $_.Exception.ParamName | Should be 'Object'
         }
 
         $threw | Should be $true
