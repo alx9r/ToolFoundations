@@ -80,7 +80,10 @@ Use Depth to add levels of indentation to the literal string. The first line is 
         # the newline character to use
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [string]
-        $NewLine="`r`n",
+        $NewLine=@'
+
+
+'@,
 
         # Tabs vs spaces? I don't care. Neither does ConvertTo-PsLiteralString.  Just pass the indentation character(s) to which you happen pledge holy allegiance to Tab.  You can even use IndentationCharacters instead of Tab if you prefer to express your non-denominationalism.
         [parameter(ValueFromPipelineByPropertyName = $true)]
