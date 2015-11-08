@@ -1,3 +1,5 @@
+Import-Module ToolFoundations -Force
+
 Describe Get-BoundParams {
     BeforeEach {
         Remove-Module ToolFoundations -ea SilentlyContinue
@@ -208,5 +210,85 @@ Describe Publish-Failure {
                 $Message -eq 'My Error Message'
             }
         }
+    }
+}
+Describe ConvertTo-ParamObject {
+    It 'outputs a psobject with correct properties (1)' {
+        $r = @{a=1} | ConvertTo-ParamObject
+        $r -is [psobject] | Should be true
+
+        $r | 
+            Get-Member |
+            ? {
+                $_.MemberType -like '*property*' -and
+                $_.Name -eq 'a'
+            } |
+            Measure | % Count |
+            Should be 1
+    }
+    It 'outputs a psobject with correct properties (2)' {
+        $h = @{
+            string  = 'this is a string'
+            integer = 12345678
+            boolean = $true
+            hashtable = @{a=1}
+            array = 1,2,3
+        }
+        $r = $h | ConvertTo-ParamObject
+        $r.string | Should be 'this is a string'
+        $r.integer | Should be 12345678
+        $r.boolean | Should be $true
+        $r.hashtable.a | Should be 1
+        $r.array[1] | Should be 2
+
+        $r | 
+            Get-Member | 
+            ? {$_.MemberType -like '*property*'} | 
+            % Name |
+            ? {$_ -in $h.keys} |
+            measure | % Count |
+            Should be 5
+    }
+    It 'accepts an object.' {
+        $h = @{
+            string  = 'this is a string'
+            integer = 12345678
+            boolean = $true
+            hashtable = @{a=1}
+            array = 1,2,3
+        }
+        $o = New-Object psobject -Property $h
+        $r = $o | ConvertTo-ParamObject
+        $r.string | Should be 'this is a string'
+        $r.integer | Should be 12345678
+        $r.boolean | Should be $true
+        $r.hashtable.a | Should be 1
+        $r.array[1] | Should be 2
+    }
+    It 'does not recurse.' {
+        $h = @{
+            h = @{
+                a=1
+            }
+        }
+        $r = $h | ConvertTo-ParamObject
+        $r.h -is [hashtable] | Should be $true
+    }
+    It 'creates correct object from PSBoundParameters.'{
+        $dict = New-Object -TypeName 'System.Collections.Generic.Dictionary`2[System.String,System.Object]'
+        ('string',    'this is a string' ),
+        ('integer',   12345678 ),
+        ('boolean',   $true ),
+        ('hashtable', @{a=1} ),
+        ('array',     @(1,2,3) ) |
+            % { 
+                $dict.Add($_[0],$_[1])
+            }                
+        $r = $dict | ConvertTo-ParamObject
+        $r.string | Should be 'this is a string'
+        $r.integer | Should be 12345678
+        $r.boolean | Should be $true
+        $r.hashtable.a | Should be 1
+        $r.array[1] | Should be 2
     }
 }

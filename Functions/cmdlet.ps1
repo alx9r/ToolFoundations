@@ -1,5 +1,6 @@
 Set-Alias gbpm Get-BoundParams
 Set-Alias gcp Get-CommonParams
+Set-Alias '>>' ConvertTo-ParamObject
 
 Function Get-BoundParams
 {
@@ -292,5 +293,32 @@ Test-ValidFileName
         }
 
         return [scriptblock]::Create($code)
+    }
+}
+Function ConvertTo-ParamObject
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Position          = 1,
+                   Mandatory         = $true,
+                   ValueFromPipeline = $true)]
+        $InputObject
+    )
+    process
+    {
+        if 
+        ( 
+            # the usual type of splat parameters
+            $InputObject -is [hashtable] -or
+            
+            # the type of PSBoundParameters
+            $InputObject -is [System.Collections.Generic.Dictionary`2[System.String,System.Object]]
+        )
+        {
+            return New-Object psobject -Property $InputObject
+        }
+
+        return $InputObject
     }
 }
