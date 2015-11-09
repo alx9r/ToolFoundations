@@ -1,5 +1,8 @@
 ## Unreleased
- - 
+ - ConvertTo-FilePathString can now infers FilePathType
+ - added Publish-Failure
+ - added ConvertTo-ParamObject
+ - added Test-ValidParams, Invoke-CommandSafely, and Get-Params
 
 ## 0.2.0
  - added invoke
