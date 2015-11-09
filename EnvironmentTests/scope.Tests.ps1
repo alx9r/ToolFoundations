@@ -27,7 +27,7 @@ Describe 'variable scope' {
             $r.f1 | Should be 'f1 value'
             $r.f2 | Should be 'f2 value'
             $r.f3 | Should be 'f3 value'
-        }    
+        }
     }
     Context 'modify inherited variable.' {
         function f1 {$someVar = 'f1 value'; return @{f1 = $someVar}}
@@ -42,7 +42,7 @@ Describe 'variable scope' {
             $r.f1 | Should be 'f1 value'
             $r.f2 | Should be 'a'
             $r.f3 | Should be 'a'
-        }    
+        }
     }
     Context 'modify inherited variable.' {
         function f1 {$someVar = 'f1 value'; return @{f1 = $someVar}}
@@ -57,7 +57,7 @@ Describe 'variable scope' {
             $r.f1 | Should be 'f1 value'
             $r.f2 | Should be 'f2 value'
             $r.f3 | Should be 'a'
-        }    
+        }
     }
 }
 Describe 'preference variable scope' {
@@ -89,7 +89,7 @@ Describe 'preference variable scope' {
             $r.f1 | Should be 'Ignore'
             $r.f2 | Should be 'Suspend'
             $r.f3 | Should be 'Continue'
-        }    
+        }
     }
     Context 'modify inherited variable.' {
         function f1 {$VerbosePreference = 'Ignore'; return @{f1 = $VerbosePreference}}
@@ -104,7 +104,7 @@ Describe 'preference variable scope' {
             $r.f1 | Should be 'Ignore'
             $r.f2 | Should be 'Stop'
             $r.f3 | Should be 'Stop'
-        }    
+        }
     }
     Context 'modify inherited variable.' {
         function f1 {$VerbosePreference = 'Ignore'; return @{f1 = $VerbosePreference}}
@@ -119,6 +119,6 @@ Describe 'preference variable scope' {
             $r.f1 | Should be 'Ignore'
             $r.f2 | Should be 'Suspend'
             $r.f3 | Should be 'Stop'
-        }    
+        }
     }
 }
