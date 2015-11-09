@@ -236,7 +236,7 @@ InModuleScope ToolFoundations {
                     $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
                     $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
 
-                    # I can't believe this next line is passes...
+                    # I can't believe this next line passes...
                     $_.Exception -is [System.Management.Automation.ParameterBindingException] | Should be $true
                     # ...poor PowerShell 2 users.
                 }
