@@ -59,9 +59,9 @@ InModuleScope ToolFoundations {
                 $threw | Should be $true
             }
         }
-        if ($PSVersionTable.PSVersion.Major -ge 4)
+        if ($PSVersionTable.PSVersion.Major -ge 3)
         {
-        Context ': Proactive conversion to object parameter. (PowerShell 4 up)' {
+        Context ': Proactive conversion to object parameter. (PowerShell 3 up)' {
             function f {
                 [CmdletBinding()]
                 param
@@ -105,7 +105,6 @@ InModuleScope ToolFoundations {
                     $threw = $true
                     $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
                     $_.Exception.ErrorId | Should be 'InputObjectMissingMandatory'
-                   
                 }
                 $threw | Should be $true
             }
@@ -122,9 +121,8 @@ InModuleScope ToolFoundations {
                     $threw = $true
                     $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
                     $_.Exception.ErrorId | Should be 'InputObjectMissingMandatory'
-                   
                 }
-                $threw | Should be $true            
+                $threw | Should be $true
             }
             It 'throws when using both pipeline and named parameter (mandatory param piped)' {
                 $pparams = @{
@@ -142,9 +140,8 @@ InModuleScope ToolFoundations {
                     $threw = $true
                     $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
                     $_.Exception.ErrorId | Should be 'InputObjectMissingMandatory'
-                   
                 }
-                $threw | Should be $true 
+                $threw | Should be $true
             }
             It 'throws when using both pipeline and named parameter (mandatory param splatted)' {
                 $pparams = @{
@@ -162,15 +159,139 @@ InModuleScope ToolFoundations {
                     $threw = $true
                     $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
                     $_.Exception.ErrorId | Should be 'InputObjectMissingMandatory'
-                   
                 }
-                $threw | Should be $true                 
+                $threw | Should be $true
             }
         }
         }
         if ($PSVersionTable.PSVersion.Major -eq 2)
         {
         Context ': Proactive conversion to object parameter. (PowerShell 2)' {
+            function f {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true,
+                               ValueFromPipeLineByPropertyName=$true)]
+                    [ValidateNotNullOrEmpty()]
+                    [string]$a,
+
+                    [Parameter(Mandatory = $true ,
+                               ValueFromPipeLineByPropertyName=$true)]
+                    [ValidateNotNullOrEmpty()]
+                    [string]$b,
+
+                    [Parameter(ValueFromPipeLineByPropertyName=$true)]
+                    [ValidateNotNullOrEmpty()]
+                    [string]$c
+                )
+                process{}
+            }
+            BeforeAll {
+                $h = @{}
+                $h.originalErrorActionPreference = $ErrorActionPreference
+                $ErrorActionPreference = 'Stop'
+            }
+            AfterAll {
+                $ErrorActionPreference = $h.originalErrorActionPreference
+            }
+            It 'ErrorActionPreference is Stop' {
+                $ErrorActionPreference | Should be 'Stop'
+            }
+            It 'does not throw a catchable ParameterBindingException when a mandatory parameter is missing.' {
+                $o = New-Object psobject -Property @{a=1}
+                $o.a | Should be 1
+                {
+                    try
+                    {
+                        $o | f
+                    }
+                    catch [System.Management.Automation.ParameterBindingException] {}
+                } |
+                    Should throw
+            }
+            It 'throws a catchable System.Exception when a mandatory parameter is missing.' {
+                $o = New-Object psobject -Property @{a=1}
+                $o.a | Should be 1
+                try
+                {
+                    $o | f
+                }
+                catch [System.Exception]
+                {
+                    $threw = $true
+                }
+                $threw | Should be $true
+            }
+            It 'the System.Exception that is thrown is actually a ParameterBindingException.' {
+                $o = New-Object psobject -Property @{a=1}
+                $o.a | Should be 1
+                try
+                {
+                    $o | f
+                }
+                catch [System.Exception]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
+                    $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
+                }
+                $threw | Should be $true
+            }
+            It 'throws on missing mandatory parameter. (terse)' {
+                $pparams = @{
+                    a = 1
+                }
+                try
+                {
+                    $pparams | >> | f
+                }
+                catch [System.Exception]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
+                    $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
+                }
+                $threw | Should be $true
+            }
+            It 'throws when using both pipeline and named parameter (mandatory param piped)' {
+                $pparams = @{
+                    a = 1
+                }
+                    $splat = @{
+                    c = 1
+                }
+                try
+                {
+                    $pparams | >> | f @splat
+                }
+                catch [System.Exception]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
+                    $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
+                }
+                $threw | Should be $true
+            }
+            It 'throws when using both pipeline and named parameter (mandatory param splatted)' {
+                $pparams = @{
+                    c = 1
+                }
+                    $splat = @{
+                    a = 1
+                }
+                try
+                {
+                    $pparams | >> | f @splat
+                }
+                catch [System.Exception]
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
+                    $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
+                }
+                $threw | Should be $true
+            }
         }
         }
     }
