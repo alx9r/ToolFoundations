@@ -948,7 +948,7 @@ The file path object if successful.  False otherwise.
     {
         $bp = &(gbpm)
 
-        Assert-ValidFilePathObjectParams @bp
+        $bp | >> | Assert-ValidFilePathObjectParams
 
         $bp.TrailingSlash = $TrailingSlash
         $bp.Segments = $Segments
@@ -1255,7 +1255,7 @@ This example show how you can convert a plain-old Windows path to the path of an
     {
         $bp = &(gbpm)
 
-        Assert-ValidFilePathObjectParams @bp
+        $bp | >> | Assert-ValidFilePathObjectParams
 
         if ( $bp.Keys -notcontains 'FilePathType' )
         {
