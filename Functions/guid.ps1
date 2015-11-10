@@ -1,4 +1,4 @@
-function Test-ValidGuidString 
+function Test-ValidGuidString
 {
     [CmdletBinding()]
     param
