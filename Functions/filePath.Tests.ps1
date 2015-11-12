@@ -12,6 +12,18 @@ Describe Test-ValidDriveLetter {
         '1' | Test-ValidDriveLetter | Should be $false
         [string]::Empty | Test-ValidDriveLetter | Should be $false
     }
+    It 'throws correct exception for bad drive letter.' {
+        try
+        {
+            'aa' | Test-ValidDriveLetter -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'aa is not a valid drive letter.'
+        }
+        $threw | Should be $true
+    }
 }
 Describe Test-ValidFilename{
     It 'returns true for valid filename.' {

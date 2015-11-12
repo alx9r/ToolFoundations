@@ -34,12 +34,24 @@ http://stackoverflow.com/a/20204811/1404637
                    ValueFromPipeline = $true)]
         [AllowEmptyString()]
         [string]
-        $DomainName
+        $DomainName,
+
+        # The FailAction passed to Publish-Failure when a test fails.
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Verbose'
     )
     process
     {
         # http://stackoverflow.com/a/20204811/1404637
 
-        $DomainName -match '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)'
+        if ( $DomainName -notmatch '(?=^.{4,253}$)(^((?!-)[a-zA-Z0-9-]{1,63}(?<!-)\.)+[a-zA-Z]{2,63}$)' )
+        {
+            &(Publish-Failure "$DomainName is not a valid domain name." ([System.ArgumentException]) $FailAction)
+            return $false
+        }
+        return $true
     }
 }

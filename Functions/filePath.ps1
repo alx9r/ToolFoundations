@@ -23,11 +23,23 @@ True if DriveLetter is valid.  False otherwise.
                    ValueFromPipelineByPropertyname = $true)]
         [AllowEmptyString()]
         [string]
-        $DriveLetter
+        $DriveLetter,
+
+        # The FailAction passed to Publish-Failure when a test fails.
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Verbose'
     )
     process
     {
-        $DriveLetter -match '^[a-zA-Z]$'
+        if ($DriveLetter -notmatch '^[a-zA-Z]$')
+        {
+            &(Publish-Failure "$DriveLetter is not a valid drive letter." ([System.ArgumentException]) $FailAction)
+            return $false
+        }
+        return $true
     }
 }
 function Test-ValidFileName
