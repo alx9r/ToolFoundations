@@ -12,6 +12,18 @@ Describe Test-ValidDriveLetter {
         '1' | Test-ValidDriveLetter | Should be $false
         [string]::Empty | Test-ValidDriveLetter | Should be $false
     }
+    It 'throws correct exception for bad drive letter.' {
+        try
+        {
+            'aa' | Test-ValidDriveLetter -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'aa is not a valid drive letter.'
+        }
+        $threw | Should be $true
+    }
 }
 Describe Test-ValidFilename{
     It 'returns true for valid filename.' {
@@ -1333,9 +1345,13 @@ Describe 'ConvertTo-FilePathObject integrations' {
 InModuleScope ToolFoundations {
     Describe Test-ValidFilePathParams {
         Context 'success.' {
-            Mock Test-ValidFileName {$true}
             It 'returns true.' {
-                $r = Test-ValidFilePathParams -Segments 'segment'
+                $splat = @{
+                    DriveLetter = 'a'
+                    DomainName = 'domain.tld'
+                    Segments = 'local','path'
+                }
+                $r = Test-ValidFilePathParams @splat
                 $r | Should be $true
             }
         }
@@ -1352,70 +1368,11 @@ InModuleScope ToolFoundations {
                 }
             }
         }
-        Context 'tests drive letter' {
-            Mock Test-ValidFileName {$true}
-            Mock Test-ValidDriveLetter
-            It 'invokes test function.' {
-                $splat = @{
-                    Segments = 'segment'
-                    DriveLetter = 'c'
-                }
-                Test-ValidFilePathParams @splat
-
-                Assert-MockCalled Test-ValidDriveLetter -Times 1 {
-                    $DriveLetter -eq 'c'
-                }
-            }
-        }
-        Context 'tests domain name' {
-            Mock Test-ValidFileName {$true}
-            Mock Test-ValidDriveLetter {$true}
-            Mock Test-ValidDomainName -Verifiable
-            It 'invokes test function.' {
-                $splat = @{
-                    Segments = 'segment'
-                    DomainName = 'domain.name'
-                }
-                Test-ValidFilePathParams @splat
-
-                Assert-MockCalled Test-ValidDomainName -Times 1 {
-                    $DomainName -eq 'domain.name'
-                }
-            }
-        }
         Context 'bad segment' {
             Mock Test-ValidFileName {$false}
             Mock Write-Verbose -Verifiable
             It 'returns false.' {
                 $r = Test-ValidFilePathParams -Segments 'segment'
-                $r | Should be $false
-
-                Assert-MockCalled Write-Verbose -Times 1 {
-                    $Message -eq 'Segment segment is not a valid filename.'
-                }
-            }
-        }
-        Context 'bad drive letter' {
-            Mock Test-ValidFileName {$true}
-            Mock Test-ValidDriveLetter {$false}
-            It 'returns false.' {
-                $splat = @{
-                    Segments = 'segment'
-                    DriveLetter = 'c'
-                }
-                $r = Test-ValidFilePathParams @splat
-                $r | Should be $false
-            }
-        }
-        Context 'bad domain name' {
-            Mock Test-ValidFileName {$true}
-            Mock Test-ValidDomainName {$false}
-            It 'returns false.' {
-                $splat = @{
-                    Segments = 'segment'
-                    DomainName = 'domain.name'
-                }
-                $r = Test-ValidFilePathParams @splat
                 $r | Should be $false
             }
         }

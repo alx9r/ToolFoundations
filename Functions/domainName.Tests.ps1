@@ -34,4 +34,17 @@ Describe Test-ValidDomainName {
 '012345678901234567890123456789012345678901234567890123456789.012345678901234567890123456789012345678901234567890123456789.012345678901234567890123456789012345678901234567890123456789.012345678901234567890123456789012345678901234567890123456789.012.abcdef' |
             Test-ValidDomainName | Should be $false
     }
+    It 'throws correct exception' {
+        try
+        {
+            'asdf' | Test-ValidDomainName -FailAction Throw
+        }
+        catch [System.ArgumentException]
+        {
+            $threw = $true
+            $_.Exception.Message | Should match 'asdf is not a valid domain name.'
+            $_.Exception.ParamName | Should be DomainName
+        }
+        $threw | Should be $true
+    }
 }
