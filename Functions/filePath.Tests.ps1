@@ -1346,7 +1346,12 @@ InModuleScope ToolFoundations {
     Describe Test-ValidFilePathParams {
         Context 'success.' {
             It 'returns true.' {
-                $r = Test-ValidFilePathParams -Segments 'segment'
+                $splat = @{
+                    DriveLetter = 'a'
+                    DomainName = 'domain.tld'
+                    Segments = 'local','path'
+                }
+                $r = Test-ValidFilePathParams @splat
                 $r | Should be $true
             }
         }

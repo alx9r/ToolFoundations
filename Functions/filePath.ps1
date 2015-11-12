@@ -1118,12 +1118,12 @@ True if the parameters are valid.  False otherwise.
         $Segments,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$DriveLetter | Test-ValidDriveLetter})]
+        [ValidateScript({$_ | Test-ValidDriveLetter})]
         [string]
         $DriveLetter,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$DomainName | Test-ValidDomainName})]
+        [ValidateScript({$_ | Test-ValidDomainName})]
         [string]
         $DomainName,
 
