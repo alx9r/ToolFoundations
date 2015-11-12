@@ -36,7 +36,7 @@ True if DriveLetter is valid.  False otherwise.
     {
         if ($DriveLetter -notmatch '^[a-zA-Z]$')
         {
-            &(Publish-Failure "$DriveLetter is not a valid drive letter." ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "$DriveLetter is not a valid drive letter.",'DriveLetter' ([System.ArgumentException]) $FailAction)
             return $false
         }
         return $true
@@ -1118,48 +1118,30 @@ True if the parameters are valid.  False otherwise.
         $Segments,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [AllowEmptyString()]
+        [ValidateScript({$DriveLetter | Test-ValidDriveLetter})]
         [string]
         $DriveLetter,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [AllowEmptyString()]
+        [ValidateScript({$DomainName | Test-ValidDomainName})]
         [string]
-        $DomainName
+        $DomainName,
+
+        # The FailAction passed to Publish-Failure when a test fails.
+        [Parameter(ValueFromPipelineByPropertyName = $true)]
+        [string]
+        [ValidateSet('Error','Verbose','Throw')]
+        [Alias('fa')]
+        $FailAction='Verbose'
     )
     process
     {
-        $bp = &(gbpm)
-
-        if
-        (
-            $invalidSegment = $Segments |
-                ? { -not ($_ | Test-ValidFileName) } |
-                Select -First 1
-        )
+        foreach ($segment in $Segments)
         {
-            Write-Verbose "Segment $invalidSegment is not a valid filename."
-            return $false
-        }
-
-        if
-        (
-            $bp.Keys -contains 'DriveLetter' -and
-            -not ($DriveLetter | Test-ValidDriveLetter)
-        )
-        {
-            Write-Verbose "DriveLetter $DriveLetter is not a valid drive letter."
-            return $false
-        }
-
-        if
-        (
-            $bp.Keys -contains 'DomainName' -and
-            -not ($DomainName | Test-ValidDomainName)
-        )
-        {
-            Write-Verbose "DomainName $DomainName is not a valid domain name."
-            return $false
+            if ( -not ($segment | Test-ValidFileName -FailAction $FailAction) )
+            {
+                return $false
+            }
         }
 
         return $true

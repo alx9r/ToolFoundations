@@ -42,7 +42,8 @@ Describe Test-ValidDomainName {
         catch [System.ArgumentException]
         {
             $threw = $true
-            $_.Exception.Message | Should be 'asdf is not a valid domain name.'
+            $_.Exception.Message | Should match 'asdf is not a valid domain name.'
+            $_.Exception.ParamName | Should be DomainName
         }
         $threw | Should be $true
     }
