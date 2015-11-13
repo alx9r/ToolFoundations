@@ -304,10 +304,15 @@ Function ConvertTo-ParamObject
         [parameter(Position          = 1,
                    Mandatory         = $true,
                    ValueFromPipeline = $true)]
+        [AllowNull()]
         $InputObject
     )
     process
     {
+        if ( $null -eq $InputObject )
+        {
+            return
+        }
         if
         (
             # the usual type of splat parameters
