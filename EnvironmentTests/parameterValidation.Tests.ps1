@@ -38,6 +38,7 @@ Describe 'ValidateScript' {
             process{}
         }
         It 'does not throw exception.' {
+            $ErrorActionPreference = 'Continue'
             {@{x=1} | >> | f} | Should not throw
         }
         It "throws when ErrorActionPreference eq 'Stop'" {
@@ -46,10 +47,12 @@ Describe 'ValidateScript' {
             {
                 @{x=1} | >> | f
             }
-            catch [System.Management.Automation.ParameterBindingException]
+            catch [System.Exception]
             {
                 $threw = $true
                 $_ | Should match "Cannot validate argument on parameter 'x'"
+                $_.Exception -is [System.Management.Automation.ParameterBindingException] | Should be $true
+
             }
             $threw | Should be $true
         }
