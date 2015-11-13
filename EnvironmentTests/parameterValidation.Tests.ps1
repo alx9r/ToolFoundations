@@ -37,9 +37,28 @@ Describe 'ValidateScript' {
             )
             process{}
         }
-        It 'does not throw exception.' {
-            $ErrorActionPreference = 'Continue'
-            {@{x=1} | >> | f} | Should not throw
+        if ($PSVersionTable.PSVersion.Major -le 4)
+        {
+            It 'does not throw exception on PowerShell 4 and earlier.' {
+                $ErrorActionPreference = 'Continue'
+                {@{x=1} | >> | f} | Should not throw
+            }
+        }
+        else
+        {
+            It 'throws exception on PowerShell 5 and later.' {
+                $ErrorActionPreference = 'Continue'
+                try
+                {
+                    @{x=1} | >> | f
+                }
+                catch [System.Management.Automation.ParameterBindingException]
+                {
+                    $threw = $true
+                    $_ | Should match "Cannot validate argument on parameter 'x'"
+                }
+                $threw | Should be $true
+            }
         }
         It "throws when ErrorActionPreference eq 'Stop'" {
             $ErrorActionPreference = 'Stop'
