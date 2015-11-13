@@ -65,6 +65,39 @@ Describe 'rethrowing exceptions' {
             $threw | Should be $true
         }
     }
+    Context 'inner plain throw' {
+        function f1
+        {
+            try
+            {
+                f2
+            }
+            catch
+            {
+                throw New-Object System.ArgumentException(
+                    'message f1',
+                    $_.Exception
+                )
+            }
+        }
+
+        function f2 {
+            throw
+        }
+        It 'repackaging of inner exception works.' {
+            try
+            {
+                f1
+            }
+            catch
+            {
+                $threw = $true
+                $_.Exception.Message | Should be 'message f1'
+                $_.Exception.InnerException.Message | Should be 'ScriptHalted'
+            }
+            $threw | Should be $true
+        }
+    }
 }
 if ( $PSVersionTable.PSVersion.Major -ge 4 )
 {
