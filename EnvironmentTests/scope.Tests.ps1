@@ -76,6 +76,19 @@ Describe 'preference variable scope' {
             $r.f3 | Should be 'Stop'
         }
     }
+    Context 'inherit variable from ancestor from inside module.' {
+        $module = New-Module -ScriptBlock {
+            function f {return $VerbosePreference}
+        }
+
+        It 'does not inherit the ancestor''s scope.' {
+            $VerbosePreference = 'Stop'
+
+            $r = f
+
+            $r | Should be 'SilentlyContinue'
+        }
+    }
     Context 'modify inherited variable.' {
         function f1 {$VerbosePreference = 'Ignore'; return @{f1 = $VerbosePreference}}
         function f2 {$VerbosePreference = 'Suspend'; $r = f1; $r.f2 = $VerbosePreference; return $r}
