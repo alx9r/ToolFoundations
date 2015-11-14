@@ -291,6 +291,9 @@ Describe ConvertTo-ParamObject {
         $r.hashtable.a | Should be 1
         $r.array[1] | Should be 2
     }
+    It 'produces no error on empty object.' {
+        $null | ConvertTo-ParamObject
+    }
 }
 if ($PSVersionTable.PSVersion.Major -ge 4)
 {
