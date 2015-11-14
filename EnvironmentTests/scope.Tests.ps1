@@ -83,7 +83,7 @@ Describe 'preference variable scope' {
 
         It 'does not inherit the ancestor''s scope.' {
             $VerbosePreference = 'Stop'
-            
+
             $r = f
 
             $r | Should be 'SilentlyContinue'
