@@ -14,6 +14,12 @@ function Test-ValidGuidString
     {
         $re = '^(\{){0,1}[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12}(\}){0,1}$'
 
-        $GuidString -match $re
+        if ( $GuidString -notmatch $re )
+        {
+            &(Publish-Failure "GuidString $GuidString is not a valid GUID.",'GuidString' ([System.ArgumentException]))
+            return $false
+        }
+
+        return $true
     }
 }

@@ -19,7 +19,7 @@ Describe Test-RemotingConnection {
         It 'throws correct exception on Invoke-Command failure.' {
             try
             {
-                'computername' | Test-RemotingConnection -FailAction Throw
+                'computername' | Test-RemotingConnection -ErrorAction Stop
             }
             catch [System.Runtime.Remoting.RemotingException]
             {
@@ -34,7 +34,7 @@ Describe Test-RemotingConnection {
         It 'throws correct exception on incorrect result.' {
             try
             {
-                'computername' | Test-RemotingConnection -FailAction Throw
+                'computername' | Test-RemotingConnection -ErrorAction Stop
             }
             catch [System.Runtime.Remoting.RemotingException]
             {

@@ -134,12 +134,11 @@ InModuleScope ToolFoundations {
             }
         }
     }
-}
 Describe Publish-Failure {
     Context 'specified exception' {
         function Fail
         {
-            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Throw)
+            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -ErrorAction Stop)
         }
         It 'throws correct exception.' {
             try
@@ -166,7 +165,7 @@ Describe Publish-Failure {
     Context 'unspecified exception type' {
         function Fail
         {
-            &(Publish-Failure 'My Error Message','param1' -FailAction Throw)
+            &(Publish-Failure 'My Error Message','param1' -ErrorAction Stop)
         }
         It 'throws a generic exception.' {
             try
@@ -186,31 +185,91 @@ Describe Publish-Failure {
     Context 'Verbose' {
         function Fail
         {
-            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Verbose)
+            &(Publish-Failure 'My Message','param1' -ExceptionType System.ArgumentException -ErrorAction SilentlyContinue)
         }
         Mock Write-Verbose -Verifiable
-        It 'reports correct error message.' {
+        It 'reports correct Verbose message.' {
             Fail
 
             Assert-MockCalled Write-Verbose -Times 1 {
-                $Message -eq 'My Error Message'
+                $Message -eq 'My Message'
             }
         }
     }
     Context 'Error' {
         function Fail
         {
-            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException -FailAction Error)
+            &(Publish-Failure 'My Message','param1' -ExceptionType System.ArgumentException -ErrorAction Continue)
         }
         Mock Write-Error -Verifiable
         It 'reports correct error message.' {
             Fail
 
             Assert-MockCalled Write-Error -Times 1 {
-                $Message -eq 'My Error Message'
+                $Message -eq 'My Message'
             }
         }
     }
+    Context 'uses ErrorActionPreference from same module.' {
+        function Fail
+        {
+            &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException)
+        }
+        It 'throws correct exception.' {
+            $ErrorActionPreference = 'Stop'
+            try
+            {
+                Fail
+            }
+            catch [System.ArgumentException]
+            {
+                $threw = $true
+
+                $_.CategoryInfo.Reason | Should be 'ArgumentException'
+                $_ | Should Match 'My Error Message'
+                $_ | Should Match 'Parameter name: param1'
+
+                if ($PSVersionTable.PSVersion.Major -ge 4)
+                {
+                    $_.ScriptStackTrace | Should Match 'at Fail, '
+                    $_.ScriptStackTrace | Should not match 'cmdlet.ps1'
+                }
+            }
+            $threw | Should be $true
+        }
+    }
+    Context 'uses ErrorActionPreference from calling module.' {
+        $module = New-Module -ScriptBlock {
+            $ErrorActionPreference = 'Stop'
+            function Fail
+            {
+                &(Publish-Failure 'My Error Message','param1' -ExceptionType System.ArgumentException)
+            }
+        }
+        It 'throws correct exception.' {
+            $ErrorActionPreference | Should not be 'Stop'
+            try
+            {
+                Fail
+            }
+            catch [System.ArgumentException]
+            {
+                $threw = $true
+
+                $_.CategoryInfo.Reason | Should be 'ArgumentException'
+                $_ | Should Match 'My Error Message'
+                $_ | Should Match 'Parameter name: param1'
+
+                if ($PSVersionTable.PSVersion.Major -ge 4)
+                {
+                    $_.ScriptStackTrace | Should Match 'at Fail, '
+                    $_.ScriptStackTrace | Should not match 'cmdlet.ps1'
+                }
+            }
+            $threw | Should be $true
+        }
+    }
+}
 }
 Describe ConvertTo-ParamObject {
     It 'outputs a psobject with correct properties (1)' {
@@ -487,7 +546,7 @@ InModuleScope ToolFoundations {
                 }
                 try
                 {
-                    Test-ValidParams @splat -FailAction Throw
+                    Test-ValidParams @splat -ErrorAction Stop
                 }
                 catch
                 {
@@ -507,7 +566,7 @@ InModuleScope ToolFoundations {
                 }
                 try
                 {
-                    Test-ValidParams @splat -FailAction Throw
+                    Test-ValidParams @splat -ErrorAction Stop
                 }
                 catch
                 {

@@ -214,7 +214,7 @@ function Publish-Failure
 A DRY way to implement user-selectable failure actions.
 
 .DESCRIPTION
-Publish-Failure throws an exception, reports an error, or a verbose message depending on FailAction.  This allows implementation of Cmdlets that vary their failure actions without repeating code.  For example, Test-ValidFileName is used in two different ways:
+Publish-Failure throws an exception, reports an error, or a verbose message depending on ErrorActionPrefernce.  This allows implementation of Cmdlets that vary their failure actions without repeating code.  For example, Test-ValidFileName is used in two different ways:
 
     1. Publicly to test whether a file name is valid.  In this case the user doesn't expect an exception to be thrown if the test fails.
     2. Internally to assert that a file name is valid.  In this case the calling function needs Test-ValidFileName to throw an exception with the detailed reasons for failure, so that the user of the calling function sees the underlying reason for the failure.
@@ -225,11 +225,11 @@ function Do-Something
 {
     param($FileName)
 
-    $FileName | Test-ValidFilename    -FailAction Throw
+    $FileName | Test-ValidFilename -ErrorAction Stop
     ...
 }
 
-Normally Test-ValidFilename returns false on a failure.  However, that behavior would violate one of Scott Hanselman's rules of thumbs:
+Normally Test-ValidFilename returns false on a failure.  However, that behavior would violate one of Scott Hanselman's rules of thumbs for Do-Something:
 
     "If your functions are named well,
     using verbs (actions) and nouns
@@ -237,7 +237,7 @@ Normally Test-ValidFilename returns false on a failure.  However, that behavior 
     throw an exception if your method
     can't do what it says it can."
 
-Accordingly, we need a failure of Test-ValidFilename to throw an exception rather than just silently continue.  Because we want that exception to contain detailed information about the cause of the failure, Test-ValidFilename's fail behavior needs to be changed to throw using -FailAction Throw.  This variability is implemented by Test-ValidFilename by calling Publish-Failure.  Look at the implmentation of Test-ValidFilename for an example.
+Accordingly, we need a failure of Test-ValidFilename to throw an exception rather than just silently continue.  Because we want that exception to contain detailed information about the cause of the failure, Test-ValidFilename's fail behavior needs to be changed to throw using -ErrorAction Stop.  This variability is implemented by Test-ValidFilename by calling Publish-Failure.  Look at the implementation of Test-ValidFilename for an example.
 .OUTPUTS
 A scriptblock that can be invoked by the caller to publish the failure according to the parameters.  The scriptblock will either contain code that throws an exception, calls Write-Error, or Write-Verbose.
 
@@ -248,26 +248,18 @@ Test-ValidFileName
     [CmdletBinding()]
     param
     (
-        # The list of arguments for the exception when FailAction is Throw. The first element is used as the message when FailAction is Error or Verbose.
+        # The list of arguments for the exception when ErrorAction is Stop. The first element is used as the message when ErrorAction is Continue or SilentlyConti.
         [Parameter(Mandatory                       = $true,
                    Position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
         [string[]]
         $ArgumentList='Unspecified Error',
 
-        # the type of exception to throw for FailAction=Throw
+        # the type of exception to throw for ErrorAction Stop
         [Parameter(Position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
         [Type]
         $ExceptionType=[System.Exception],
-
-        # The action to take. Throw throws an exception. Error calls Write-Error.  Verbose calls Write-Verbose.
-        [Parameter(Position                        = 3,
-                   ValueFromPipelineByPropertyName = $true)]
-        [string]
-        [ValidateSet('Error','Verbose','Throw')]
-        [Alias('fa')]
-        $FailAction='Error',
 
         # output the resulting scriptblock as code instead
         [switch]
@@ -275,14 +267,19 @@ Test-ValidFileName
     )
     process
     {
-        switch ($FailAction) {
-            'Error' {
+        if (-not $PSBoundParameters.ContainsKey('ErrorActionPrefernce'))
+        {
+            $ErrorActionPreference = $PSCmdlet.GetVariableValue('ErrorActionPreference')
+        }
+
+        switch ($ErrorActionPreference) {
+            'Continue' {
                 $code = "Write-Error '$($ArgumentList[0])'"
             }
-            'Verbose' {
+            'SilentlyContinue' {
                 $code = "Write-Verbose '$($ArgumentList[0])'"
             }
-            'Throw' {
+            'Stop' {
                 $argumentListString = ConvertTo-PsLiteralString $ArgumentList
                 $code = "throw New-Object -TypeName $ExceptionType -ArgumentList $argumentListString"
             }
@@ -454,14 +451,7 @@ function Test-ValidParams
         [Parameter(Position                        = 3,
                    ValueFromPipelineByPropertyName = $true)]
         [string]
-        $ParameterSetName,
-
-        [Parameter(Position                        = 4,
-                   ValueFromPipelineByPropertyName = $true)]
-        [string]
-        [ValidateSet('Error','Verbose','Throw')]
-        [Alias('fa')]
-        $FailAction='Verbose'
+        $ParameterSetName
     )
     process
     {
@@ -487,15 +477,15 @@ function Test-ValidParams
 
         if ($message)
         {
-            Switch ($FailAction) {
-                'Throw' {
+            Switch ($ErrorActionPreference) {
+                'Stop' {
                     throw New-Object System.ArgumentException(
                         $message,
                         $param
                     )
                 }
-                'Error'   { Write-Error   $message}
-                'Verbose' { Write-Verbose $message }
+                'Continue'   { Write-Error   $message}
+                'SilentlyContinue' { Write-Verbose $message }
             }
             return $false
         }
@@ -528,7 +518,7 @@ function Invoke-CommandSafely
     process
     {
         $bp = &(gbpm)
-        Test-ValidParams @bp -fa Throw | Out-Null
+        Test-ValidParams @bp -ErrorAction Stop | Out-Null
 
         & $CmdletName @SplatParams
     }
