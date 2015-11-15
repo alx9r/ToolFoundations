@@ -2,7 +2,7 @@ Import-Module ToolFoundations -Force
 
 InModuleScope ToolFoundations {
     Describe 'avoid prompt on missing mandatory parameter (https://stackoverflow.com/questions/33600279)' {
-        Context ': reproduce the problem (uncomment the line to cause blocking)' {
+        Context ': reproduce the problem (uncomment the lines to cause blocking)' {
             function f {
                 [CmdletBinding()]
                 param
@@ -17,6 +17,30 @@ InModuleScope ToolFoundations {
             It 'omitting mandatory parameter prompts user and blocks execution.' {
                 # uncomment the following line to reproduce the problem.
                 # f
+            }
+        }
+        Context ' : scenarios that don''t cause the problem' {
+            function f {
+                [CmdletBinding()]
+                param
+                (
+                    [Parameter(Mandatory = $true,
+                               ValueFromPipeLineByPropertyName=$true)]
+                    [string]$a
+                )
+                process{}
+            }
+            It 'passing $null to mandatory parameter does not prompt user or block execution.' {
+                try
+                {
+                    f -a $emptyVariable
+                }
+                catch
+                {
+                    $threw = $true
+                    $_.Exception -is [System.Management.Automation.ParameterBindingException] | Should be $true
+                }
+                $threw | Should be $true
             }
         }
         Context ": Shay Levy's workaround from https://stackoverflow.com/questions/9506056" {
@@ -297,6 +321,56 @@ InModuleScope ToolFoundations {
                 $threw | Should be $true
             }
         }
+        }
+        Context ': Proactive conversion to object parameter, function inside module.' {
+            $module = New-Module -ScriptBlock {
+                function f {
+                    [CmdletBinding()]
+                    param
+                    (
+                        [Parameter(Mandatory = $true,
+                                   ValueFromPipeLineByPropertyName=$true)]
+                        [ValidateNotNullOrEmpty()]
+                        [string]$a,
+
+                        [Parameter(Mandatory = $true ,
+                                   ValueFromPipeLineByPropertyName=$true)]
+                        [ValidateNotNullOrEmpty()]
+                        [string]$b,
+
+                        [Parameter(ValueFromPipeLineByPropertyName=$true)]
+                        [ValidateNotNullOrEmpty()]
+                        [string]$c
+                    )
+                    process{}
+                }
+            }
+            BeforeAll {
+                $h = @{}
+                $h.originalErrorActionPreference = $ErrorActionPreference
+                $ErrorActionPreference = 'Stop'
+            }
+            AfterAll {
+                $ErrorActionPreference = $h.originalErrorActionPreference
+            }
+            It 'ErrorActionPreference is Stop' {
+                $ErrorActionPreference | Should be 'Stop'
+            }
+            It 'throws on missing mandatory parameter.' {
+                $o = New-Object psobject -Property @{a=1}
+                $o.a | Should be 1
+                try
+                {
+                    $o | f -ErrorAction Stop
+                }
+                catch
+                {
+                    $threw = $true
+                    $_.Exception.Message | Should match 'The input object cannot be bound because it did not contain the information required to bind all mandatory parameters:  b'
+                    $_.CategoryInfo.Reason | Should be 'ParameterBindingException'
+                }
+                $threw | Should be $true
+            }
         }
     }
 }

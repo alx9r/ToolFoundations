@@ -1,28 +1,32 @@
 Import-Module ToolFoundations -Force
 
+InModuleScope ToolFoundations {
 Describe Test-ValidDriveLetter {
     It 'returns true for good drive letter.' {
         'a' | Test-ValidDriveLetter | Should be $true
         'A' | Test-ValidDriveLetter | Should be $true
         'z' | Test-ValidDriveLetter | Should be $true
     }
-    It 'returns false for bad drive letter.' {
-        'aa' | Test-ValidDriveLetter | Should be $false
-        '_' | Test-ValidDriveLetter | Should be $false
-        '1' | Test-ValidDriveLetter | Should be $false
-        [string]::Empty | Test-ValidDriveLetter | Should be $false
-    }
-    It 'throws correct exception for bad drive letter.' {
-        try
-        {
-            'aa' | Test-ValidDriveLetter -FailAction Throw
+    Context 'errors' {
+        Mock Write-Error
+        It 'returns false for bad drive letter.' {
+            'aa' | Test-ValidDriveLetter | Should be $false
+            '_' | Test-ValidDriveLetter | Should be $false
+            '1' | Test-ValidDriveLetter | Should be $false
+            [string]::Empty | Test-ValidDriveLetter | Should be $false
         }
-        catch [System.ArgumentException]
-        {
-            $threw = $true
-            $_.Exception.Message | Should match 'aa is not a valid drive letter.'
+        It 'throws correct exception for bad drive letter.' {
+            try
+            {
+                'aa' | Test-ValidDriveLetter -ErrorAction Stop
+            }
+            catch [System.ArgumentException]
+            {
+                $threw = $true
+                $_.Exception.Message | Should match 'aa is not a valid drive letter.'
+            }
+            $threw | Should be $true
         }
-        $threw | Should be $true
     }
 }
 Describe Test-ValidFilename{
@@ -30,16 +34,19 @@ Describe Test-ValidFilename{
         'a' | Test-ValidFileName | Should be $true
         'a.b' | Test-ValidFileName | Should be $true
     }
-    It 'returns false for an invalid characters.' {
-        'b<d' | Test-ValidFileName | Should be $false
-        'b*d' | Test-ValidFileName | Should be $false
-        'inva|id' | Test-ValidFileName | Should be $false
-        'c:' | Test-ValidFileName | Should be $false
+    Context 'error' {
+        Mock Write-Error
+        It 'returns false for an invalid characters.' {
+            'b<d' | Test-ValidFileName | Should be $false
+            'b*d' | Test-ValidFileName | Should be $false
+            'inva|id' | Test-ValidFileName | Should be $false
+            'c:' | Test-ValidFileName | Should be $false
+        }
     }
     It 'throws correct exception for an invalid character.' {
         try
         {
-            'b<d' | Test-ValidFileName -FailAction Throw
+            'b<d' | Test-ValidFileName -ErrorAction Stop
         }
         catch [System.ArgumentException]
         {
@@ -49,14 +56,38 @@ Describe Test-ValidFilename{
         }
         $threw | Should be $true
     }
-    It 'returns false for all periods.' {
-        '.' | Test-ValidFileName | Should be $false
-        '..' | Test-ValidFileName | Should be $false
+    Context 'errors' {
+        Mock Write-Error
+        It 'returns false for all periods.' {
+            '.' | Test-ValidFileName | Should be $false
+            '..' | Test-ValidFileName | Should be $false
+        }
+        It 'returns false for DOS Names.' {
+            'PRN.' | Test-ValidFileName | Should be $false
+            'PRN' | Test-ValidFileName | Should be $false
+            'AUX.txt' | Test-ValidFileName | Should be $false
+            'AUXtxt' | Test-ValidFileName | Should be $true
+        }
+        It 'returns false for filename that is too long.' {
+            $s = '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+            '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
+            '0123456789012345678901234567890123456789012345678901234'
+
+            $s.Length | Should be 255
+            $s | Test-ValidFileName | Should be $true
+            $s = $s+'5'
+            $s.Length | Should be 256
+            $s | Test-ValidFileName | Should be $false
+        }
+        It 'returns false for empty string.' {
+            $r = [string]::Empty | Test-ValidFileName
+            $r | Should be $false
+        }
     }
     It 'throws correct exception for all periods.' {
         try
         {
-            '.' | Test-ValidFileName -FailAction Throw
+            '.' | Test-ValidFileName -ErrorAction Stop
         }
         catch [System.ArgumentException]
         {
@@ -66,16 +97,10 @@ Describe Test-ValidFilename{
         }
         $threw | Should be $true
     }
-    It 'returns false for DOS Names.' {
-        'PRN.' | Test-ValidFileName | Should be $false
-        'PRN' | Test-ValidFileName | Should be $false
-        'AUX.txt' | Test-ValidFileName | Should be $false
-        'AUXtxt' | Test-ValidFileName | Should be $true
-    }
     It 'throws correct exception for DOS Names.' {
         try
         {
-            'PRN' | Test-ValidFileName -FailAction Throw
+            'PRN' | Test-ValidFileName -ErrorAction Stop
         }
         catch [System.ArgumentException]
         {
@@ -85,24 +110,13 @@ Describe Test-ValidFilename{
         }
         $threw | Should be $true
     }
-    It 'returns false for filename that is too long.' {
-        $s = '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
-        '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
-        '0123456789012345678901234567890123456789012345678901234'
-
-        $s.Length | Should be 255
-        $s | Test-ValidFileName | Should be $true
-        $s = $s+'5'
-        $s.Length | Should be 256
-        $s | Test-ValidFileName | Should be $false
-    }
     It 'throws correct exception for filename that is too long.' {
         $s = '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
         '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789'+
         '01234567890123456789012345678901234567890123456789012345'
         try
         {
-            $s | Test-ValidFileName -FailAction Throw
+            $s | Test-ValidFileName -ErrorAction Stop
         }
         catch [System.ArgumentException]
         {
@@ -112,14 +126,10 @@ Describe Test-ValidFilename{
         }
         $threw | Should be $true
     }
-    It 'returns false for empty string.' {
-        $r = [string]::Empty | Test-ValidFileName
-        $r | Should be $false
-    }
     It 'throws correct exception empty string.' {
         try
         {
-            [string]::Empty | Test-ValidFileName -FailAction Throw
+            [string]::Empty | Test-ValidFileName -ErrorAction Stop
         }
         catch [System.ArgumentException]
         {
@@ -136,12 +146,15 @@ InModuleScope ToolFoundations {
             'good\frag' | Test-ValidFilePathFragment | Should be $true
             'good/frag' | Test-ValidFilePathFragment | Should be $true
         }
-        it 'return false.' {
-            'bad\path/fragment' | Test-ValidFilePathFragment | Should be $false
-            'bad/pa:h/fragment' | Test-ValidFilePathFragment | Should be $false
-        }
-        it 'returns true for empty string.' {
-            [string]::Empty | Test-ValidFilePathFragment | Should be $true
+        Context 'errors' {
+            Mock Write-Error
+            It 'return false.' {
+                'bad\path/fragment' | Test-ValidFilePathFragment | Should be $false
+                'bad/pa:h/fragment' | Test-ValidFilePathFragment | Should be $false
+            }
+            It 'returns true for empty string.' {
+                [string]::Empty | Test-ValidFilePathFragment | Should be $true
+            }
         }
         Context 'validates good element' {
             Mock Test-ValidFileName -Verifiable {$true}
@@ -202,6 +215,7 @@ InModuleScope ToolFoundations {
             }
         }
     }
+}
 }
 Describe Split-FilePathFragment {
     It 'produces correct result.' {

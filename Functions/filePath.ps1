@@ -23,20 +23,13 @@ True if DriveLetter is valid.  False otherwise.
                    ValueFromPipelineByPropertyname = $true)]
         [AllowEmptyString()]
         [string]
-        $DriveLetter,
-
-        # The FailAction passed to Publish-Failure when a test fails.
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [string]
-        [ValidateSet('Error','Verbose','Throw')]
-        [Alias('fa')]
-        $FailAction='Verbose'
+        $DriveLetter
     )
     process
     {
         if ($DriveLetter -notmatch '^[a-zA-Z]$')
         {
-            &(Publish-Failure "$DriveLetter is not a valid drive letter.",'DriveLetter' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "$DriveLetter is not a valid drive letter.",'DriveLetter' ([System.ArgumentException]))
             return $false
         }
         return $true
@@ -72,14 +65,7 @@ True if FileName is known valid.  False otherwise.
                    ValueFromPipeline=$true)]
         [AllowEmptyString()]
         [string]
-        $FileName,
-
-        # The FailAction passed to Publish-Failure when a test fails.
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [string]
-        [ValidateSet('Error','Verbose','Throw')]
-        [Alias('fa')]
-        $FailAction='Verbose'
+        $FileName
     )
     process
     {
@@ -88,7 +74,7 @@ True if FileName is known valid.  False otherwise.
         # empty string
         if ( $FileName -eq [string]::Empty )
         {
-            &(Publish-Failure 'Filename is an empty string.','FileName' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure 'Filename is an empty string.','FileName' ([System.ArgumentException]))
             return $false
         }
 
@@ -97,14 +83,14 @@ True if FileName is known valid.  False otherwise.
         $escapedBadChars = ( $badChars | ConvertTo-RegexEscapedString ) -join '|'
         if ( $FileName -match "($escapedBadChars)" )
         {
-            &(Publish-Failure "FileName $FileName contains one of these bad characters: $badChars",'FileName' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "FileName $FileName contains one of these bad characters: $badChars",'FileName' ([System.ArgumentException]))
             return $false
         }
 
         # all periods
         if ( $FileName -match '^\.*$' )
         {
-            &(Publish-Failure "FileName $FileName is all periods.",'FileName' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "FileName $FileName is all periods.",'FileName' ([System.ArgumentException]))
             return $false
         }
 
@@ -112,14 +98,14 @@ True if FileName is known valid.  False otherwise.
         $regex = '^(PRN|AUX|NUL|CON|COM[1-9]|LPT[1-9])(\.?|\..*)$'
         if ( $FileName -match $regex )
         {
-            &(Publish-Failure "FileName $FileName contains a reserved DOS name.  It matches this regular expression: $regex",'FileName' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "FileName $FileName contains a reserved DOS name.  It matches this regular expression: $regex",'FileName' ([System.ArgumentException]))
             return $false
         }
 
         # length
         if ($FileName.Length -gt 255 )
         {
-            &(Publish-Failure "FileName $FileName is longer than 255 characters.",'FileName' ([System.ArgumentException]) $FailAction)
+            &(Publish-Failure "FileName $FileName is longer than 255 characters.",'FileName' ([System.ArgumentException]))
             return $false
         }
 
@@ -1125,20 +1111,13 @@ True if the parameters are valid.  False otherwise.
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | Test-ValidDomainName})]
         [string]
-        $DomainName,
-
-        # The FailAction passed to Publish-Failure when a test fails.
-        [Parameter(ValueFromPipelineByPropertyName = $true)]
-        [string]
-        [ValidateSet('Error','Verbose','Throw')]
-        [Alias('fa')]
-        $FailAction='Verbose'
+        $DomainName
     )
     process
     {
         foreach ($segment in $Segments)
         {
-            if ( -not ($segment | Test-ValidFileName -FailAction $FailAction) )
+            if (-not ($segment | Test-ValidFileName) )
             {
                 return $false
             }
