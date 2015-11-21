@@ -135,3 +135,78 @@ Describe 'preference variable scope' {
         }
     }
 }
+Describe 'closures' {
+    It 'uses the variable value in the parent scope. {}'  {
+        $sb = {
+            $varNotInSb
+        }
+        $varNotInSb = 'value1'
+
+        & $sb | Should be 'value1'
+    }
+    It 'uses the variable value in the parent scope. ([scriptblock]::Create)' {
+        $sb = [scriptblock]::Create(
+            '$varNotInSb'
+        )
+        $varNotInSb = 'value1'
+
+        & $sb | Should be 'value1'
+    }
+    It 'uses the variable value captured by the closure.' {
+        $sb = {
+            $varNotinSb
+        }
+        $varNotInSb = 'value1'
+        $sb = $sb.GetNewClosure()
+        $varNotInSb = 'value2'
+
+        & $sb | Should be 'value1'
+    }
+    It 'captures a hashtable...' {
+        $sb = {
+            $htNotInSb
+        }
+        $htNotInSb = @{a='value1'}
+        $sb = $sb.GetNewClosure()
+        $htNotInSb = @{a='value1';b='value2'}
+
+        (& $sb).Count | Should be 1
+    }
+    It '...but does not capture its values.' {
+        $sb = {
+            $htNotInSb.a
+        }
+        $htNotInSb = @{a='value1'}
+        $sb = $sb.GetNewClosure()
+        $htNotInSb.a = 'value2'
+
+        & $sb | Should be 'value2'
+    }
+}
+Describe 'lambdas and the .NET framework' {
+    It 'scriptblocks work as lambda in the .NET framework.' {
+        $r = ([regex]'apple').Replace('this contains apple',{'banana'})
+        $r | Should be 'this contains banana'
+    }
+    It 'the scriptblock receives the match as a parameter.' {
+        $r = ([regex]'apple').Replace('this contains apple',{param($m) ([string]$m).ToUpper()})
+        $r | Should beExactly 'this contains APPLE'
+    }
+    It 'the scriptblock can use a captured string variable.' {
+        $color = 'red'
+        $r = ([regex]'apple').Replace('this contains apple',{param($m) "$color $m"})
+        $r | Should be 'this contains red apple'
+    }
+    It 'the scriptblock can use a captured hashtable.' {
+        $h = @{ color = 'red' }
+        $r = ([regex]'apple').Replace('this contains apple',{param($m) "$($h.color) $m"})
+        $r | Should be 'this contains red apple'
+    }
+    It 'the scriptblock can pass the match as a key to the captured hashtable.' {
+        $colors = @{
+            apple = 'red'
+        }
+        $r = ([regex]'apple').Replace('this contains apple',{param($m) "$($colors."$m") $m"})
+        $r | Should be 'this contains red apple'
+    }
+}
