@@ -1,3 +1,19 @@
+Describe 'error records' {
+    Context 'throw string' {
+        It 'error record contains string.' {
+            try
+            {
+                throw 'my exception message'
+            }
+            catch
+            {
+                $threw = $true
+                $_.Exception.Message | Should be 'my exception message'
+            }
+            $threw | Should be $true
+        }
+    }
+}
 Describe 'rethrowing exceptions' {
     Context 'rethrow' {
         function f1 {
