@@ -1766,4 +1766,41 @@ Describe 'Resolve-FilePath integrations' {
         $r | Should be FileSystem::c:\a\b\c
     }
 }
+InModuleScope ToolFoundations {
+    Describe Test-FilePath {
+        Context 'hashtable' {
+            Mock Test-Path -Verifiable {'result'}
+            It 'accepts hashtable.' {
+                $path = @{
+                    DriveLetter = 'a'
+                    Segments = 'segment'
+                }
+                $r = $path | Test-FilePath
+                $r | Should be 'result'
+                Assert-MockCalled Test-Path -Times 1 {
+                    $Path -eq 'a:\segment'
+                }
+            }
+        }
+        Context 'string' {
+            Mock Test-Path -Verifiable {'result'}
+            It 'accepts string.' {
+                $r = 'a:\segment' | Test-FilePath
+                $r | Should be 'result'
+                Assert-MockCalled Test-Path -Times 1 {
+                    $Path -eq 'a:\segment'
+                }
+            }
+        }
+        Context 'ItemType' {
+            Mock Test-Path -Verifiable {'result'}
+            It 'correctly converts ItemType string.' {
+                $r = 'a:\segment' | Test-FilePath -ItemType Directory
+                Assert-MockCalled Test-Path -Times 1 {
+                    $PathType -eq 'Container'
+                }
+            }
+        }
+    }
+}
 }

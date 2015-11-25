@@ -1579,4 +1579,57 @@ The resolved path if successful. False otherwise.
         return $object | ConvertTo-FilePathString
     }
 }
+function Test-FilePath
+{
+    [CmdletBinding()]
+    param
+    (
+        # The path to resolve.
+        [parameter(ParameterSetName                = 'string',
+                   mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({$_ | Test-ValidFilePath})]
+        [string]
+        $PathString,
+
+        # The path to resolve.
+        [parameter(ParameterSetName                = 'hashtable',
+                   mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $PathHashtable,
+
+        [parameter(position                        = 3,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateSet('Directory','File')]
+        [string]
+        $ItemType
+    )
+    process
+    {
+        if ($PSCmdlet.ParameterSetName -eq 'hashtable')
+        {
+            $PathString = $PathHashTable | >> | ConvertTo-FilePathString
+        }
+
+        $splat = @{}
+        if ($ItemType)
+        {
+            $splat = @{
+                PathType = @{
+                    Any = 'Any'
+                    Directory = 'Container'
+                    File = 'Leaf'
+                }.$ItemType
+            }
+        }
+
+        return $PathString | Test-Path @splat
+    }
+}
 }
