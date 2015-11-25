@@ -214,3 +214,17 @@ Describe 'Process-IdemFile Set' {
 }
 }
 }
+Describe Remove-TrailingNewlines {
+    It 'removes trailing newlines (1).' {
+        $r = "asdf`r`n" | Remove-TrailingNewlines
+        $r | Should be 'asdf'
+    }
+    It 'removes trailing newlines (2).' {
+        $r = "asdf`r`n`r" | Remove-TrailingNewlines
+        $r | Should be 'asdf'
+    }
+    It 'preserves mid-span newlines.' {
+        $r = "asdf`r`n`rjkl;`r`n" | Remove-TrailingNewlines
+        $r | Should be "asdf`r`n`rjkl;"
+    }
+}
