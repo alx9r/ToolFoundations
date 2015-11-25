@@ -2,7 +2,10 @@
 # dot source all of the other .ps1 files
 $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-"$moduleRoot\Functions\*.ps1" |
+# but do the type files first
+$typeFiles = "$moduleRoot\Functions\*Types.ps1"
+$otherFiles = "$moduleRoot\Functions\*.ps1" | ? {$typeFiles -notcontains $_}
+@($typeFiles)+@($otherFiles) |
     Resolve-Path |
     Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
     ForEach-Object { . $_.ProviderPath }
