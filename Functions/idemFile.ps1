@@ -1,3 +1,5 @@
+Import-Module Microsoft.PowerShell.Utility
+
 Set-Alias Process-IdemFile Invoke-ProcessIdemFile
 
 if ($PSVersionTable.PSVersion.Major -ge 4)
@@ -135,21 +137,14 @@ Function Invoke-ProcessIdemFile
         if ( $CopyPath -and $ItemType -eq 'File' )
         {
             $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString
-            $sourceFileHash = (Get-FileHash $copyPathStr).Hash
+            $sourceFileHash = Get-FileHash $copyPathStr
         }
 
         ## test if the item exists at Path, create it or copy it if necessary
 
         if ( $CopyPath )
         {
-            $Test = {
-                if (-not ($Path | Test-FilePath -ItemType $ItemType))
-                {
-                    return $false
-                }
-                $pathStr = $Path | >> | ConvertTo-FilePathString
-                return (Get-FileHash $pathStr).Hash -eq $sourceFileHash
-            }
+            $Test = {$sourceFileHash | Test-FileHash -Path ($Path | >> | ConvertTo-FilePathString)}
             $Remedy = {
                 $splat = @{
                     Path = $CopyPath | >> | ConvertTo-FilePathString
@@ -185,13 +180,7 @@ Function Invoke-ProcessIdemFile
 
         if ( (&(gbpm)).Keys -contains 'FileContents' )
         {
-            $Test = {
-                $splat = @{
-                    Path = $Path | >> | ConvertTo-FilePathString
-                    Raw = $true
-                }
-                (Get-Content @splat | Remove-TrailingNewlines) -eq ($FileContents | Remove-TrailingNewlines)
-            }
+            $Test = { $Path | Compare-FileContent -Content $FileContents }
             $Remedy = {
                 $splat = @{
                     FilePath = $Path | >> | ConvertTo-FilePathString
@@ -216,6 +205,80 @@ Function Invoke-ProcessIdemFile
             Select -Last 1
     }
 }
+function Test-FileHash
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [string]
+        $Hash,
+        
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateSet('SHA1','SHA256','SHA384','SHA512', 
+                     'MACTripleDES','MD5','RIPEMD160')]
+        [string]
+        $Algorithm,
+        
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | Test-ValidFilePath})]
+        [string]
+        $Path               
+    )
+    process
+    {
+        if ( -not ($Path | Test-Path -PathType Leaf ) )
+        {
+            return $false
+        }
+
+        $splat = @{
+            Algorithm = $Algorithm
+            LiteralPath = $Path
+        }
+        return (Get-FileHash @splat).Hash -eq $Hash
+    }
+}
+function Compare-FileContent
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [AllowEmptyString()]
+        [string]
+        $Content,
+
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $Path
+    )
+    process
+    {
+        if ( -not ($Path | Test-FilePath) )
+        {
+            return $false
+        }
+        
+        $splat = @{
+            Path = $Path | >> | ConvertTo-FilePathString
+            Raw = $true
+        }
+        "$(Get-Content @splat | Remove-TrailingNewlines)" -eq "$($Content | Remove-TrailingNewlines)"
+    }
+}
 Function Remove-TrailingNewlines
 {
     [CmdletBinding()]
@@ -225,6 +288,7 @@ Function Remove-TrailingNewlines
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true  )]
+        [AllowEmptyString()]
         [string]
         $InputObject
     )
