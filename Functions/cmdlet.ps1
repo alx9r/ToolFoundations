@@ -316,7 +316,7 @@ Function ConvertTo-ParamObject
             $InputObject -is [hashtable] -or
 
             # the type of PSBoundParameters
-            ([string]$InputObject.GetType()) -eq 'System.Collections.Generic.Dictionary`2[System.String,System.Object]]'
+            ([string]$InputObject.GetType()) -eq 'System.Collections.Generic.Dictionary[string,System.Object]'
         )
         {
             return New-Object psobject -Property $InputObject
