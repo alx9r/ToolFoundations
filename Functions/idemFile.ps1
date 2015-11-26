@@ -29,7 +29,7 @@ Function Assert-ValidIdemFileParams
 
         [parameter(position                        = 4,
                    ValueFromPipelineByPropertyName = $true)]
-        $FileContents,
+        $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
@@ -60,20 +60,20 @@ Function Assert-ValidIdemFileParams
             )
         }
 
-        # validate presence of FileContents
-        if ($FileContents -and $ItemType -ne 'File')
+        # validate presence of FileContent
+        if ($FileContent -and $ItemType -ne 'File')
         {
             throw New-Object System.ArgumentException(
-                'FileContents provided for a directory.',
-                'FileContents'
+                'FileContent provided for a directory.',
+                'FileContent'
             )
         }
 
-        # FileContents and CopyPath are mutually exclusive
-        if ($FileContents -and $CopyPath)
+        # FileContent and CopyPath are mutually exclusive
+        if ($FileContent -and $CopyPath)
         {
             throw New-Object System.ArgumentException(
-                'Both CopyPath and FileContents were provided.',
+                'Both CopyPath and FileContent were provided.',
                 'CopyPath'
             )
         }
@@ -107,7 +107,7 @@ Function Invoke-ProcessIdemFile
 
         [parameter(position                        = 4,
                    ValueFromPipelineByPropertyName = $true)]
-        $FileContents,
+        $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
@@ -135,21 +135,14 @@ Function Invoke-ProcessIdemFile
         if ( $CopyPath -and $ItemType -eq 'File' )
         {
             $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString
-            $sourceFileHash = (Get-FileHash $copyPathStr).Hash
+            $sourceFileHash = Get-FileHash $copyPathStr
         }
 
         ## test if the item exists at Path, create it or copy it if necessary
 
         if ( $CopyPath )
         {
-            $Test = {
-                if (-not ($Path | Test-FilePath -ItemType $ItemType))
-                {
-                    return $false
-                }
-                $pathStr = $Path | >> | ConvertTo-FilePathString
-                return (Get-FileHash $pathStr).Hash -eq $sourceFileHash
-            }
+            $Test = {$sourceFileHash | Test-FileHash -Path ($Path | >> | ConvertTo-FilePathString)}
             $Remedy = {
                 $splat = @{
                     Path = $CopyPath | >> | ConvertTo-FilePathString
@@ -183,42 +176,108 @@ Function Invoke-ProcessIdemFile
 
         ## test the file contents, correct them if necessary
 
-        if ( (&(gbpm)).Keys -contains 'FileContents' )
+        if ( (&(gbpm)).Keys -contains 'FileContent' )
         {
-            $Test = {
-                $splat = @{
-                    Path = $Path | >> | ConvertTo-FilePathString
-                    Raw = $true
-                }
-                (Get-Content @splat) -eq $FileContents
-            }
+            $Test = { $Path | Compare-FileContent -Content $FileContent }
             $Remedy = {
                 $splat = @{
                     FilePath = $Path | >> | ConvertTo-FilePathString
                     Encoding = 'ascii'
                 }
-                Out-File @splat | Out-Null
+                $FileContent | Out-File @splat | Out-Null
             }
-            $fileContentsResult = Process-Idempotent $Mode $Test $Remedy
+            $fileContentResult = Process-Idempotent $Mode $Test $Remedy
 
-            if ( -not $fileContentsResult )
+            if ( -not $fileContentResult )
             {
                 $pathStr = $Path | >> | ConvertTo-FilePathString
-                &(Publish-Failure "$Mode FileContents failed for $pathStr." ([System.IO.FileNotFoundException]))
+                &(Publish-Failure "$Mode FileContent failed for $pathStr." ([System.IO.FileNotFoundException]))
                 return $false
             }
         }
 
         ## return the result
 
-        return $pathResult,$fileContentsResult |
+        return $pathResult,$fileContentResult |
             Sort-Object |
             Select -Last 1
     }
 }
+function Test-FileHash
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [string]
+        $Hash,
 
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateSet('SHA1','SHA256','SHA384','SHA512',
+                     'MACTripleDES','MD5','RIPEMD160')]
+        [string]
+        $Algorithm,
 
-Function Test-oltkDSFsItem
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | Test-ValidFilePath})]
+        [string]
+        $Path
+    )
+    process
+    {
+        if ( -not ($Path | Test-Path -PathType Leaf ) )
+        {
+            return $false
+        }
+
+        $splat = @{
+            Algorithm = $Algorithm
+            LiteralPath = $Path
+        }
+        return (Get-FileHash @splat).Hash -eq $Hash
+    }
+}
+function Compare-FileContent
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [AllowEmptyString()]
+        [string]
+        $Content,
+
+        [parameter(Mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $Path
+    )
+    process
+    {
+        if ( -not ($Path | Test-FilePath) )
+        {
+            return $false
+        }
+
+        $splat = @{
+            Path = $Path | >> | ConvertTo-FilePathString
+        }
+        "$(Get-RawContent @splat | Remove-TrailingNewlines)" -eq "$($Content | Remove-TrailingNewlines)"
+    }
+}
+}
+Function Remove-TrailingNewlines
 {
     [CmdletBinding()]
     param
@@ -226,92 +285,41 @@ Function Test-oltkDSFsItem
         [parameter(Mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipeline               = $true,
-                   ValueFromPipelineByPropertyName = $true)]
+                   ValueFromPipelineByPropertyName = $true  )]
+        [AllowEmptyString()]
         [string]
-        $Path,
-
-        [parameter(Mandatory                       = $true,
-                   position                        = 2,
-                   ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('Directory','File')]
-        [string]
-        $ItemType,
-
-        [parameter(position                        = 3,
-                   ValueFromPipelineByPropertyName = $true)]
-        $FileContents,
-
-        [parameter(ValueFromPipelineByPropertyName = $true)]
-        [string]
-        $CopyPath
+        $InputObject
     )
     process
     {
-        # recursive check of folder contents is not yet implemented
-        if ( $ItemType -eq 'Directory' -and $CopyPath )
-        {
-            Write-Error "Not yet implemented: Test-oltkDSFsItem didn't check that the contents of folder `"$Path`" and `"$CopyPath`" match."
-            return $false
-        }
-
-        # validate presence of FileContents
-        if ($FileContents -and $ItemType -ne 'File')
-        {
-            Write-Error 'FileContents provided for a directory.'
-            return $false
-        }
-
-        # FileContents and CopyPath are mutually exclusive
-        if ($FileContents -and $CopyPath)
-        {
-            Write-Error 'Both CopyPath and FileContents were provided.'
-            return $false
-        }
-
-        # Test CopyPath exists
-        if ( $CopyPath -and -not (Test-oltkPath $CopyPath $ItemType) )
-        {
-            Write-Error "The CopyPath `"$CopyPath`" does not exist."
-            return $false
-        }
-
-        # test for the existence of the item
-        if ( -not (Test-oltkPath $Path $ItemType) )
-        {
-            Write-Verbose "$ItemType `"$Path`" does not exist."
-            return $false
-        }
-
-        # if we're not checking file contents, we're done
-        if ( -not $FileContents -and -not $CopyPath )
-        {
-            return $true
-        }
-
-        # get the file contents if necessary
-        if ( $CopyPath )
-        {
-            $copyPathHash = Get-oltkFileHash $CopyPath
-        }
-
-        # test that the file's contents are correct
-        if
+        $acc = $InputObject
+        while
         (
-            (
-                $CopyPath -and
-                ((Get-oltkFileHash $Path) -ne $copyPathHash)
-            ) -or
-            (
-                -not $CopyPath -and
-                ((Get-Content $Path -Raw) -ne $FileContents)
-            )
+            $acc[-1] -eq "`n" -or
+            $acc[-1] -eq "`r"
         )
         {
-            Write-Verbose "The contents of `"$Path`" are incorrect."
-            return $false
+            $acc = $acc.Substring(0,$acc.Length-1)
         }
-
-        return $true
+        return $acc
     }
 }
+function Get-RawContent
+{
+# this exists because the Get-Content -Raw option does not seem to work reliably on all systems.
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | Test-ValidFilePath})]
+        [string]
+        $Path
+    )
+    process
+    {
+        [System.IO.File]::ReadAllText($Path)
+    }
 }
