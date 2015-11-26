@@ -23,7 +23,11 @@ Function Invoke-ProcessIdemSignedScript
                    Mandatory = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [string]
-        $FileContent
+        $FileContent,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [System.Security.Cryptography.X509Certificates.X509Certificate2]
+        $Certificate = (Get-ChildItem cert:currentuser\my\ -CodeSigningCert)
     )
     process
     {
@@ -50,7 +54,7 @@ Function Invoke-ProcessIdemSignedScript
                 Remedy = {
                     $splat = @{
                         FilePath = $Path | >> | ConvertTo-FilePathString
-                        Certificate = (dir cert:currentuser\my\ -CodeSigningCert)
+                        Certificate = $Certificate
                         TimeStampServer = 'http://timestamp.comodoca.com/authenticode'
                     }
                     Set-AuthenticodeSignature @splat | Out-Null
@@ -97,9 +101,8 @@ function Compare-SignedScriptContent
     {
         $splat = @{
             Path = $ScriptPath | >> | ConvertTo-FilePathString
-            Raw = $true
         }
-        $rawFileContent = Get-Content @splat -ea SilentlyContinue
+        $rawFileContent = Get-RawContent @splat -ea SilentlyContinue
 
         if
         (

@@ -272,9 +272,8 @@ function Compare-FileContent
 
         $splat = @{
             Path = $Path | >> | ConvertTo-FilePathString
-            Raw = $true
         }
-        "$(Get-Content @splat | Remove-TrailingNewlines)" -eq "$($Content | Remove-TrailingNewlines)"
+        "$(Get-RawContent @splat | Remove-TrailingNewlines)" -eq "$($Content | Remove-TrailingNewlines)"
     }
 }
 }
@@ -305,4 +304,22 @@ Function Remove-TrailingNewlines
         return $acc
     }
 }
-
+function Get-RawContent
+{
+# this exists because the Get-Content -Raw option does not seem to work reliably on all systems.
+    [CmdletBinding()]
+    param
+    (
+        [parameter(Mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true  )]
+        [ValidateScript({$_ | Test-ValidFilePath})]
+        [string]
+        $Path
+    )
+    process
+    {
+        [System.IO.File]::ReadAllText($Path)
+    }
+}
