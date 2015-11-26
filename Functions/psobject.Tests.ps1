@@ -26,12 +26,12 @@ Describe ConvertTo-HashTable {
         $oh | Should BeNullOrEmpty
     }
     It 'correctly creates a hash table from PSBoundParameters.' {
-            $dict = New-Object -TypeName 'System.Collections.Generic.Dictionary`2[System.String,System.Object]'
-            ('p1', 'foo'  ),
-            ('p2', 123456 ) |
-                % { $dict.Add($_[0],$_[1])       }
-            $oh = $dict | ConvertTo-Hashtable
-            $oh.p1 | Should be 'foo'
-            $oh.p2 | Should be 123456
+        $dict = New-Object -TypeName 'System.Collections.Generic.Dictionary`2[System.String,System.Object]'
+        ('p1', 'foo'  ),
+        ('p2', 123456 ) |
+            % { $dict.Add($_[0],$_[1])       }
+        $oh = $dict | ConvertTo-Hashtable
+        $oh.p1 | Should be 'foo'
+        $oh.p2 | Should be 123456
     }
 }

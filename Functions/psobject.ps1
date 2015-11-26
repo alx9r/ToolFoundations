@@ -11,9 +11,9 @@ Function ConvertTo-Hashtable
     process
     {
         $h=@{}
-            
+
         # special case for PSBoundParametersDictionary
-        if ( $InputObject -is [System.Collections.Generic.Dictionary`2[System.String,System.Object]] )
+        if ( ([string]$InputObject.GetType()) -eq 'System.Collections.Generic.Dictionary[string,System.Object]' )
         {
             $InputObject.Keys |
                 % {
@@ -23,7 +23,7 @@ Function ConvertTo-Hashtable
         # default case
         else
         {
-            $InputObject | gm | ? {$_.MemberType -in 'Property','NoteProperty'} |
+            $InputObject | gm | ? {'Property','NoteProperty' -contains $_.MemberType} |
                 % {
                     $h[$_.Name] = $InputObject | Select-Object -ExpandProperty $_.Name
                 }

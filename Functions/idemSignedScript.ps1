@@ -1,5 +1,3 @@
-Import-Module Microsoft.PowerShell.Security
-
 Set-Alias Process-IdemSignedScript Invoke-ProcessIdemSignedScript
 
 Function Invoke-ProcessIdemSignedScript
@@ -20,7 +18,7 @@ Function Invoke-ProcessIdemSignedScript
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
         [hashtable]
         $Path,
-        
+
         [parameter(position = 3,
                    Mandatory = $true,
                    ValueFromPipelineByPropertyName = $true)]
@@ -33,7 +31,7 @@ Function Invoke-ProcessIdemSignedScript
             @{
                 Test = {
                     $splat = @{
-                        ScriptPath = $Path 
+                        ScriptPath = $Path
                         RefContent = $FileContent
                     }
                     return Compare-SignedScriptContent @splat
@@ -70,7 +68,7 @@ Function Invoke-ProcessIdemSignedScript
             }
         }
 
-        return $results | 
+        return $results |
             Sort-Object |
             select -Last 1
     }
@@ -103,8 +101,8 @@ function Compare-SignedScriptContent
         }
         $rawFileContent = Get-Content @splat -ea SilentlyContinue
 
-        if 
-        ( 
+        if
+        (
             $null -eq $rawFileContent -and
             $RefContent -eq [string]::Empty
         )
@@ -116,8 +114,8 @@ function Compare-SignedScriptContent
             return $false
         }
 
-        $fileContent = [regex]::Split(($rawFileContent),'# SIG # Begin signature block' )[0] 
-        
+        $fileContent = [regex]::Split(($rawFileContent),'# SIG # Begin signature block' )[0]
+
         ($fileContent | Remove-TrailingNewlines)-eq ($RefContent | Remove-TrailingNewlines)
     }
 }

@@ -1,5 +1,3 @@
-Import-Module Microsoft.PowerShell.Utility
-
 Set-Alias Process-IdemFile Invoke-ProcessIdemFile
 
 if ($PSVersionTable.PSVersion.Major -ge 4)
@@ -215,21 +213,21 @@ function Test-FileHash
                    ValueFromPipelineByPropertyName = $true  )]
         [string]
         $Hash,
-        
+
         [parameter(Mandatory                       = $true,
                    position                        = 2,
                    ValueFromPipelineByPropertyName = $true  )]
-        [ValidateSet('SHA1','SHA256','SHA384','SHA512', 
+        [ValidateSet('SHA1','SHA256','SHA384','SHA512',
                      'MACTripleDES','MD5','RIPEMD160')]
         [string]
         $Algorithm,
-        
+
         [parameter(Mandatory                       = $true,
                    position                        = 2,
                    ValueFromPipelineByPropertyName = $true  )]
         [ValidateScript({$_ | Test-ValidFilePath})]
         [string]
-        $Path               
+        $Path
     )
     process
     {
@@ -271,13 +269,14 @@ function Compare-FileContent
         {
             return $false
         }
-        
+
         $splat = @{
             Path = $Path | >> | ConvertTo-FilePathString
             Raw = $true
         }
         "$(Get-Content @splat | Remove-TrailingNewlines)" -eq "$($Content | Remove-TrailingNewlines)"
     }
+}
 }
 Function Remove-TrailingNewlines
 {
@@ -295,10 +294,10 @@ Function Remove-TrailingNewlines
     process
     {
         $acc = $InputObject
-        while 
-        ( 
+        while
+        (
             $acc[-1] -eq "`n" -or
-            $acc[-1] -eq "`r"     
+            $acc[-1] -eq "`r"
         )
         {
             $acc = $acc.Substring(0,$acc.Length-1)
@@ -306,4 +305,4 @@ Function Remove-TrailingNewlines
         return $acc
     }
 }
-}
+

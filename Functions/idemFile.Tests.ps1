@@ -265,7 +265,7 @@ Describe 'Process-IdemFile Set' {
                 $Path -eq 'b:\seg' -and
                 $Destination -eq 'a:\seg'
             }
-        }   
+        }
     }
     Context 'FileContent Remedy (New-Item)' {
         Mock Test-FilePath {$false}
@@ -356,7 +356,7 @@ Describe 'Process-IdemFile Test' {
                 $Hash -eq 'hash' -and
                 $Path -eq 'a:\seg'
             }
-        }    
+        }
     }
     Context 'FileContent Test' {
         Mock Test-FilePath -Verifiable {$true}
@@ -478,7 +478,7 @@ Describe Compare-FileContent {
             $r | Should be $true
 
             Assert-MockCalled Get-Content -Times 1 -Exactly {
-                $Path -eq 'a:\seg' -and 
+                $Path -eq 'a:\seg' -and
                 $Raw
             }
         }
@@ -499,7 +499,7 @@ Describe Compare-FileContent {
             $r | Should be $true
 
             Assert-MockCalled Get-Content -Times 1 -Exactly {
-                $Path -eq 'a:\seg' -and 
+                $Path -eq 'a:\seg' -and
                 $Raw
             }
         }

@@ -60,7 +60,7 @@ Describe Process-IdemSignedScript {
                 $Path.DriveLetter -eq 'a' -and
                 $ItemType -eq 'File' -and
                 $FileContent -eq 'content'
-            }           
+            }
         }
     }
     Context 'Remedy Signature' {
@@ -79,7 +79,7 @@ Describe Process-IdemSignedScript {
 
             Assert-MockCalled Set-AuthenticodeSignature -Times 1 -Exactly {
                 $FilePath -eq 'a:\seg'
-            }           
+            }
         }
     }
     Context 'success' {
@@ -93,7 +93,7 @@ Describe Process-IdemSignedScript {
                 }
                 FileContent = 'content'
             }
-            $r = Process-IdemSignedScript Set @splat            
+            $r = Process-IdemSignedScript Set @splat
             $r | Should be 2
             $r.Count | Should be 1
         }
@@ -101,7 +101,7 @@ Describe Process-IdemSignedScript {
 }
 Describe Compare-SignedScriptContent {
     It 'matches contents after signing (1).' {
-        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-1.ps1" | 
+        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-1.ps1" |
             Resolve-FilePath |
             ConvertTo-FilePathObject
         $pathHash = @{
@@ -119,7 +119,7 @@ trailing newline
         $r | Should be $true
     }
     It 'matches contents after signing (2).' {
-        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-2.ps1" | 
+        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-2.ps1" |
             Resolve-FilePath |
             ConvertTo-FilePathObject
         $pathHash = @{
@@ -134,7 +134,7 @@ trailing newline
         $r | Should be $true
     }
     It 'fails.' {
-        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-2.ps1" | 
+        $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-2.ps1" |
             Resolve-FilePath |
             ConvertTo-FilePathObject
         $pathHash = @{
