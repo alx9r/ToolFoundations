@@ -464,7 +464,7 @@ Describe Compare-FileContent {
     }
     Context 'match' {
         Mock Test-FilePath {$true}
-        Mock Get-Content -Verifiable {'content'}
+        Mock Get-RawContent -Verifiable {'content'}
         It 'returns true' {
             $splat = @{
                 Content = 'content'
@@ -477,15 +477,14 @@ Describe Compare-FileContent {
             $r = Compare-FileContent @splat
             $r | Should be $true
 
-            Assert-MockCalled Get-Content -Times 1 -Exactly {
-                $Path -eq 'a:\seg' -and
-                $Raw
+            Assert-MockCalled Get-RawContent -Times 1 -Exactly {
+                $Path -eq 'a:\seg'
             }
         }
     }
     Context 'empty file' {
         Mock Test-FilePath {$true}
-        Mock Get-Content -Verifiable {}
+        Mock Get-RawContent -Verifiable {}
         It 'returns true' {
             $splat = @{
                 Content = ''
@@ -498,9 +497,8 @@ Describe Compare-FileContent {
             $r = Compare-FileContent @splat
             $r | Should be $true
 
-            Assert-MockCalled Get-Content -Times 1 -Exactly {
-                $Path -eq 'a:\seg' -and
-                $Raw
+            Assert-MockCalled Get-RawContent -Times 1 -Exactly {
+                $Path -eq 'a:\seg'
             }
         }
     }

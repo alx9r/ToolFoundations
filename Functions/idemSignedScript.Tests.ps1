@@ -10,6 +10,7 @@ Describe Process-IdemSignedScript {
         Mock Compare-SignedScriptContent -Verifiable
         It 'correctly calls Compare-SignedScriptContent' {
             $splat = @{
+                Certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg'
@@ -29,6 +30,7 @@ Describe Process-IdemSignedScript {
         Mock Test-ValidScriptSignature -Verifiable
         It 'correctly calls Test-ValidScriptSignature' {
             $splat = @{
+                Certificate = New-Object System.Security.Cryptography.X509Certificates.x509Certificate2
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg'
@@ -47,6 +49,7 @@ Describe Process-IdemSignedScript {
         Mock Invoke-ProcessIdemFile -Verifiable
         It 'correctly calls Invoke-ProcessIdemFile.' {
             $splat = @{
+                Certificate = New-Object System.Security.Cryptography.X509Certificates.x509Certificate2
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg'
@@ -69,6 +72,7 @@ Describe Process-IdemSignedScript {
         Mock Set-AuthenticodeSignature -Verifiable
         It 'correctly calls Set-AuthenticodeSignature.' {
             $splat = @{
+                Certificate = New-Object System.Security.Cryptography.X509Certificates.x509Certificate2
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg'
@@ -87,6 +91,7 @@ Describe Process-IdemSignedScript {
         Mock Process-Idempotent {$stack.Pop()}
         It 'returns the highest return value.' {
             $splat = @{
+                Certificate = New-Object System.Security.Cryptography.X509Certificates.x509Certificate2
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg'
@@ -149,7 +154,7 @@ trailing newline
         $r | Should be $false
     }
     Context 'empty file' {
-        Mock Get-Content {}
+        Mock Get-RawContent {}
         It 'handles empty script file.' {
             $splat = @{
                 ScriptPath = @{
@@ -163,7 +168,7 @@ trailing newline
         }
     }
     Context 'empty file' {
-        Mock Get-Content {}
+        Mock Get-RawContent {}
         It 'handles empty script file and empty string.' {
             $splat = @{
                 ScriptPath = @{
