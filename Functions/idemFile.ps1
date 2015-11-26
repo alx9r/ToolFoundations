@@ -31,7 +31,7 @@ Function Assert-ValidIdemFileParams
 
         [parameter(position                        = 4,
                    ValueFromPipelineByPropertyName = $true)]
-        $FileContents,
+        $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
@@ -62,20 +62,20 @@ Function Assert-ValidIdemFileParams
             )
         }
 
-        # validate presence of FileContents
-        if ($FileContents -and $ItemType -ne 'File')
+        # validate presence of FileContent
+        if ($FileContent -and $ItemType -ne 'File')
         {
             throw New-Object System.ArgumentException(
-                'FileContents provided for a directory.',
-                'FileContents'
+                'FileContent provided for a directory.',
+                'FileContent'
             )
         }
 
-        # FileContents and CopyPath are mutually exclusive
-        if ($FileContents -and $CopyPath)
+        # FileContent and CopyPath are mutually exclusive
+        if ($FileContent -and $CopyPath)
         {
             throw New-Object System.ArgumentException(
-                'Both CopyPath and FileContents were provided.',
+                'Both CopyPath and FileContent were provided.',
                 'CopyPath'
             )
         }
@@ -109,7 +109,7 @@ Function Invoke-ProcessIdemFile
 
         [parameter(position                        = 4,
                    ValueFromPipelineByPropertyName = $true)]
-        $FileContents,
+        $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
@@ -178,29 +178,29 @@ Function Invoke-ProcessIdemFile
 
         ## test the file contents, correct them if necessary
 
-        if ( (&(gbpm)).Keys -contains 'FileContents' )
+        if ( (&(gbpm)).Keys -contains 'FileContent' )
         {
-            $Test = { $Path | Compare-FileContent -Content $FileContents }
+            $Test = { $Path | Compare-FileContent -Content $FileContent }
             $Remedy = {
                 $splat = @{
                     FilePath = $Path | >> | ConvertTo-FilePathString
                     Encoding = 'ascii'
                 }
-                $FileContents | Out-File @splat | Out-Null
+                $FileContent | Out-File @splat | Out-Null
             }
-            $fileContentsResult = Process-Idempotent $Mode $Test $Remedy
+            $fileContentResult = Process-Idempotent $Mode $Test $Remedy
 
-            if ( -not $fileContentsResult )
+            if ( -not $fileContentResult )
             {
                 $pathStr = $Path | >> | ConvertTo-FilePathString
-                &(Publish-Failure "$Mode FileContents failed for $pathStr." ([System.IO.FileNotFoundException]))
+                &(Publish-Failure "$Mode FileContent failed for $pathStr." ([System.IO.FileNotFoundException]))
                 return $false
             }
         }
 
         ## return the result
 
-        return $pathResult,$fileContentsResult |
+        return $pathResult,$fileContentResult |
             Sort-Object |
             Select -Last 1
     }

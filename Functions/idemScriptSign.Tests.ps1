@@ -3,6 +3,102 @@ Import-Module ToolFoundations -Force
 InModuleScope ToolFoundations {
 if ($PSVersionTable.PSVersion.Major -ge 4)
 {
+Describe Process-IdemSignedScript {
+    Mock Invoke-ProcessIdemFile {}
+    Mock Set-AuthenticodeSignature {}
+    Context 'Test FileContent' {
+        Mock Compare-SignedScriptContent -Verifiable
+        It 'correctly calls Compare-SignedScriptContent' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'seg'
+                }
+                FileContent = 'content'
+            }
+            Process-IdemSignedScript Test @splat
+
+            Assert-MockCalled Compare-SignedScriptContent -Times 1 -Exactly {
+                $ScriptPath.DriveLetter -eq 'a' -and
+                $RefContent -eq 'content'
+            }
+        }
+    }
+    Context 'Test Signature' {
+        Mock Compare-SignedScriptContent {$true}
+        Mock Test-ValidScriptSignature -Verifiable
+        It 'correctly calls Test-ValidScriptSignature' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'seg'
+                }
+                FileContent = 'content'
+            }
+            Process-IdemSignedScript Test @splat
+
+            Assert-MockCalled Test-ValidScriptSignature -Times 1 -Exactly {
+                $ScriptPath.DriveLetter -eq 'a'
+            }
+        }
+    }
+    Context 'Remedy FileContent' {
+        Mock Compare-SignedScriptContent {$false}
+        Mock Invoke-ProcessIdemFile -Verifiable
+        It 'correctly calls Invoke-ProcessIdemFile.' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'seg'
+                }
+                FileContent = 'content'
+            }
+            Process-IdemSignedScript Set @splat
+
+            Assert-MockCalled Invoke-ProcessIdemFile -Times 1 -Exactly {
+                $Mode -eq 'Set' -and
+                $Path.DriveLetter -eq 'a' -and
+                $ItemType -eq 'File' -and
+                $FileContent -eq 'content'
+            }           
+        }
+    }
+    Context 'Remedy Signature' {
+        Mock Compare-SignedScriptContent {$true}
+        Mock Test-ValidScriptSignature {$false}
+        Mock Set-AuthenticodeSignature -Verifiable
+        It 'correctly calls Set-AuthenticodeSignature.' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'seg'
+                }
+                FileContent = 'content'
+            }
+            Process-IdemSignedScript Set @splat
+
+            Assert-MockCalled Set-AuthenticodeSignature -Times 1 -Exactly {
+                $FilePath -eq 'a:\seg'
+            }           
+        }
+    }
+    Context 'success' {
+        $stack = [System.Collections.Stack]@(2,1)
+        Mock Process-Idempotent {$stack.Pop()}
+        It 'returns the highest return value.' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'seg'
+                }
+                FileContent = 'content'
+            }
+            $r = Process-IdemSignedScript Set @splat            
+            $r | Should be 2
+            $r.Count | Should be 1
+        }
+    }
+}
 Describe Compare-SignedScriptContent {
     It 'matches contents after signing (1).' {
         $pathObj = "$($PSCommandPath | Split-Path -Parent)\..\Resources\signature-test-1.ps1" | 
@@ -14,7 +110,7 @@ Describe Compare-SignedScriptContent {
         }
         $splat = @{
             ScriptPath = $pathHash
-            RefContents = @'
+            RefContent = @'
 trailing newline
 
 '@
@@ -32,7 +128,7 @@ trailing newline
         }
         $splat = @{
             ScriptPath = $pathHash
-            RefContents = 'no trailing newline'
+            RefContent = 'no trailing newline'
         }
         $r = Compare-SignedScriptContent @splat
         $r | Should be $true
@@ -47,7 +143,7 @@ trailing newline
         }
         $splat = @{
             ScriptPath = $pathHash
-            RefContents = 'this does not match'
+            RefContent = 'this does not match'
         }
         $r = Compare-SignedScriptContent @splat
         $r | Should be $false
@@ -60,7 +156,7 @@ trailing newline
                     DriveLetter = 'a'
                     Segments = 'path.ps1'
                 }
-                RefContents = 'content'
+                RefContent = 'content'
             }
             $r = Compare-SignedScriptContent @splat
             $r | Should be $false
@@ -74,7 +170,7 @@ trailing newline
                     DriveLetter = 'a'
                     Segments = 'path.ps1'
                 }
-                RefContents = [string]::Empty
+                RefContent = [string]::Empty
             }
             $r = Compare-SignedScriptContent @splat
             $r | Should be $true

@@ -25,7 +25,7 @@ Function Invoke-ProcessIdemSignedScript
                    Mandatory = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [string]
-        $FileContents
+        $FileContent
     )
     process
     {
@@ -34,24 +34,21 @@ Function Invoke-ProcessIdemSignedScript
                 Test = {
                     $splat = @{
                         ScriptPath = $Path 
-                        RefContents = $FileContents
+                        RefContent = $FileContent
                     }
                     return Compare-SignedScriptContent @splat
                 }
                 Remedy = {
                     $splat = @{
                         Path = $Path
-                        FileContents = $FileContents
+                        FileContent = $FileContent
                         ItemType = 'File'
                     }
                     Process-IdemFile set @splat | Out-Null
                 }
             }
             @{
-                Test = {
-                    $pathStr = $Path | >> | ConvertTo-FilePathString
-                    (Get-AuthenticodeSignature $pathStr).Status -eq 'Valid'
-                }
+                Test = { $Path | Test-ValidScriptSignature }
                 Remedy = {
                     $splat = @{
                         FilePath = $Path | >> | ConvertTo-FilePathString
@@ -96,7 +93,7 @@ function Compare-SignedScriptContent
                    ValueFromPipelineByPropertyName = $true)]
         [AllowEmptyString()]
         [string]
-        $RefContents
+        $RefContent
     )
     process
     {
@@ -104,23 +101,42 @@ function Compare-SignedScriptContent
             Path = $ScriptPath | >> | ConvertTo-FilePathString
             Raw = $true
         }
-        $rawFileContents = Get-Content @splat -ea SilentlyContinue
+        $rawFileContent = Get-Content @splat -ea SilentlyContinue
 
         if 
         ( 
-            $null -eq $rawFileContents -and
-            $RefContents -eq [string]::Empty
+            $null -eq $rawFileContent -and
+            $RefContent -eq [string]::Empty
         )
         {
             return $true
         }
-        if ( $null -eq $rawFileContents )
+        if ( $null -eq $rawFileContent )
         {
             return $false
         }
 
-        $fileContents = [regex]::Split(($rawFileContents),'# SIG # Begin signature block' )[0] 
+        $fileContent = [regex]::Split(($rawFileContent),'# SIG # Begin signature block' )[0] 
         
-        ($fileContents | Remove-TrailingNewlines)-eq ($RefContents | Remove-TrailingNewlines)
+        ($fileContent | Remove-TrailingNewlines)-eq ($RefContent | Remove-TrailingNewlines)
+    }
+}
+function Test-ValidScriptSignature
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(position = 1,
+                   Mandatory = $true,
+                   ValueFromPipeline = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $ScriptPath
+    )
+    process
+    {
+        $pathStr = $Path | >> | ConvertTo-FilePathString
+        (Get-AuthenticodeSignature $pathStr).Status -eq 'Valid'
     }
 }

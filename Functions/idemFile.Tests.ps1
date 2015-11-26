@@ -52,7 +52,7 @@ Describe Assert-ValidIdemFileParams {
         }
         $threw | Should be $true
     }
-    It 'throws correct exception when FileContents is provided for a Directory.' {
+    It 'throws correct exception when FileContent is provided for a Directory.' {
         $splat = @{
             Mode = 'set'
             Path = @{
@@ -60,7 +60,7 @@ Describe Assert-ValidIdemFileParams {
                 Segments = 'path'
             }
             ItemType = 'Directory'
-            FileContents = 'contents'
+            FileContent = 'content'
         }
         try
         {
@@ -69,11 +69,11 @@ Describe Assert-ValidIdemFileParams {
         catch [System.ArgumentException]
         {
             $threw = $true
-            $_.Exception.Message | Should match 'FileContents provided for a directory.'
+            $_.Exception.Message | Should match 'FileContent provided for a directory.'
         }
         $threw | Should be $true
     }
-    It 'throws correct exception when FileContents and CopyPath are provided.' {
+    It 'throws correct exception when FileContent and CopyPath are provided.' {
         $splat = @{
             Mode = 'set'
             Path = @{
@@ -81,7 +81,7 @@ Describe Assert-ValidIdemFileParams {
                 Segments = 'path'
             }
             ItemType = 'File'
-            FileContents = 'contents'
+            FileContent = 'content'
         }
         try
         {
@@ -90,7 +90,7 @@ Describe Assert-ValidIdemFileParams {
         catch [System.ArgumentException]
         {
             $threw = $true
-            $_.Exception.Message | Should match 'Both CopyPath and FileContents were provided.'
+            $_.Exception.Message | Should match 'Both CopyPath and FileContent were provided.'
         }
     }
 }
@@ -183,19 +183,19 @@ Describe 'Process-IdemFile Set' {
             $threw | Should be $true
         }
     }
-    Context 'cannot correct file contents' {
+    Context 'cannot correct file content' {
         Mock Test-FilePath -Verifiable {$true}
         Mock Invoke-ProcessIdempotent -Verifiable {
             [string]$Remedy -notmatch 'Out-File'
         }
-        It 'throws correct exception when FileContents cannot be set.' {
+        It 'throws correct exception when FileContent cannot be set.' {
             $splat = @{
                 Path = @{
                     DriveLetter = 'a'
                     Segments = 'seg.txt'
                 }
                 ItemType = 'File'
-                FileContents = 'contents'
+                FileContent = 'content'
             }
 
             try
@@ -205,7 +205,7 @@ Describe 'Process-IdemFile Set' {
             catch [System.IO.FileNotFoundException]
             {
                 $threw = $true
-                $_.Exception.Message | Should match 'Set FileContents failed for a:\\seg.txt'
+                $_.Exception.Message | Should match 'Set FileContent failed for a:\\seg.txt'
             }
             $threw | Should be $true
         }
@@ -226,7 +226,7 @@ Describe 'Process-IdemFile Set' {
                     Segments = 'seg.txt'
                 }
                 ItemType = 'File'
-                FileContents = 'contents'
+                FileContent = 'content'
             }
 
             $r = Process-IdemFile Set @splat
@@ -277,7 +277,7 @@ Describe 'Process-IdemFile Set' {
                     Segments = 'seg'
                 }
                 ItemType = 'File'
-                FileContents = 'content'
+                FileContent = 'content'
             }
             try
             {
@@ -305,7 +305,7 @@ Describe 'Process-IdemFile Set' {
                     Segments = 'seg'
                 }
                 ItemType = 'File'
-                FileContents = 'content'
+                FileContent = 'content'
             }
             try
             {
@@ -313,7 +313,7 @@ Describe 'Process-IdemFile Set' {
             }
             catch
             {
-                $_.Exception.Message | Should be 'Set FileContents failed for a:\seg.'
+                $_.Exception.Message | Should be 'Set FileContent failed for a:\seg.'
             }
 
             Assert-MockCalled Out-File -Times 1 -Exactly {
@@ -358,7 +358,7 @@ Describe 'Process-IdemFile Test' {
             }
         }    
     }
-    Context 'FileContents Test' {
+    Context 'FileContent Test' {
         Mock Test-FilePath -Verifiable {$true}
         Mock Compare-FileContent -Verifiable {$true}
         It 'correctly calls Test-FilePath and Compare-FileContent' {
@@ -368,7 +368,7 @@ Describe 'Process-IdemFile Test' {
                     Segments = 'seg'
                 }
                 ItemType = 'File'
-                FileContents = 'content'
+                FileContent = 'content'
             }
             Process-IdemFile Test @splat -ea Stop
 
