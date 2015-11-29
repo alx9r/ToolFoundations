@@ -68,6 +68,7 @@ Use Depth to add levels of indentation to the literal string. The first line is 
         # the object to traverse
         [parameter(Mandatory                       = $true,
                    Position                        = 1,
+                   ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
         $Object,
 
