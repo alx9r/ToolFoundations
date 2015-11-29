@@ -320,6 +320,10 @@ function Get-RawContent
     )
     process
     {
+        if ( -not (Test-Path $Path) )
+        {
+            return
+        }
         [System.IO.File]::ReadAllText($Path)
     }
 }
