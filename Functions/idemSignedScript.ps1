@@ -102,7 +102,7 @@ function Compare-SignedScriptContent
         $splat = @{
             Path = $ScriptPath | >> | ConvertTo-FilePathString
         }
-        $rawFileContent = Get-RawContent @splat -ea SilentlyContinue
+        $rawFileContent = Get-RawContent @splat
 
         if
         (
