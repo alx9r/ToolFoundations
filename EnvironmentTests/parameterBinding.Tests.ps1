@@ -374,3 +374,38 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe 'Properties for different parameter sets in same pipeline.' {
+    function f 
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName = 'a',
+                       ValueFromPipelineByPropertyName = $true)]
+            $x,
+
+            [parameter(ParameterSetName = 'b',
+                       ValueFromPipelineByPropertyName = $true)]
+            $y
+        )
+        process
+        {
+            return $PSCmdlet.ParameterSetName
+        }
+    }
+    It 'selects correct parameter set for each item in pipeline.' {
+        $list = (New-Object psobject -Property @{x=1}),
+                (New-Object psobject -Property @{y=1})
+        
+        $r = $list | f
+
+        $r[0] | Should be 'a'
+        $r[1] | Should be 'b'   
+    }
+    It 'selects correct parameter set for each item in pipeline. (using >>)' {      
+        $r = @{x=1},@{y=1} | >> | f
+
+        $r[0] | Should be 'a'
+        $r[1] | Should be 'b'   
+    }
+}
