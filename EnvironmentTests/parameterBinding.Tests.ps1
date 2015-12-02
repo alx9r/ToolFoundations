@@ -374,3 +374,98 @@ InModuleScope ToolFoundations {
         }
     }
 }
+Describe 'Properties for different parameter sets in same pipeline.' {
+    function f
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName = 'a',
+                       ValueFromPipelineByPropertyName = $true)]
+            $x,
+
+            [parameter(ParameterSetName = 'b',
+                       ValueFromPipelineByPropertyName = $true)]
+            $y
+        )
+        process
+        {
+            return $PSCmdlet.ParameterSetName
+        }
+    }
+    It 'selects correct parameter set for each item in pipeline.' {
+        $list = (New-Object psobject -Property @{x=1}),
+                (New-Object psobject -Property @{y=1})
+
+        $r = $list | f
+
+        $r[0] | Should be 'a'
+        $r[1] | Should be 'b'
+    }
+    It 'selects correct parameter set for each item in pipeline. (using >>)' {
+        $r = @{x=1},@{y=1} | >> | f
+
+        $r[0] | Should be 'a'
+        $r[1] | Should be 'b'
+    }
+}
+Describe 'Behavior of PSBoundParameters across pipeline steps.' {
+    Context 'PetSerAl''s strategy from https://stackoverflow.com/a/34033842/1404637' {
+        function f
+        {
+            [CmdletBinding()]
+            param
+            (
+                [parameter(ParameterSetName = 'a',
+                           ValueFromPipelineByPropertyName = $true)]
+                $x,
+
+                [parameter(ParameterSetName = 'b',
+                           ValueFromPipelineByPropertyName = $true)]
+                $y,
+
+                $z
+            )
+            begin
+            {
+                $CommandLineBoundParameters= @{}
+                $PSBoundParameters.Keys |
+                    % { $CommandLineBoundParameters.$_ = $PSBoundParameters.$_ }
+            }
+            process
+            {
+                $PipeLineBoundParameters = @{}
+                @($PSBoundParameters.Keys) |
+                    ? { $CommandLineBoundParameters.Keys -notcontains $_ } |
+                    % {
+                        $PipeLineBoundParameters.$_ = $PSBoundParameters.$_
+                        [void]$PSBoundParameters.Remove($_)
+                    }
+                New-Object psobject -Property @{
+                    PipelineBoundParameters = $PipeLineBoundParameters
+                    CommandLineBoundParameters = $CommandLineBoundParameters
+                }
+            }
+        }
+        It 'correctly determines command line parameters.' {
+            $list = @{x=1},@{y=2} | % { New-Object psobject -Property $_ }
+
+            $r = $list | f -z 3
+
+            $r[0].CommandLineBoundParameters.Count | Should be 1
+            $r[0].CommandLineBoundParameters.z | Should be 3
+            $r[1].CommandLineBoundParameters.Count | Should be 1
+            $r[1].CommandLineBoundParameters.z | Should be 3
+        }
+        It 'correctly determines pipeline step parameters.' {
+            $list = @{x=1},@{y=2} | % { New-Object psobject -Property $_ }
+
+            $r = $list | f -z 3
+
+            $r[0].PipelineBoundParameters.Count | Should be 1
+            $r[0].PipelineBoundParameters.x | Should be 1
+            $r[1].PipelineBoundParameters.Count | Should be 1
+            $r[1].PipelineBoundParameters.y | Should be 2
+        }
+    }
+}

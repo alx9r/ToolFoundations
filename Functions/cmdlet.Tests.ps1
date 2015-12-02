@@ -353,6 +353,28 @@ Describe ConvertTo-ParamObject {
     It 'produces no error on empty object.' {
         $null | ConvertTo-ParamObject
     }
+    Context 'pipleine' {
+        function f {
+            [CmdletBinding()]
+            param
+            (
+                [parameter(ValueFromPipelineByPropertyName = $true)]
+                $x
+            )
+            process{}
+        }
+        Mock f -Verifiable
+        It 'correctly handles list of hashtables in pipeline.' {
+            @{x=1},@{x=2} | ConvertTo-ParamObject | f
+
+            Assert-MockCalled f -Times 1 -Exactly {
+                $x -eq 1
+            }
+            Assert-MockCalled f -Times 1 -Exactly {
+                $x -eq 2
+            }
+        }
+    }
 }
 if ($PSVersionTable.PSVersion.Major -ge 4)
 {
