@@ -7,10 +7,10 @@ Function Get-BoundParams
 {
 <#
 .SYNOPSIS
-A terse way to get the cmdlet's bound parameters.
+A terse and universal way to get the cmdlet's bound parameters.
 
 .DESCRIPTION
-The alias gbpm for Get-BoundParams can be use to obtain the current cmdlet's bound parameters in a terse manner.  Get-BoundParams allows for this terse alternative to $PSCmdlet.MyInvocation.BoundParameters:
+The alias gbpm for Get-BoundParams can be use to obtain the current cmdlet's bound parameters in a terse manner whose value is available even from debuggers.  Get-BoundParams allows for this terse alternative to $PSCmdlet.MyInvocation.BoundParameters:
 
   &(gbpm)
 
@@ -18,6 +18,7 @@ A test for the existence of a parameter in an advanced function then becomes the
 
   if ( (&(gbpm)).Keys -contains 'SomeParameter' )
 
+You might also consider $PSBoundParameters which is somewhat terser than $PSCmdlet.MyInvocation.BoundParameters but is not available from debuggers (see about_Debuggers and https://stackoverflow.com/q/9025942/1404637).
 
 .OUTPUTS
 A scriptblock that evaluates to the cmdlet's bound parameters.
@@ -42,6 +43,10 @@ A scriptblock that evaluates to the cmdlet's bound parameters.
     f1 -p1 $false
 
 This demonstrates the difference between testing the value and testing the existence of a parameter.  Get-BoundParams streamlines testing for existence of parameters.
+
+.LINK
+about_Debuggers
+https://stackoverflow.com/q/9025942/1404637
 #>
     [CmdletBinding()]
     param
@@ -54,7 +59,6 @@ This demonstrates the difference between testing the value and testing the exist
         # Get-BoundParams normally returns a scriptblock.  Set this switch to return the code string used to create the scriptblock, instead.
         [switch]
         $Code
-
     )
     process
     {
