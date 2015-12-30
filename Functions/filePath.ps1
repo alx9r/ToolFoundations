@@ -1019,6 +1019,7 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [AllowEmptyString()]
+        [Alias('PSPath')]
         [string]
         $Path
     )
@@ -1606,7 +1607,7 @@ function Test-FilePath
 
         [parameter(position                        = 3,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateSet('Directory','File')]
+        [ValidateSet('Directory','File','Any')]
         [string]
         $ItemType
     )
@@ -1629,7 +1630,12 @@ function Test-FilePath
             }
         }
 
-        return $PathString | Test-Path @splat
+        if ( -not ($PathString | Test-Path @splat) )
+        {
+            &(Publish-Failure "$ItemType $PathString does not exist." ([System.IO.FileNotFoundException]))
+            return $false
+        }
+        return $true
     }
 }
 }
