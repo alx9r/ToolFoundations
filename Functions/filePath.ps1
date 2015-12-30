@@ -1019,6 +1019,7 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
         [AllowEmptyString()]
+        [Alias('PSPath')]
         [string]
         $Path
     )
