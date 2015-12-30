@@ -1638,4 +1638,65 @@ function Test-FilePath
         return $true
     }
 }
+function ConvertTo-RelativeFilePathSegments
+{
+    [CmdletBinding()]
+    param
+    (
+        # The Path whose relative segments to extract.
+        [parameter(mandatory                       = $true,
+                   position                        = 1,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $Path,
+
+        # The (shorter) base that Path is relative to.
+        [parameter(mandatory                       = $true,
+                   position                        = 2,
+                   ValueFromPipeline               = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
+        [hashtable]
+        $Base
+    )
+    process
+    {
+        if ( $Path.DomainName -ne $Base.DomainName )
+        {
+            throw New-Object System.ArgumentException(
+                'Path and Base DomainNames do not match.',
+                'Base'
+            )
+        }
+        if ( $Path.DriveLetter -ne $Base.DriveLetter )
+        {
+            throw New-Object System.ArgumentException(
+                'Path and Base DriveLetters do not match.'
+            )
+        }
+        $i = 0
+        foreach ( $segment in $Base.Segments )
+        {
+            if ( $segment -ne $Path.Segments[$i] )
+            {
+                throw New-Object System.ArgumentException(
+                    "Base segment $segment does not match Path segment $($Path.Segments[$i])."
+                )
+            }
+            $i++
+        }
+
+        $i = 1
+        foreach ( $segment in $Path.Segments )
+        {
+            if ( $i -gt $Base.Segments.Count )
+            {
+                $segment
+            }
+            $i++
+        }
+    }
+}
 }

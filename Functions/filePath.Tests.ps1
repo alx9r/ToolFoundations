@@ -1810,5 +1810,99 @@ InModuleScope ToolFoundations {
             }
         }
     }
+    Describe ConvertTo-RelativeFilePathSegments {
+        Context 'throws' {
+            It 'outputs correct segments (single)' {
+                $splat = @{
+                    Path = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two','three'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two'
+                    }
+                }
+                $r = ConvertTo-RelativeFilePathSegments @splat
+
+                $r.Count | Should be 1
+                $r | Should be 'three'
+            }
+            It 'outputs correct segments (double)' {
+                $splat = @{
+                    Path = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two','three','four'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two'
+                    }
+                }
+                $r = ConvertTo-RelativeFilePathSegments @splat
+
+                $r.Count | Should be 2
+                $r[0] | Should be 'three'
+                $r[1] | Should be 'four'
+            }
+            It 'outputs no segments' {
+                $splat = @{
+                    Path = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two'
+                    }
+                }
+                $r = ConvertTo-RelativeFilePathSegments @splat
+
+                $r | Should beNullOrEmpty
+            }
+            It 'correctly throws on DomainName mismatch.' {
+                $splat = @{
+                    Path = @{
+                        DomainName = 'a.tld'
+                        Segments = 'seg'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'seg'
+                    }
+                }
+                {ConvertTo-RelativeFilePathSegments @splat} |
+                    Should throw 'Path and Base DomainNames do not match.'
+            }
+            It 'correctly throws on DriveLetter mismatch.' {
+                $splat = @{
+                    Path = @{
+                        DriveLetter = 'b'
+                        Segments = 'seg'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'seg'
+                    }
+                }
+                {ConvertTo-RelativeFilePathSegments @splat} |
+                    Should throw 'Path and Base DriveLetters do not match.'
+            }
+            It 'correctly throws on segment mismatch.' {
+                $splat = @{
+                    Path = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','two'
+                    }
+                    Base = @{
+                        DriveLetter = 'a'
+                        Segments = 'one','three'
+                    }
+                }
+                {ConvertTo-RelativeFilePathSegments @splat} |
+                    Should throw 'Base segment three does not match Path segment two.'
+            }
+        }
+    }
 }
 }
