@@ -1776,7 +1776,7 @@ InModuleScope ToolFoundations {
                     Segments = 'segment'
                 }
                 $r = $path | Test-FilePath
-                $r | Should be 'result'
+                $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
                 }
@@ -1786,7 +1786,7 @@ InModuleScope ToolFoundations {
             Mock Test-Path -Verifiable {'result'}
             It 'accepts string.' {
                 $r = 'a:\segment' | Test-FilePath
-                $r | Should be 'result'
+                $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
                 }
@@ -1796,9 +1796,17 @@ InModuleScope ToolFoundations {
             Mock Test-Path -Verifiable {'result'}
             It 'correctly converts ItemType string.' {
                 $r = 'a:\segment' | Test-FilePath -ItemType Directory
+                $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $PathType -eq 'Container'
                 }
+            }
+        }
+        Context 'Throws' {
+            Mock Test-Path -Verifiable {$false}
+            It 'correctly throws on ErrorAction Stop' {
+                {'a:\segment' | Test-FilePath -ItemType Directory -ea Stop} |
+                    Should throw 'Directory a:\segment does not exist.'
             }
         }
     }
