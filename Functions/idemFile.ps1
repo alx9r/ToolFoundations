@@ -2,6 +2,7 @@ Set-Alias Process-IdemFile Invoke-ProcessIdemFile
 
 if ($PSVersionTable.PSVersion.Major -ge 4)
 {
+Import-Module Microsoft.PowerShell.Utility
 Function Assert-ValidIdemFileParams
 {
     [CmdletBinding()]
@@ -34,7 +35,11 @@ Function Assert-ValidIdemFileParams
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
         [hashtable]
-        $CopyPath
+        $CopyPath,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [switch]
+        $CreateParentFolders
     )
     process
     {
@@ -56,7 +61,7 @@ Function Assert-ValidIdemFileParams
         if ( $ItemType -eq 'Directory' -and $CopyPath )
         {
             throw New-Object System.NotImplementedException(
-                'Copying of directories is not yet implemented.'
+                'Copying of directories is not supported.'
             )
         }
 
@@ -112,7 +117,11 @@ Function Invoke-ProcessIdemFile
         [parameter(ValueFromPipelineByPropertyName = $true)]
         [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
         [hashtable]
-        $CopyPath
+        $CopyPath,
+
+        [parameter(ValueFromPipelineByPropertyName = $true)]
+        [switch]
+        $CreateParentFolders
     )
     process
     {
@@ -122,7 +131,7 @@ Function Invoke-ProcessIdemFile
         if
         (
             $CopyPath -and
-            -not ($CopyPath | Test-FilePath -ItemType $ItemType)
+            -not ($CopyPath | Test-FilePath -ItemType $ItemType -ea si)
         )
         {
             $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString
@@ -139,28 +148,47 @@ Function Invoke-ProcessIdemFile
         }
 
         ## test if the item exists at Path, create it or copy it if necessary
+        ## project missing parent folders if necessary
 
         if ( $CopyPath )
         {
             $Test = {$sourceFileHash | Test-FileHash -Path ($Path | >> | ConvertTo-FilePathString)}
             $Remedy = {
+                if
+                (
+                    $CreateParentFolders -and
+                    $Path.Segments.Count -gt 1
+                )
+                {
+                    $projectPath = $Path.Clone()
+                    $projectPath.Segments = $Path.Segments[0..($Path.Segments.Count-2)]
+                    if ( -not (  $projectPath | Test-FilePath -ea si) )
+                    {
+                        $splat = @{
+                            Path = $projectPath | >> | ConvertTo-FilePathString
+                            ItemType = 'Directory'
+                            Force = $true
+                        }
+                        New-Item @splat -ea Stop
+                    }
+                }
                 $splat = @{
                     Path = $CopyPath | >> | ConvertTo-FilePathString
                     Destination = $Path | >> | ConvertTo-FilePathString
-                    Recurse = ($ItemType -eq 'Directory')
                 }
-                Copy-Item @splat
+                Copy-Item @splat -ea Stop
             }
         }
         else
         {
-            $Test = {$Path | Test-FilePath -ItemType $ItemType}
+            $Test = {$Path | Test-FilePath -ItemType $ItemType -ea si}
             $Remedy = {
                 $splat = @{
                     Path = $Path | >> | ConvertTo-FilePathString
                     ItemType = $ItemType
+                    Force = $CreateParentFolders
                 }
-                New-Item @splat
+                New-Item @splat -ea Stop
             }
         }
 
@@ -184,7 +212,7 @@ Function Invoke-ProcessIdemFile
                     FilePath = $Path | >> | ConvertTo-FilePathString
                     Encoding = 'ascii'
                 }
-                $FileContent | Out-File @splat | Out-Null
+                $FileContent | Out-File @splat -ea Stop | Out-Null
             }
             $fileContentResult = Process-Idempotent $Mode $Test $Remedy
 
