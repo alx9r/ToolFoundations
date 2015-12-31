@@ -48,7 +48,7 @@ Describe Assert-ValidIdemFileParams {
         catch [System.NotImplementedException]
         {
             $threw = $true
-            $_.Exception.Message | Should match 'Copying of directories is not yet implemented.'
+            $_.Exception.Message | Should match 'Copying of directories is not supported.'
         }
         $threw | Should be $true
     }
@@ -113,16 +113,8 @@ Describe 'Process-IdemFile' {
                 }
             }
 
-            try
-            {
-                Process-IdemFile Set @splat -ea Stop
-            }
-            catch [System.ArgumentException]
-            {
-                $threw = $true
-                $_.Exception.Message | Should match 'CopyPath b:\\seg does not exist.'
-            }
-            $threw | should be $true
+            { Process-IdemFile Set @splat -ea Stop } |
+                Should throw 'CopyPath b:\seg does not exist.'
 
             Assert-MockCalled Test-FilePath -Times 1 {
                 $PathHashtable.DriveLetter -eq 'b' -and
@@ -171,16 +163,8 @@ Describe 'Process-IdemFile Set' {
                 ItemType = 'File'
             }
 
-            try
-            {
-                Process-IdemFile Set @splat -ea Stop
-            }
-            catch [System.IO.FileNotFoundException]
-            {
-                $threw = $true
-                $_.Exception.Message | Should match 'Set failed for a:\\seg.txt.'
-            }
-            $threw | Should be $true
+            {Process-IdemFile Set @splat -ea Stop} |
+                Should throw 'Set failed for a:\seg.txt.'
         }
     }
     Context 'cannot correct file content' {
@@ -198,16 +182,8 @@ Describe 'Process-IdemFile Set' {
                 FileContent = 'content'
             }
 
-            try
-            {
-                Process-IdemFile Set @splat -ea Stop
-            }
-            catch [System.IO.FileNotFoundException]
-            {
-                $threw = $true
-                $_.Exception.Message | Should match 'Set FileContent failed for a:\\seg.txt'
-            }
-            $threw | Should be $true
+            {Process-IdemFile Set @splat -ea Stop} |
+                Should throw 'Set FileContent failed for a:\seg.txt'
         }
     }
     Context 'success' {
@@ -279,14 +255,8 @@ Describe 'Process-IdemFile Set' {
                 ItemType = 'File'
                 FileContent = 'content'
             }
-            try
-            {
-                Process-IdemFile Set @splat -ea Stop
-            }
-            catch
-            {
-                $_.Exception.Message | Should be 'Set failed for a:\seg.'
-            }
+            {Process-IdemFile Set @splat -ea Stop} |
+                Should throw 'Set failed for a:\seg.'
 
             Assert-MockCalled New-Item -Times 1 -Exactly {
                 $Path -eq 'a:\seg' -and
@@ -307,19 +277,79 @@ Describe 'Process-IdemFile Set' {
                 ItemType = 'File'
                 FileContent = 'content'
             }
-            try
-            {
-                Process-IdemFile Set @splat -ea Stop
-            }
-            catch
-            {
-                $_.Exception.Message | Should be 'Set FileContent failed for a:\seg.'
-            }
+            {Process-IdemFile Set @splat -ea Stop}|
+                Should throw 'Set FileContent failed for a:\seg.'
 
             Assert-MockCalled Out-File -Times 1 -Exactly {
                 $FilePath -eq 'a:\seg' -and
                 $Encoding -eq 'ascii' -and
                 $InputObject -eq 'content'
+            }
+        }
+    }
+    Context 'CreateParentFolders' {
+        Mock Test-FilePath -Verifiable
+        Mock New-Item -Verifiable
+        It 'correctly calls New-Item.' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'exists','implied','folder'
+                }
+                ItemType = 'Directory'
+                CreateParentFolders = $true
+            }
+            {Process-IdemFile Set @splat -ea Stop} |
+                Should throw 'Set failed'
+
+            Assert-MockCalled New-Item -Times 1 -Exactly {
+                $Path -eq 'a:\exists\implied\folder' -and
+                $ItemType -eq 'Directory' -and
+                $Force
+            }
+        }
+    }
+    Context 'CreateParentFolders (CopyPath)' {
+        Mock Test-FilePath -Verifiable {$PathHashtable.DriveLetter -eq 'c'}
+        Mock New-Item -Verifiable
+        Mock Test-FileHash
+        Mock Get-FileHash {
+            New-Object psobject -Property @{
+                Hash = 'hash'
+                Algorithm = 'SHA256'
+            }
+        }
+        It 'correctly calls New-Item.' {
+            $splat = @{
+                Path = @{
+                    DriveLetter = 'a'
+                    Segments = 'exists','implied','file.txt'
+                }
+                ItemType = 'File'
+                CreateParentFolders = $true
+                CopyPath = @{
+                    DriveLetter = 'c'
+                    Segments = 'seg'
+                }
+            }
+            try
+            {
+                Process-IdemFile Set @splat -ea Stop
+            }
+            catch [System.IO.FileNotFoundException]
+            {
+                $threw = $true
+                $_.Exception.Message | Should match 'Set failed'
+            }
+            $threw | Should be $true
+
+            Assert-MockCalled Test-FilePath -Times 1 -Exactly {
+                $PathHashtable.Segments[-1] -eq 'implied'
+            }
+            Assert-MockCalled New-Item -Times 1 -Exactly {
+                $Path -eq 'a:\exists\implied' -and
+                $ItemType -eq 'Directory' -and
+                $Force
             }
         }
     }
