@@ -1,12 +1,13 @@
 Import-Module ToolFoundations -Force
 
+$resourcePath = "$(Split-Path $MyInvocation.MyCommand.Path –Parent)\..\Resources" |
+    Resolve-Path |
+    % {$_.Path}
+
 Describe Start-Process2 {
     Context 'stdout from more.com' {
-        $resourcePath = "$($PSCommandPath | Split-Path -Parent)\..\Resources" |
-            Resolve-Path | 
-            % Path
-        $morePath = Get-Command more.com | % Path
-        
+        $morePath = Get-Command more.com | % {$_.Path}
+
         $sizes = '1k','10k'#,'100k'
         foreach ( $size in $sizes)
         {
@@ -23,10 +24,7 @@ Describe Start-Process2 {
         }
     }
     Context 'stdout from powershell.exe' {
-        $resourcePath = "$($PSCommandPath | Split-Path -Parent)\..\Resources" |
-            Resolve-Path | 
-            % Path
-        $psPath = Get-Command powershell.exe | % Path
+        $psPath = Get-Command powershell.exe | % {$_.Path}
 
         $sizes = '1k','10k'#,'100k'
         foreach ( $size in $sizes)
@@ -44,10 +42,7 @@ Describe Start-Process2 {
         }
     }
     Context 'TestDelay' {
-        $resourcePath = "$($PSCommandPath | Split-Path -Parent)\..\Resources" |
-            Resolve-Path | 
-            % Path
-        $morePath = Get-Command more.com | % Path
+        $morePath = Get-Command more.com | % {$_.Path}
 
         It 'correctly handles test delay' {
             $txtPath = "$resourcePath\linesX1k.txt"
@@ -63,7 +58,7 @@ Describe Start-Process2 {
     Context 'Exit Codes' {
         It 'correctly outputs exit code.' {
             $splat = @{
-                Command = Get-Command powershell.exe | % Path
+                Command = Get-Command powershell.exe | % {$_.Path}
                 Arguments = '-Command [System.Environment]::Exit(999)'
             }
             $result = Start-Process2 @splat
@@ -74,7 +69,7 @@ Describe Start-Process2 {
     Context 'stderr' {
         It 'correctly outputs stderr' {
             $splat = @{
-                Command = Get-Command powershell.exe | % Path
+                Command = Get-Command powershell.exe | % {$_.Path}
                 Arguments = "-Command `$host.ui.WriteErrorLine('my error')"
             }
             $result = Start-Process2 @splat

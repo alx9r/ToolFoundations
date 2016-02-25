@@ -47,7 +47,7 @@ function Start-Process2
         $stdErrPipeline =[powershell]::Create()
         $stdOutPipeline.RunspacePool = $pool
         $stdErrPipeline.RunspacePool = $pool
-        
+
         # add the tasks to the pipelines
         $stdOutTask = $stdOutPipeline.AddScript('$args[0].StandardOutput.ReadToEnd()').AddArgument($process)
         $stdErrTask = $stdErrPipeline.AddScript('$args[0].StandardError.ReadToEnd()').AddArgument($process)
@@ -55,7 +55,7 @@ function Start-Process2
         # start the process
         $process.Start() | Out-Null
 
-        # uncomment this to test for race conditions that cause missing
+        # use this to test for race conditions that could cause missing
         # lines at the beginning of the stdout and stderr streams
         if ( $TestDelay )
         {
@@ -67,8 +67,16 @@ function Start-Process2
         $stdErrTaskHandle = $stdErrTask.BeginInvoke()
 
         # wait for the tasks
-        $stdOutResult = $stdOutPipeline.EndInvoke($stdOutTaskHandle)
-        $stdErrResult = $stdErrPipeline.EndInvoke($stdErrTaskHandle)
+        if ( $PSVersionTable.PSVersion.Major -gt 2 )
+        {
+            $stdOutResult = $stdOutPipeline.EndInvoke($stdOutTaskHandle)
+            $stdErrResult = $stdErrPipeline.EndInvoke($stdErrTaskHandle)
+        }
+        else
+        {
+            $stdOutResult = $stdOutPipeline.EndInvoke($stdOutTaskHandle)[0]
+            $stdErrResult = $stdErrPipeline.EndInvoke($stdErrTaskHandle)[0]
+        }
 
         # clean up
         $stdOutPipeline.Dispose() | Out-Null
