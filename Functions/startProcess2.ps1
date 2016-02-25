@@ -17,6 +17,7 @@ function Start-Process2
         # https://stackoverflow.com/a/11549817/1404637
         # https://stackoverflow.com/a/139604/1404637
         # https://stackoverflow.com/a/24371479/1404637
+        # https://stackoverflow.com/a/7608823/1404637
 
         # create process objects
         $psi = New-object System.Diagnostics.ProcessStartInfo
@@ -30,28 +31,57 @@ function Start-Process2
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $psi
 
-        # Creating string builders to store stdout and stderr.
+        # create string builders to store stdout and stderr.
         $stdOutBuilder = New-Object -TypeName System.Text.StringBuilder
         $stdErrBuilder = New-Object -TypeName System.Text.StringBuilder
 
-        # Adding event handers for stdout and stderr.
+        # create wait objects
+        $stdOutWaitHandle = New-Object System.Threading.AutoResetEvent($false)
+        $stdErrWaitHandle  = New-Object System.Threading.AutoResetEvent($false)
+
+        # Add event handlers for stdout and stderr.
         $scriptBlock = {
-            if (! [String]::IsNullOrEmpty($EventArgs.Data)) {
-                $Event.MessageData.AppendLine($EventArgs.Data)
+            if ( -not [String]::IsNullOrEmpty($EventArgs.Data)) 
+            {
+                $Event.MessageData.StringBuilder.AppendLine($EventArgs.Data)
+            }
+            else
+            {
+                $Event.MessageData.WaitHandle.Set()
             }
         }
         $stdOutEvent = Register-ObjectEvent -InputObject $process `
             -Action $scriptBlock -EventName 'OutputDataReceived' `
-            -MessageData $stdOutBuilder
+            -MessageData @{ 
+                StringBuilder = $stdOutBuilder
+                WaitHandle    = $stdOutWaitHandle
+            }
         $stdErrEvent = Register-ObjectEvent -InputObject $process `
             -Action $scriptBlock -EventName 'ErrorDataReceived' `
-            -MessageData $stdErrBuilder
+            -MessageData @{
+                StringBuilder = $stdErrBuilder
+                WaitHandle    = $stdErrWaitHandle
+            }
 
-        # Starting process.
+        # start process.
         [Void]$process.Start()
         $process.BeginOutputReadLine()
         $process.BeginErrorReadLine()
-        [Void]$process.WaitForExit()
+        
+        # wait for everything to finish
+        if 
+        (
+            $process.WaitForExit() -and
+            $stdOutWaitHandle.WaitOne() -and
+            $stdErrWaitHandle.WaitOne()
+        )
+        {
+            # process completed 
+        }
+        else
+        {
+            # timed out
+        }
 
         # Unregistering events to retrieve process output.
         Unregister-Event -SourceIdentifier $stdOutEvent.Name
