@@ -10,7 +10,10 @@ function Start-Process2
         $Arguments,
 
         [switch]
-        $RunAs
+        $RunAs,
+
+        [switch]
+        $TestDelay
     )
     process
     {
@@ -18,6 +21,9 @@ function Start-Process2
         # https://stackoverflow.com/a/139604/1404637
         # https://stackoverflow.com/a/24371479/1404637
         # https://stackoverflow.com/a/7608823/1404637
+        # http://alabaxblog.info/2013/06/redirectstandardoutput-beginoutputreadline-pattern-broken/
+        # http://newsqlblog.com/2012/05/22/concurrency-in-powershell-multi-threading-with-runspaces/
+        # http://www.codeproject.com/Tips/895840/Multi-Threaded-PowerShell-Cookbook
 
         # create process objects
         $psi = New-object System.Diagnostics.ProcessStartInfo
@@ -31,65 +37,51 @@ function Start-Process2
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $psi
 
-        # create string builders to store stdout and stderr.
-        $stdOutBuilder = New-Object -TypeName System.Text.StringBuilder
-        $stdErrBuilder = New-Object -TypeName System.Text.StringBuilder
+        # create the runspace pool
+        $pool = [RunspaceFactory]::CreateRunspacePool(1,3)
+        $pool.ApartmentState = 'STA'
+        $pool.Open() | Out-Null
 
-        # create wait objects
-        $stdOutWaitHandle = New-Object System.Threading.AutoResetEvent($false)
-        $stdErrWaitHandle  = New-Object System.Threading.AutoResetEvent($false)
-
-        # Add event handlers for stdout and stderr.
-        $scriptBlock = {
-            if ( -not [String]::IsNullOrEmpty($EventArgs.Data)) 
-            {
-                $Event.MessageData.StringBuilder.AppendLine($EventArgs.Data)
-            }
-            else
-            {
-                $Event.MessageData.WaitHandle.Set()
-            }
-        }
-        $stdOutEvent = Register-ObjectEvent -InputObject $process `
-            -Action $scriptBlock -EventName 'OutputDataReceived' `
-            -MessageData @{ 
-                StringBuilder = $stdOutBuilder
-                WaitHandle    = $stdOutWaitHandle
-            }
-        $stdErrEvent = Register-ObjectEvent -InputObject $process `
-            -Action $scriptBlock -EventName 'ErrorDataReceived' `
-            -MessageData @{
-                StringBuilder = $stdErrBuilder
-                WaitHandle    = $stdErrWaitHandle
-            }
-
-        # start process.
-        [Void]$process.Start()
-        $process.BeginOutputReadLine()
-        $process.BeginErrorReadLine()
+        # create the pipelines
+        $stdOutPipeline =[powershell]::Create()
+        $stdErrPipeline =[powershell]::Create()
+        $stdOutPipeline.RunspacePool = $pool
+        $stdErrPipeline.RunspacePool = $pool
         
-        # wait for everything to finish
-        if 
-        (
-            $process.WaitForExit() -and
-            $stdOutWaitHandle.WaitOne() -and
-            $stdErrWaitHandle.WaitOne()
-        )
+        # add the tasks to the pipelines
+        $stdOutTask = $stdOutPipeline.AddScript('$args[0].StandardOutput.ReadToEnd()').AddArgument($process)
+        $stdErrTask = $stdErrPipeline.AddScript('$args[0].StandardError.ReadToEnd()').AddArgument($process)
+
+        # start the process
+        $process.Start() | Out-Null
+
+        # uncomment this to test for race conditions that cause missing
+        # lines at the beginning of the stdout and stderr streams
+        if ( $TestDelay )
         {
-            # process completed 
-        }
-        else
-        {
-            # timed out
+            sleep -Seconds 2
         }
 
-        # Unregistering events to retrieve process output.
-        Unregister-Event -SourceIdentifier $stdOutEvent.Name
-        Unregister-Event -SourceIdentifier $stdErrEvent.Name
+        # invoke the tasks
+        $stdOutTaskHandle = $stdOutTask.BeginInvoke()
+        $stdErrTaskHandle = $stdErrTask.BeginInvoke()
+
+        # wait for the tasks
+        $stdOutResult = $stdOutPipeline.EndInvoke($stdOutTaskHandle)
+        $stdErrResult = $stdErrPipeline.EndInvoke($stdErrTaskHandle)
+
+        # clean up
+        $stdOutPipeline.Dispose() | Out-Null
+        $stdErrPipeline.Dispose() | Out-Null
+        $pool.Close() | Out-Null
+        [GC]::Collect() | Out-Null
+
+        # wait for the process to finish
+        $process.WaitForExit() | Out-Null
 
         New-Object PSObject -Property @{
-            StandardOutput = $stdOutBuilder.ToString()
-            StandardError  = $stdErrBuilder.ToString()
+            StandardOutput = $stdOutResult
+            StandardError  = $stdErrResult
             ExitCode       = $process.ExitCode
             ProcessObject  = $process
         }
