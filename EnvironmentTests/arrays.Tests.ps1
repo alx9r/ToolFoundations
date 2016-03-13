@@ -5,7 +5,7 @@ Describe 'combine arrays' {
         # not an array.
 
         It 'two arrays' {
-            $r = @(1,2)+(3,4)
+            $r = @(1,2)+@(3,4)
 
             $r.Count | Should be 4
             $r[0] | Should be 1
@@ -34,7 +34,7 @@ Describe 'combine arrays' {
         }
     }
     Context 'comma' {
-        
+
         # The comma operator doesn't combine lists, rather it
         # creates lists of objects which could themselves be
         # lists.
@@ -68,7 +68,7 @@ Describe 'combine arrays' {
             $r.Count | Should be 2
             $r[0] | Should beNullOrEmpty
             $r[1][1] | Should be 2
-        }    
+        }
     }
     Context 'array operator and comma' {
 
@@ -104,7 +104,7 @@ Describe 'combine arrays' {
             $r.Count | Should be 2
             $r[0] | Should beNullOrEmpty
             $r[1][1] | Should be 2
-        }    
+        }
     }
     Context 'array operator and whitespace' {
 
@@ -166,7 +166,7 @@ Describe 'combine arrays' {
             $r.Count | Should be 3
             $r[0] | Should beNullOrEmpty
             $r[2] | Should be 2
-        }    
+        }
     }
     Context 'comma and pipe' {
 
@@ -212,6 +212,6 @@ Describe 'combine arrays' {
             $r.Count | Should be 3
             $r[0] | Should beNullOrEmpty
             $r[2] | Should be 2
-        }    
+        }
     }
 }
