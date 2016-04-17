@@ -46,13 +46,15 @@ Describe 'implicit parameter cast - custom function' {
         It 'accepts an integer' {
             IntParam 2 | Should be 2
         }
-        It 'converts $null to 0' {
-            if ( $PSVersionTable.PSVersion.Major -ge 3 )
-            {
+        if ( $PSVersionTable.PSVersion.Major -ge 3 )
+        {
+            It 'converts $null to 0' {
                 IntParam $null | Should be 0
             }
-            else
-            {
+        }
+        else
+        {
+            It 'leaves $null as $null' {
                 IntParam $null | Should beNullOrEmpty
             }
         }
@@ -61,13 +63,15 @@ Describe 'implicit parameter cast - custom function' {
         It 'accepts an integer' {
             & 'IntParam' 2 | Should be 2
         }
-        It 'converts $null to 0' {
-            if ( $PSVersionTable.PSVersion.Major -ge 3 )
-            {
+        if ( $PSVersionTable.PSVersion.Major -ge 3 )
+        {
+            It 'converts $null to 0' {
                 & 'IntParam' $null | Should be 0
             }
-            else
-            {
+        }
+        else
+        {
+            It 'leaves $null as $null' {
                 & 'IntParam' $null | Should beNullOrEmpty
             }
         }
