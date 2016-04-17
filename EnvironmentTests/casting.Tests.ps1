@@ -94,7 +94,7 @@ Describe 'implicit parameter cast - builtin function' {
             (Get-Help Select-Object).parameters.parameter |
                 ? {$_.Name -eq 'First'} |
                 % {$_.parametervalue } |
-                Should be 'int32'
+                Should match 'int'
         }
     }
     Context 'normal invocation' {
