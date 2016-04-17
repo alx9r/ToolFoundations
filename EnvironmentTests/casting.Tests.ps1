@@ -90,7 +90,7 @@ Describe 'implicit parameter cast - custom function' {
 }
 Describe 'implicit parameter cast - builtin function' {
     Context 'interrogate function' {
-        It 'parameter type is int32' {
+        It 'parameter type is int*' {
             (Get-Help Select-Object).parameters.parameter |
                 ? {$_.Name -eq 'First'} |
                 % {$_.parametervalue } |
