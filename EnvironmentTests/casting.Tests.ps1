@@ -25,6 +25,17 @@ Describe 'cast hashtable to psobject' {
         $r -is [hashtable] | Should be $true
     }
 }
+Describe 'explicit casting of $null' {
+    It 'int32 casts to 0' {
+        [int32]$null | Should be 0
+    }
+    It 'int casts to 0' {
+        [int]$null | Should be 0
+    }
+    It 'string casts to empty string' {
+        [string]$null -eq [string]::Empty | Should be $true
+    }
+}
 Describe 'implicit parameter cast - custom function' {
     function IntParam { param([int]$Integer) $Integer }
     Context 'interrogate function' {
