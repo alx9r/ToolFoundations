@@ -25,3 +25,80 @@ Describe 'cast hashtable to psobject' {
         $r -is [hashtable] | Should be $true
     }
 }
+Describe 'implicit parameter cast - custom function' {
+    function IntParam { param([int]$Integer) $Integer }
+    Context 'interrogate function' {
+        It 'parameter type is int or int32' {
+            if ( $PSVersionTable.PSVersion.Major -ge 3 )
+            {
+                (Get-Help IntParam).parameters.parameter |
+                    ? {$_.Name -eq 'Integer'} |
+                    % {$_.parametervalue } |
+                    Should be 'int'
+            }
+            else
+            {
+                Get-Help IntParam | Should match int32
+            }
+        }
+    }
+    Context 'normal invocation' {
+        It 'accepts an integer' {
+            IntParam 2 | Should be 2
+        }
+        It 'converts $null to 0' {
+            if ( $PSVersionTable.PSVersion.Major -ge 3 )
+            {
+                IntParam $null | Should be 0
+            }
+            else
+            {
+                IntParam $null | Should beNullOrEmpty
+            }
+        }
+    }
+    Context 'invocation using &' {
+        It 'accepts an integer' {
+            & 'IntParam' 2 | Should be 2
+        }
+        It 'converts $null to 0' {
+            if ( $PSVersionTable.PSVersion.Major -ge 3 )
+            {
+                & 'IntParam' $null | Should be 0
+            }
+            else
+            {
+                & 'IntParam' $null | Should beNullOrEmpty
+            }
+        }
+    }
+}
+Describe 'implicit parameter cast - builtin function' {
+    Context 'interrogate function' {
+        It 'parameter type is int32' {
+            (Get-Help Select-Object).parameters.parameter |
+                ? {$_.Name -eq 'First'} |
+                % {$_.parametervalue } |
+                Should be 'int32'
+        }
+    }
+    Context 'normal invocation' {
+        It 'accepts an integer' {
+            2,3 | Select-Object -First 1 | Should be 2
+        }
+
+        It 'throws on conversion $null to 0' {
+            { 2,3 | Select-Object -First $null } | Should throw 'The argument is null, empty'
+        }
+    }
+    Context 'using &' {
+        It 'accepts an integer' {
+            2,3 | & 'Select-Object' -First 1 | Should be 2
+        }
+
+        It 'throws on conversion $null to 0' {
+            { 2,3 | & 'Select-Object' -First $null } | Should throw 'The argument is null, empty'
+        }
+    }
+}
+
