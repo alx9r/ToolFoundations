@@ -7,7 +7,7 @@ Describe Get-StringHash {
     }
     It 'outputs empty string for empty string' {
         $r = [string]::Empty | Get-StringHash
-        $r -eq [string]::Empty | Should be $true    
+        $r -eq [string]::Empty | Should be $true
     }
     Context 'produces correct hash' {
         $cases = @(
@@ -22,7 +22,7 @@ Describe Get-StringHash {
                 $r = $in | Get-StringHash
                 $r | Should be $out
             }
-        }        
+        }
     }
     Context 'produces correct hash (base64)' {
         $cases = @(
@@ -37,7 +37,7 @@ Describe Get-StringHash {
                 $r = $in | Get-StringHash -OutputEncoding base64
                 $r | Should be $out
             }
-        }        
+        }
     }
     Context 'produces correct hash (MD5)' {
         $cases = @(
@@ -52,6 +52,6 @@ Describe Get-StringHash {
                 $r = $in | Get-StringHash -Algorithm (New-Object System.Security.Cryptography.MD5CryptoServiceProvider)
                 $r | Should be $out
             }
-        }        
+        }
     }
 }

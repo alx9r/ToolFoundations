@@ -29,7 +29,7 @@ function Get-StringHash
     )
     process
     {
-        if 
+        if
         (
             $null -eq $InputString -or
             $InputString -eq [string]::Empty
