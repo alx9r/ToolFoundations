@@ -87,3 +87,42 @@ Escapes just the regular expression characters in some prose.
         [regex]::Escape($LiteralText)
     }
 }
+function ConvertFrom-RegexNamedGroupCapture
+{
+    [CmdletBinding()]
+    param
+    (
+        [parameter(ValueFromPipeline = $true,
+                   ValueFromPipelineByPropertyName = $true,
+                   mandatory = $true,
+                   Position = 1)]
+        [System.Text.RegularExpressions.Match]
+        $Match,
+
+        [parameter(ValueFromPipelineByPropertyName = $true,
+                   mandatory = $true,
+                   Position = 2)]
+        [regex]
+        $Regex
+    )
+    process
+    {
+        if ( -not $Match.Groups[0].Success )
+        {
+            throw New-Object System.ArgumentException(
+                    'Match does not contain any captures.',
+                    'Match'
+                )
+        }
+        $h = @{}
+        foreach ($name in $Regex.GetGroupNames())
+        {
+            if ($name -eq 0)
+            {
+                continue
+            }
+            $h.$name = $Match.Groups[$name]
+        }
+        return $h
+    }
+}
