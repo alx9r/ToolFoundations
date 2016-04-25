@@ -41,12 +41,39 @@ Describe ConvertTo-RegexEscapedString {
         $r = $NoEscaping | ConvertTo-RegexEscapedString
         $r | Should be $NoEscaping
     }
-    It "correctly escapes a mixed characters." {
+    It 'correctly escapes a mixed characters.' {
         $r = $SomeEscaping | ConvertTo-RegexEscapedString
         $r | Should be "Yup,\ just\ a\ bunch\ of\ `"normal`"\ characters!\ 'Cept\ white\ space\.\ \(and\ periods\.\.\.and\ parentheses\)"
     }
-    It "correctly handles empty strings." {
+    It 'correctly handles empty strings.' {
         $r = [string]::Empty | ConvertTo-RegexEscapedString
         $r -eq [string]::Empty | Should be $true
+    }
+}
+Describe ConvertFrom-RegexNamedGroupCapture {
+    Context 'failure' {
+        It 'throws when there are no captures' {
+            $regex = [regex]'a=(?<a>[0-9]*);b=(?<b>[0-9]*)'
+            $match = $regex.Match('c=1;d=2')
+            { ConvertFrom-RegexNamedGroupCapture -Match $match -Regex $regex} |
+                Should throw 'Match does not contain any captures.'
+        }
+    }
+    Context 'success' {
+        $regex = [regex]'a=(?<a>[0-9]*);b=(?<b>[0-9]*)'
+        $match = $regex.Match('a=1;b=2')
+        $r = ConvertFrom-RegexNamedGroupCapture -Match $match -Regex $regex
+        It 'outputs a hashtable.' {
+            $r -is [hashtable] | Should be $true
+        }
+        It 'contains two keys.' {
+            $r.Keys.Count | Should be 2
+        }
+        It 'a=1' {
+            $r.a | Should be '1'
+        }
+        It 'b=2' {
+            $r.b | Should be '2'
+        }
     }
 }
