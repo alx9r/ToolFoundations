@@ -121,7 +121,7 @@ function ConvertFrom-RegexNamedGroupCapture
             {
                 continue
             }
-            $h.$name = $Match.Groups[$name]
+            $h.$name = $Match.Groups[$name].Value
         }
         return $h
     }
