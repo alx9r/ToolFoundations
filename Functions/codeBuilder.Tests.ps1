@@ -42,6 +42,16 @@ Describe 'ConvertTo-PsLiteralString' {
 )
 '@
     }
+    It 'correctly converts an integer.' {
+        $i = 1
+        $r = ConvertTo-PsLiteralString $i
+        $r | Should be '1'
+    }
+    It 'correctly converts a negative integer.' {
+        $i = -1000
+        $r = ConvertTo-PsLiteralString $i
+        $r | Should be '-1000'
+    }
     It 'correctly converts a single-element hashtable.' {
         $h = @{ foo='bar' }
         ConvertTo-PsLiteralString $h |
@@ -126,12 +136,12 @@ Describe 'ConvertTo-PsLiteralString' {
     It 'throws correct error for an unhandled type.' {
         try
         {
-            ConvertTo-PsLiteralString 12345
+            ConvertTo-PsLiteralString (Get-Date)
         }
         catch [System.NotSupportedException]
         {
             $threw = $true
-            $_.Exception.Message | Should Match 'Object 12345 is of type int. Conversion for this type is not implemented.'
+            $_.Exception.Message | Should Match 'datetime. Conversion for this type is not implemented.'
         }
 
         $threw | Should be $true
