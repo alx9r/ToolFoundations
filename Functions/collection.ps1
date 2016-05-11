@@ -80,7 +80,13 @@ https://stackoverflow.com/a/28707054/1404637
             return ,$InputObject
         }
 
-        if( !($InputObject.GetType().FullName -match '^System.Collections.Generic.List') )
+        if
+        (
+            -not (
+                $InputObject.GetType().FullName -match '^System.Collections.Generic.List' -or
+                $InputObject -is [System.Xml.XmlElement]
+            )
+        )
         {
             $InputObjectTypeA = $InputObject.GetType().FullName
             $InputObjectTypeB = $InputObject.GetType().BaseType.GetType().FullName

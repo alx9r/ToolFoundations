@@ -102,6 +102,10 @@ Use Depth to add levels of indentation to the literal string. The first line is 
         {
             return "'$Object'"
         }
+        if ( $Object -is [int])
+        {
+            return "$Object"
+        }
         if ( $Object -is [array] )
         {
             $acc = "@($nl"

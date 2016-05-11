@@ -1,7 +1,7 @@
-﻿Describe "Expand-String" {
+﻿Import-Module ToolFoundations -Force
+
+Describe "Expand-String" {
     BeforeEach {
-        Remove-Module 'ToolFoundations' -ea SilentlyContinue
-        Import-Module 'ToolFoundations'
         $MyString = 'The $animal says $sound.'
         $animal = 'fox'
         $sound = 'simper'
@@ -43,5 +43,19 @@
     It "assert backticks handling" {
         &(xs 'this is a tab:`t, this backtick disappears:` ') |
         Should be 'this is a tab:	, this backtick disappears: '
+    }
+    if ( $PSVersionTable.PSVersion.Major -le 2 )
+    {
+        It 'eats single quotes.' {
+            &(xs "these 'single quotes' get eaten") |
+                Should be 'these single quotes get eaten'
+        }
+    }
+    else
+    {
+        It "handles 'single quotes' correctly" {
+            &(xs "these are 'single quotes' here") |
+                Should be "these are 'single quotes' here"
+        }
     }
 }

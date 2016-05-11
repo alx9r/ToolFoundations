@@ -52,7 +52,16 @@ function Expand-String
             $escapedString = $String
         }
 
-        $code = "`$ExecutionContext.InvokeCommand.ExpandString('$escapedString')"
+        if ( $escapedString -match "'" )
+        {
+            $q = '"'
+        }
+        else
+        {
+            $q = "'"
+        }
+
+        $code = "`$ExecutionContext.InvokeCommand.ExpandString($q$escapedString$q)"
         [scriptblock]::create($code)
     }
 }

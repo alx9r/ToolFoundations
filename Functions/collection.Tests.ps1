@@ -1,8 +1,6 @@
-﻿Describe Out-Collection {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
+﻿Import-Module ToolFoundations -Force
+
+Describe Out-Collection {
     BeforeAll {
             Function Raw {
                 [CmdletBinding()]
@@ -175,8 +173,7 @@
             $o[1][1] | Should be 40
         }
     }
-
-    Context "dotnet objects" {
+    Context "dotnet collections" {
         BeforeEach{
             $miObjects =
                        (New-Object string 'TenTwentyThirty'),
@@ -264,5 +261,29 @@
                     $result | Should Be $false
                 }
          }
+    }
+}
+Describe 'Out-Collection (XML)' {
+    Context 'dotnet XML' {
+        Mock Write-Warning -Verifiable
+        $doc = [xml]'<doc><sometags><tag/><tag/></sometags><sometags><tag/><tag/></sometags></doc>'
+        It 'preserves XML Element containing a single element.' {
+            $single = $doc.doc.sometags[0]
+
+            $out = Out-Collection $single
+            $out | Should BeOfType ([System.Xml.XmlElement])
+            $out | Should be $single
+        }
+        It 'preserves XML Element containing multiple elements.' {
+            $multiple = $doc.doc.sometags
+            $multiple.Count | Should be 2
+
+            $out = Out-Collection $multiple
+            $out | Should be $multiple
+            $out | Should BeOfType ([System.Xml.XmlElement])
+        }
+        It 'does not raise warning.' {
+            Assert-MockCalled Write-Warning -Times 0
+        }
     }
 }
