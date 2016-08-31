@@ -35,3 +35,28 @@ Describe 'overwrite the dynamic module with an empty one' {
         $r | Should be 'result of f'        
     }
 }
+$guid = [guid]::NewGuid().Guid
+Describe 'import one dynamic module from another' {
+    It 'create module A' {
+        $h.ModuleA = New-Module -Name "ModuleA-$guid" -ScriptBlock (
+            [scriptblock]::Create("function A-$guid { 'result of A' }")
+        )
+    }
+    It 'create module B' {
+        $h.ModuleB = New-Module -Name "ModuleB-$guid" -ScriptBlock (
+            [scriptblock]::Create(@"
+                    `$h.ModuleA | Import-Module -WarningAction SilentlyContinue
+                    function B-$guid { "B calls A: `$(A-$guid)" }
+"@
+            )
+        )
+    }
+    It 'command in inner module works' {
+        $r = & "A-$guid"
+        $r | Should be 'result of A'
+    }
+    It 'command in outer module calls inner module' {
+        $r = & "B-$guid"
+        $r | Should be 'B Calls A: result of A'
+    }
+}
