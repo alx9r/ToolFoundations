@@ -41,11 +41,14 @@ Describe 'import one dynamic module from another' {
     }
 }
 
-# This is hard to test in PowerShell 2 because $guid
-# isn't available inside the InModuleScope scriptblock.
-if ($PSVersionTable.PSVersion.Major -ge 3)
-{
 Describe 'effect of InModuleScope' {
+    It 'set guid file contents' {
+        $guid | Set-Content 'TestDrive:\guid.txt'
+    }
+    It 'get guid contents' {
+        $r = Get-Content 'TestDrive:\guid.txt'
+        $r | Should be $guid
+    }
     Context 'directly invoke mocked command without InModuleScope' {
         Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -55,6 +58,7 @@ Describe 'effect of InModuleScope' {
         }
     }
     InModuleScope "ModuleA-$guid" {
+        $guid = Get-Content 'TestDrive:\guid.txt'
         Context 'directly invoke mocked command InModuleScope of the command''s module' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -73,6 +77,7 @@ Describe 'effect of InModuleScope' {
         }
     }
     InModuleScope "ModuleA-$guid" {
+        $guid = Get-Content 'TestDrive:\guid.txt'
         Context 'indirectly invoke mocked command from another module InModuleScope of the mocked command''s module' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -86,6 +91,7 @@ Describe 'effect of InModuleScope' {
     if ( $h.PesterInvokedScript )
     {
         InModuleScope "ModuleB-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
             Context 'mock command of one module InModuleScope of another module' {
                 try
                 {
@@ -104,6 +110,7 @@ Describe 'effect of InModuleScope' {
     else # the script was probably run directly in the console
     {
         InModuleScope "ModuleB-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
             Context 'indirectly invoke mocked command from another module InModuleScope of that module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -125,6 +132,7 @@ Describe 'effect of InModuleScope' {
     if ( $h.PesterInvokedScript )
     {
         InModuleScope "ModuleA-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
             Context 'indirectly invoke mocked command from mocked command''s module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -138,6 +146,7 @@ Describe 'effect of InModuleScope' {
     else # the script was probably run directly in the console
     {
         InModuleScope "ModuleA-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
             Context 'indirectly invoke mocked command from mocked command''s module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
@@ -148,5 +157,4 @@ Describe 'effect of InModuleScope' {
             }
         }
     }
-}
 }
