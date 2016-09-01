@@ -185,12 +185,12 @@ Describe 'effect of not importing module inside module that invokes mocked comma
     It 'set TestDrive file contents' {
         $guid | Set-Content 'TestDrive:\guid.txt'
     }
-    if ( $h.DirectlyInvoked )
+    if ( $h.DirectlyInvokedScript )
     {
         Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'returns result from real function' {
+            It 'returns result from real function (but not when script is invoked by Pester)' {
                 $r = & "C-$guid"
                 $r | Should be 'C calls A1: mocked result of A1'
             }
@@ -200,7 +200,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
             Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'returns result from real function' {
+                It 'returns result from real function (but not when script is invoked by Pester)' {
                     $r = & "C-$guid"
                     $r | Should be 'C calls A1: real result of A1'
                 }
@@ -212,7 +212,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
         Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'throws CommandNotFoundException for Mock A1' {
+            It 'throws CommandNotFoundException for Mock A1 (but not when script is invoked by ISE)' {
                 try
                 {
                     & "C-$guid"
@@ -233,7 +233,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
             Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'throws CommandNotFoundException for Mock A1' {
+                It 'throws CommandNotFoundException for Mock A1 (but not when script is invoked in ISE)' {
                     try
                     {
                         & "C-$guid"
