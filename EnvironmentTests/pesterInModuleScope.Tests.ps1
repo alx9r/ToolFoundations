@@ -212,7 +212,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
         Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'throws CommandNotFoundException for Mock A1 (but not when script is invoked by ISE)' {
+            It 'throws CommandNotFoundException for mocked command (but not when script is invoked by ISE)' {
                 try
                 {
                     & "C-$guid"
@@ -233,7 +233,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
             Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'throws CommandNotFoundException for Mock A1 (but not when script is invoked in ISE)' {
+                It 'throws CommandNotFoundException for mocked command (but not when script is invoked in ISE)' {
                     try
                     {
                         & "C-$guid"
