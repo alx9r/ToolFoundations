@@ -24,6 +24,12 @@ Describe 'import one dynamic module from another' {
         )
         $h.ModuleB | Import-Module -Force -WarningAction SilentlyContinue
     }
+    It 'create module C' {
+        $h.ModuleC = New-Module -Name "ModuleC-$guid" -ScriptBlock (
+            [scriptblock]::Create("function C-$guid { `"C calls A1: `$(A1-$guid)`" }" )
+        )
+        $h.ModuleC | Import-Module -Force -WarningAction SilentlyContinue
+    }
     It 'command in inner module works' {
         $r = & "A1-$guid"
         $r | Should be 'real result of A1'
@@ -31,6 +37,10 @@ Describe 'import one dynamic module from another' {
     It 'command in outer module calls inner module' {
         $r = & "B-$guid"
         $r | Should be 'B Calls A1: real result of A1'
+    }
+    It 'command in outer module calls inner module even though inner module is not imported' {
+        $r = & "C-$guid"
+        $r | Should be 'C Calls A1: real result of A1'
     }
 }
 
@@ -167,6 +177,77 @@ Describe 'effect of InModuleScope on whether a mock or real command is invoked' 
             It 'returns result from mocked function' {
                 $r = & "A2-$guid"
                 $r | Should be 'A2 calls A1: mocked result of A1'
+            }
+        }
+    }
+}
+Describe 'effect of not importing module inside module that invokes mocked command' {
+    It 'set TestDrive file contents' {
+        $guid | Set-Content 'TestDrive:\guid.txt'
+    }
+    if ( $h.DirectlyInvokedScript )
+    {
+        Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
+            Mock "A1-$guid" { 'mocked result of A1' }
+
+            It 'returns result from real function (but not when script is invoked by Pester)' {
+                $r = & "C-$guid"
+                $r | Should be 'C calls A1: mocked result of A1'
+            }
+        }
+        InModuleScope "ModuleA-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
+            Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
+                Mock "A1-$guid" { 'mocked result of A1' }
+
+                It 'returns result from real function (but not when script is invoked by Pester)' {
+                    $r = & "C-$guid"
+                    $r | Should be 'C calls A1: real result of A1'
+                }
+            }
+        }
+    }
+    else
+    {
+        Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
+            Mock "A1-$guid" { 'mocked result of A1' }
+
+            It 'throws CommandNotFoundException for mocked command (but not when script is invoked by ISE)' {
+                try
+                {
+                    & "C-$guid"
+                }
+                catch
+                {
+                    $threw = $true
+
+                    $_.FullyQualifiedErrorId | Should be CommandNotFoundException
+                    $_ | Should match "The term 'A1"
+                }
+
+                $threw | Should be $true
+            }
+        }
+        InModuleScope "ModuleA-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
+            Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
+                Mock "A1-$guid" { 'mocked result of A1' }
+
+                It 'throws CommandNotFoundException for mocked command (but not when script is invoked in ISE)' {
+                    try
+                    {
+                        & "C-$guid"
+                    }
+                    catch
+                    {
+                        $threw = $true
+
+                        $_.FullyQualifiedErrorId | Should be CommandNotFoundException
+                        $_ | Should match "The term 'A1"
+                    }
+
+                    $threw | Should be $true
+                }
             }
         }
     }
