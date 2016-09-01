@@ -1,14 +1,7 @@
 ﻿$guid = [guid]::NewGuid().Guid
 $h = @{}
 $h.MyInvocation = $MyInvocation
-$h.PesterInvokedScript = $h.MyInvocation.Line -match '&\ \$Path\ @Parameters\ @Arguments'
-
-Describe 'invocation method' {
-    It "PSScriptRoot: $PSScriptRoot" {}
-    It "PSCommandPath: $PSCommandPath" {}
-    IT "MyInvocation.Line: $($h.MyInvocation.Line)" {}
-    It "PesterInvokedScript: $($h.PesterInvokedScript)" {}
-}
+$h.DirectlyInvokedScript = -not [bool]$h.MyInvocation.Line
 
 Describe 'import one dynamic module from another' {
     It 'create module A' {
@@ -41,13 +34,73 @@ Describe 'import one dynamic module from another' {
     }
 }
 
-Describe 'effect of InModuleScope' {
-    It 'set guid file contents' {
-        $guid | Set-Content 'TestDrive:\guid.txt'
+Describe 'effect of InModuleScope on variable accessibility' {
+    Context 'outside InModuleScope' {
+        It 'variable defined in this script is accessible here' {
+            Get-Variable guid | Should not beNullOrEmpty
+        }
     }
-    It 'get guid contents' {
-        $r = Get-Content 'TestDrive:\guid.txt'
-        $r | Should be $guid
+    if ( $h.DirectlyInvokedScript )
+    {
+        InModuleScope "ModuleA-$guid" {
+            Context 'inside InModuleScope' {
+                It 'variable defined in this script is accessible here (but not when Pester invokes the script)' {
+                    Get-Variable guid | Should not beNullOrEmpty
+                }
+            }
+        }
+    }
+    else
+    {
+        InModuleScope "ModuleA-$guid" {
+            Context 'inside InModuleScope' {
+                It 'variable defined in this script is not accessible here (only when Pester invokes the script)' {
+                    { Get-Variable guid -ea Stop } |
+                        Should throw 'Cannot find a variable'
+                }
+            }
+        }
+    }
+    Context 'use TestDrive to pass value to inside InModuleScope' {
+        It 'set TestDrive file contents' {
+            $guid | Set-Content 'TestDrive:\guid.txt'
+        }
+        It 'get TestDrive contents outside InModuleScope' {
+            $r = Get-Content 'TestDrive:\guid.txt'
+            $r | Should be $guid
+        }
+        InModuleScope "ModuleA-$guid" {
+            It 'retrieve TestDrive contents inside InModuleScope' {
+                $r = Get-Content 'TestDrive:\guid.txt'
+                $r | Test-ValidGuidString -ea SilentlyContinue | Should be $true
+            }
+            It 'assign TestDrive file contents to a variable inside InModuleScope' {
+                $guid = Get-Content 'TestDrive:\guid.txt'
+            }
+        }
+    }
+    Context 'persistence of variables set inside InModuleScope' {
+        if ( $h.DirectlyInvokedScript )
+        {
+            InModuleScope "ModuleA-$guid" {
+                It 'variable persists across Contexts (but not when Pester invokes the script)' {
+                    Get-Variable guid | Should not beNullOrEmpty
+                }
+            }
+        }
+        {
+            InModuleScope "ModuleA-$guid" {
+                It 'variable does not persist across Contexts (only when Pester invokes the script)' {
+                    { Get-Variable guid -ea Stop } |
+                            Should throw 'Cannot find a variable'
+                }
+            }
+        }
+    }
+}
+Describe 'effect of InModuleScope on whether a mock or real command is invoked' {
+    It 'set TestDrive file contents' {
+        $guid | Set-Content 'TestDrive:\guid.txt'
     }
     Context 'directly invoke mocked command without InModuleScope' {
         Mock "A1-$guid" { 'mocked result of A1' }
@@ -87,37 +140,14 @@ Describe 'effect of InModuleScope' {
             }
         }
     }
+    InModuleScope "ModuleB-$guid" {
+        $guid = Get-Content 'TestDrive:\guid.txt'
+        Context 'indirectly invoke mocked command from another module InModuleScope of that module' {
+            Mock "A1-$guid" { 'mocked result of A1' }
 
-    if ( $h.PesterInvokedScript )
-    {
-        InModuleScope "ModuleB-$guid" {
-            $guid = Get-Content 'TestDrive:\guid.txt'
-            Context 'mock command of one module InModuleScope of another module' {
-                try
-                {
-                    Mock "A1-$guid" { 'mocked result of A1' }
-                }
-                catch
-                {
-                    $h.Exception = $_
-                }
-                It 'throws CommandNotFoundException (only true when Pester invokes the script)' {
-                    $h.Exception.FullyQualifiedErrorId | Should be 'CommandNotFoundException'
-                }
-            }
-        }
-    }
-    else # the script was probably run directly in the console
-    {
-        InModuleScope "ModuleB-$guid" {
-            $guid = Get-Content 'TestDrive:\guid.txt'
-            Context 'indirectly invoke mocked command from another module InModuleScope of that module' {
-                Mock "A1-$guid" { 'mocked result of A1' }
-
-                It 'returns result from mocked function (only works when test script invoked from console)' {
-                    $r = & "B-$guid"
-                    $r | Should be 'B calls A1: mocked result of A1'
-                }
+            It 'returns result from mocked function' {
+                $r = & "B-$guid"
+                $r | Should be 'B calls A1: mocked result of A1'
             }
         }
     }
@@ -129,32 +159,17 @@ Describe 'effect of InModuleScope' {
             $r | Should be 'A2 calls A1: real result of A1'
         }
     }
-    if ( $h.PesterInvokedScript )
-    {
-        InModuleScope "ModuleA-$guid" {
-            $guid = Get-Content 'TestDrive:\guid.txt'
-            Context 'indirectly invoke mocked command from mocked command''s module InModuleScope of the mocked command''s module' {
-                Mock "A1-$guid" { 'mocked result of A1' }
+    InModuleScope "ModuleA-$guid" {
+        $guid = Get-Content 'TestDrive:\guid.txt'
+        Context 'indirectly invoke mocked command from mocked command''s module InModuleScope of the mocked command''s module' {
+            Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'returns result from real function (but only when Pester invokes the test script)' {
-                    $r = & "A2-$guid"
-                    $r | Should be 'A2 calls A1: real result of A1'
-                }
-            }
-        }
-    }
-    else # the script was probably run directly in the console
-    {
-        InModuleScope "ModuleA-$guid" {
-            $guid = Get-Content 'TestDrive:\guid.txt'
-            Context 'indirectly invoke mocked command from mocked command''s module InModuleScope of the mocked command''s module' {
-                Mock "A1-$guid" { 'mocked result of A1' }
-
-                It 'returns result from mocked function (but not when Pester invokes the test script)' {
-                    $r = & "A2-$guid"
-                    $r | Should be 'A2 calls A1: mocked result of A1'
-                }
+            It 'returns result from mocked function' {
+                $r = & "A2-$guid"
+                $r | Should be 'A2 calls A1: mocked result of A1'
             }
         }
     }
 }
+
+Remove-Variable 'guid','h'
