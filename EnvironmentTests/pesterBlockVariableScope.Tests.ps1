@@ -54,6 +54,9 @@ Describe 'collect variable scopes' {
     BeforeEach {
         $beforeEach = 'beforeEach'
     }
+    BeforeAll {
+        $beforeAll = 'beforeAll'
+    }
     Context 'context block' {
         $context = 'context'
         It 'it block' {
@@ -93,6 +96,22 @@ Describe 'evaluate variable scopes: FUT not in module' {
         {
             It "does not exist in scope: $scope" {
                 $r = Get-VariableValue $scope testFile
+                $r | Should beNullOrEmpty
+            }
+        }
+    }
+    Context 'variable defined in beforeAll scope' {
+        foreach ($scope in ('Unmodified',4))
+        {
+            It "exists in scope: $scope" {
+                $r = Get-VariableValue $scope beforeAll
+                $r | Should be 'beforeAll'
+            }
+        }
+        foreach ($scope in ('Global',6,5,3,2,1,0))
+        {
+            It "does not exist in scope: $scope" {
+                $r = Get-VariableValue $scope beforeAll
                 $r | Should beNullOrEmpty
             }
         }
@@ -167,7 +186,7 @@ Describe 'evaluate variable scopes: FUT in Module' {
             }
         }
     }
-    foreach ( $definitionLocation in ('beforeEach','context','it') )
+    foreach ( $definitionLocation in ('beforeEach','beforeAll','context','it') )
     {
         Context "variable defined in $definitionLocation testFile" {
             foreach ( $scope in ($h.g.Keys) )
