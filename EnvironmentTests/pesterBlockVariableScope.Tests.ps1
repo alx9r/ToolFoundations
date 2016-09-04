@@ -38,15 +38,12 @@ $module = New-Module {
         return $r
     }
 }
-$psVintage = if ( $PSVersionTable.PSVersion.Major -lt 3 )
-    {
-        'Old'
-    }
-    else
-    {
-        'Modern'
-    }
+
 $h = @{}
+$h.DirectlyInvokedScript = -not [bool]$MyInvocation.Line
+$h.PesterInvokedScript = $MyInvocation.Line -match '&\ \$Path\ @Parameters\ @Arguments'
+$h.ScriptInvokationMethod = if     ( $h.DirectlyInvokedScript ) { 'Direct' }
+                      elseif ( $h.PesterInvokedScript )   { 'Pester' }
 
 $testFile = 'testFile'
 
@@ -68,51 +65,42 @@ Describe 'collect variable scopes' {
 }
 Describe 'evaluate variable scopes: FUT not in module' {
     function Get-VariableValue {
-        param ($Scope,$VariableName)
-        $h.f.$Scope |
+        param ($_Scope,$VariableName)
+        $h.f.$_Scope |
             ? {$_.Name -eq $VariableName} |
             % {$_.Value}
     }
-    It 'there are nine scopes' {
-        $h.f.Keys.Count | Should be 9
+    $numScopes = @{
+        Direct = 7
+        Pester = 9
+    }.($h.ScriptInvokationMethod)
+    It "there are $numScopes scopes" {
+        $h.f.Keys.Count | Should be $numScopes
     }
-    Context 'variable defined in test file scope' {
-        foreach ($scope in @{
-                Modern = 'Unmodified','Global',6,4
-                Old    = 'Unmodified',4
-            }.$psVintage
-        )
-        {
-            It "exists in scope: $scope" {
-                $r = Get-VariableValue $scope testFile
-                $r | Should be 'testFile'
+    foreach ( $definitionLocation in 'testFile','BeforeAll' )
+    {
+        Context "variable defined in $definitionLocation scope; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
+            foreach ($scope in @{
+                    Pester = 'Unmodified',4
+                    Direct = 'Unmodified',4,'Global'
+                }.($h.ScriptInvokationMethod)
+            )
+            {
+                It "exists in scope: $scope" {
+                    $r = Get-VariableValue $scope $definitionLocation
+                    $r | Should be $definitionLocation
+                }
             }
-        }
-        foreach ( $scope in @{
-                Modern = 5,3,2,1,0
-                Old    = 'Global',6,5,3,2,1,0
-            }.$psVintage
-        )
-        {
-            It "does not exist in scope: $scope" {
-                $r = Get-VariableValue $scope testFile
-                $r | Should beNullOrEmpty
-            }
-        }
-    }
-    Context 'variable defined in beforeAll scope' {
-        foreach ($scope in ('Unmodified',4))
-        {
-            It "exists in scope: $scope" {
-                $r = Get-VariableValue $scope beforeAll
-                $r | Should be 'beforeAll'
-            }
-        }
-        foreach ($scope in ('Global',6,5,3,2,1,0))
-        {
-            It "does not exist in scope: $scope" {
-                $r = Get-VariableValue $scope beforeAll
-                $r | Should beNullOrEmpty
+            foreach ( $scope in @{
+                    Pester = 'Global',6,5,3,2,1,0
+                    Direct = 6,5,3,2,1,0
+                }.($h.ScriptInvokationMethod)
+            )
+            {
+                It "does not exist in scope: $scope; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
+                    $r = Get-VariableValue $scope $definitionLocation
+                    $r | Should beNullOrEmpty
+                }
             }
         }
     }
@@ -154,41 +142,44 @@ Describe 'evaluate variable scopes: FUT not in module' {
 }
 Describe 'evaluate variable scopes: FUT in Module' {
     function Get-VariableValue {
-        param ($Scope,$VariableName)
-        $h.g.$Scope |
+        param ($_Scope,$VariableName)
+        $h.g.$_Scope |
             ? {$_.Name -eq $VariableName} |
             % {$_.Value}
     }
     It 'there are five scopes' {
         $h.g.Keys.Count | Should be 5
     }
-    Context 'variable defined in testFile scope' {
-        foreach ($scope in @{
-                Modern = 'Unmodified','Global',2
-                Old    = @()
-            }.$psVintage
-        )
-        {
-            It "exists in scope: $scope" {
-                $r = Get-VariableValue $scope testFile
-                $r | Should be 'testFile'
+    foreach ( $definitionLocation in ('testFile','beforeAll') )
+    {
+        Context "variable defined in $definitionLocation; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
+            foreach ( $scope in @{
+                    Pester = @()
+                    Direct = 'Global','Unmodified',2
+                }.($h.ScriptInvokationMethod)
+            )
+            {
+                It "exists in scope: $scope" {
+                    $r = Get-VariableValue $scope $definitionLocation
+                    $r | Should be $definitionLocation
+                }
             }
-        }
-        foreach ( $scope in @{
-                Modern = 4,3,1,0
-                Old    = 'Unmodified','Global',4,3,2,1,0
-            }.$psVintage
-        )
-        {
-            It "does not exist in scope: $scope" {
-                $r = Get-VariableValue $scope testFile
-                $r | Should beNullOrEmpty
+            foreach ( $scope in @{
+                    Pester = 'Global','Unmodified',2,1,0
+                    Direct = 1,0
+                }.($h.ScriptInvokationMethod)
+            )
+            {
+                It "does not exist in scope: $scope" {
+                    $r = Get-VariableValue $scope $definitionLocation
+                    $r | Should beNullOrEmpty
+                }
             }
         }
     }
-    foreach ( $definitionLocation in ('beforeEach','beforeAll','context','it') )
+    foreach ( $definitionLocation in ('beforeEach','context','it') )
     {
-        Context "variable defined in $definitionLocation testFile" {
+        Context "variable defined in $definitionLocation scope; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
             foreach ( $scope in ($h.g.Keys) )
             {
                 It "does not exist in scope: $scope" {
@@ -199,3 +190,5 @@ Describe 'evaluate variable scopes: FUT in Module' {
         }
     }
 }
+
+Remove-Variable 'testFile','beforeEach','beforeAll','context','it' -ea SilentlyContinue
