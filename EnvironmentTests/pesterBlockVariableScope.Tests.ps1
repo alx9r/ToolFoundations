@@ -45,7 +45,8 @@ $h.PesterInvokedScript = $MyInvocation.Line -match '&\ \$Path\ @Parameters\ @Arg
 $h.ScriptInvokationMethod = if     ( $h.DirectlyInvokedScript ) { 'Direct' }
                       elseif ( $h.PesterInvokedScript )   { 'Pester' }
 
-$testFile = 'testFile'
+# $testFile is a global variable used by AppVeyor CI
+$_testFile = '_testFile'
 
 Describe 'collect variable scopes' {
     BeforeEach {
@@ -77,7 +78,7 @@ Describe 'evaluate variable scopes: FUT not in module' {
     It "there are $numScopes scopes" {
         $h.f.Keys.Count | Should be $numScopes
     }
-    foreach ( $definitionLocation in 'testFile','BeforeAll' )
+    foreach ( $definitionLocation in '_testFile','BeforeAll' )
     {
         Context "variable defined in $definitionLocation scope; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
             foreach ($scope in @{
@@ -150,7 +151,7 @@ Describe 'evaluate variable scopes: FUT in Module' {
     It 'there are five scopes' {
         $h.g.Keys.Count | Should be 5
     }
-    foreach ( $definitionLocation in ('testFile','beforeAll') )
+    foreach ( $definitionLocation in ('_testFile','beforeAll') )
     {
         Context "variable defined in $definitionLocation; ScriptInvokationMethod is $($h.ScriptInvokationMethod)" {
             foreach ( $scope in @{
@@ -191,4 +192,4 @@ Describe 'evaluate variable scopes: FUT in Module' {
     }
 }
 
-Remove-Variable 'testFile','beforeEach','beforeAll','context','it' -ea SilentlyContinue
+Remove-Variable '_testFile','beforeEach','beforeAll','context','it' -ea SilentlyContinue
