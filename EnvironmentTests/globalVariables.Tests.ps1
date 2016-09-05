@@ -6,7 +6,7 @@ Describe 'Global variable naming conflict avoidance' {
                 'f'
                 'g'
                 'v'
-                'testFile'
+                '_testFile'
             )
         )
         {
