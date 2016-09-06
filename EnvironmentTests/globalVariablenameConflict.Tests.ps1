@@ -1,3 +1,9 @@
+<#
+This tests that certain variable names commonly used in x.Tests.ps1
+files are not already defined in the environment in which this test
+script is running.
+#>
+
 Describe 'Global variable naming conflict avoidance' {
     Context 'variable names commonly used in Pester test files' {
         foreach ( $variableName in @(
@@ -7,6 +13,7 @@ Describe 'Global variable naming conflict avoidance' {
                 'g'
                 'v'
                 '_testFile'
+                'guid'
             )
         )
         {

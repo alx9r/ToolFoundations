@@ -1,3 +1,7 @@
+<#
+This file tests whether mocking of a function works
+when its alias is used instead of the function name.
+#>
 Describe 'mocking and aliases' {
     It 'cls is an alias' {
         $r = Get-Command cls

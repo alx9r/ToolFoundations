@@ -1,4 +1,42 @@
-﻿$guid = [guid]::NewGuid().Guid
+﻿<#
+This file tests the circumstances required for mocks to work.
+
+# Part 1
+Question: When are mocks and when are real functions called?
+
+Test Method:
+The first part of this file tests whether a real or mocked function
+will be called depending on the following:
+ - whether the mocked function is called inside or outside a module
+ - whether a call to the mocked function is subsequent to a callstack
+   that originated inside or outside an InModuleScope{} block
+ - whether the call is InModuleScope{} of the module where the mocked
+   function is defined or the module where the mocked function is
+   called.
+
+Answer:
+In order for a mock to be called, the mock and the test must be inside
+InModuleScope{} for the module under test.
+
+
+# Part 2
+Question: Is importing the module of the mocked function important?
+
+Test Method:
+The second part of this file tests whether a testing using mocks works
+depending on the following:
+ - whether the mock and test is invoked inside or outside InModuleScope{}
+ - whether the script is invoked by Pester or in ISE using F5
+ - whether the module where the mocked function is defined is imported
+   in the module under test.
+
+Answer:
+If the mocked function is defined in a different module from the module
+under test, the module where the mocked function is defined must be explicitly
+imported in the module under test.
+#>
+
+$guid = [guid]::NewGuid().Guid
 $h = @{}
 $h.MyInvocation = $MyInvocation
 $h.DirectlyInvokedScript = -not [bool]$h.MyInvocation.Line
@@ -64,7 +102,7 @@ Describe 'effect of InModuleScope on variable accessibility' {
     {
         InModuleScope "ModuleA-$guid" {
             Context 'inside InModuleScope' {
-                It 'variable defined in this script is not accessible here (only when Pester invokes the script)' {
+                It 'variable defined in this script is not accessible here (when Pester invokes the script)' {
                     { Get-Variable guid -ea Stop } |
                         Should throw 'Cannot find a variable'
                 }
@@ -93,14 +131,15 @@ Describe 'effect of InModuleScope on variable accessibility' {
         if ( $h.DirectlyInvokedScript )
         {
             InModuleScope "ModuleA-$guid" {
-                It 'variable persists across Contexts (but not when Pester invokes the script)' {
+                It 'variable persists across Contexts (when script is invoked directly)' {
                     Get-Variable guid | Should not beNullOrEmpty
                 }
             }
         }
+        else
         {
             InModuleScope "ModuleA-$guid" {
-                It 'variable does not persist across Contexts (only when Pester invokes the script)' {
+                It 'variable does not persist across Contexts (when Pester invokes the script)' {
                     { Get-Variable guid -ea Stop } |
                             Should throw 'Cannot find a variable'
                 }
@@ -190,7 +229,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
         Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'returns result from real function (but not when script is invoked by Pester)' {
+            It 'returns result from real function (when script invoked directly)' {
                 $r = & "C-$guid"
                 $r | Should be 'C calls A1: mocked result of A1'
             }
@@ -200,7 +239,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
             Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'returns result from real function (but not when script is invoked by Pester)' {
+                It 'returns result from real function (when script invoked directly)' {
                     $r = & "C-$guid"
                     $r | Should be 'C calls A1: real result of A1'
                 }
@@ -212,7 +251,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
         Context 'indirectly invoke mocked command from another non-importing module without InModuleScope' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'throws CommandNotFoundException for mocked command (but not when script is invoked by ISE)' {
+            It 'throws CommandNotFoundException for mocked command (when script invoked by Pester)' {
                 try
                 {
                     & "C-$guid"
@@ -233,7 +272,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
             Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
                 Mock "A1-$guid" { 'mocked result of A1' }
 
-                It 'throws CommandNotFoundException for mocked command (but not when script is invoked in ISE)' {
+                It 'throws CommandNotFoundException for mocked command (when script invoked by Pester)' {
                     try
                     {
                         & "C-$guid"

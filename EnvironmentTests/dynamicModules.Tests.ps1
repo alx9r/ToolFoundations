@@ -1,4 +1,24 @@
-﻿$guid = [guid]::NewGuid().Guid
+﻿<#
+This file tests various aspects of importing, removing and accessibility
+of functions in dynamic modules.
+
+Question: Is a dynamic module retrieved by Get-Module?
+Answer: Not automatically, but it can be force-imported after which
+it is retrieved by Get-Module.
+
+Question: Can a dynamic module be removed or overwritten?
+Answer: A dynamic module can be removed after force-importing. A
+dynamic module can also be overwritten.  However, a command defined
+in a dynamic module continues to be available despite removal or
+overwriting of its module.
+
+Question: Can a function in one dynamic module call a function
+in another dynamic module?
+Answer: Yes, and explicit importing is not required in either
+module.
+#>
+
+$guid = [guid]::NewGuid().Guid
 $h = @{}
 Describe 'create a dynamic module' {
     It 'create the module' {
@@ -63,16 +83,13 @@ Describe 'remove the force-imported Dynamic Module' {
 }
 
 $guid = [guid]::NewGuid().Guid
-Describe 'import one dynamic module from another' {
-    It 'create moduleA' {
+Describe 'use one dynamic module from another' {
+    It 'create inner module' {
         $h.ModuleA = New-Module -Name "ModuleA-$guid" -ScriptBlock (
             [scriptblock]::Create("function A-$guid { 'result of A' }")
         )
     }
-    It 'force import ModuleA' {
-        $h.ModuleA | Import-Module -Force -WarningAction SilentlyContinue
-    }
-    It 'create module B' {
+    It 'create outer module' {
         $h.ModuleB = New-Module -Name "ModuleB-$guid" -ScriptBlock (
             [scriptblock]::Create("function B-$guid { `"B calls A: `$(A-$guid)`"}")
         )
