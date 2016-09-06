@@ -1,3 +1,9 @@
+<#
+This file demonstrates how to detect whether a test script was invoked
+using by Pester (ie. using Invoke-Pester) or directly  (ie. by
+pressing F5 in ISE).
+#>
+
 $h = @{}
 $h.DirectlyInvokedScript = -not [bool]$MyInvocation.Line
 $h.PesterInvokedScript = $MyInvocation.Line -match '&\ \$Path\ @Parameters\ @Arguments'

@@ -1,4 +1,19 @@
-﻿function f {
+﻿<#
+This tests whether a variable defined in a x.Tests.ps1 file
+is accessible in code under test.  Accessibility can depend
+on at least the following things:
+ - whether the code under test is inside another module
+ - in which Pester block (ie. BeforeAll{}, BeforeEach{}, etc)
+   the variable is defined
+ - whether x.Tests.ps1 is invoked by Invoke-Pester or by
+   pressing F5 in ISE
+
+To see the full breadth of tests, invoke this file first using
+Invoke-Pester, then by pressing F5 in ISE.  Some of the tests
+differ depending on the invokation method.
+#>
+
+function f {
     $r = @{
         Global = Get-Variable -Scope Global
         Unmodified = Get-Variable

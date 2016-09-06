@@ -1,4 +1,10 @@
-﻿$h = @{}
+﻿<#
+This tests that BeforeEach{} blocks are executed before
+each It{} inside the Describe{} block where they are defined
+and not before It{} blocks inside other Describe{} blocks.
+#>
+
+$h = @{}
 $h.i = 0
 Describe 'BeforeEach in this block' {
     BeforeEach {
