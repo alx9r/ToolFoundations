@@ -469,3 +469,51 @@ Describe 'Behavior of PSBoundParameters across pipeline steps.' {
         }
     }
 }
+Describe 'Parameter Set Resolution' {
+    function Test-ParameterSetResolution
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ParameterSetName = 'A',
+                       Mandatory        = $true)]
+            [parameter(ParameterSetName = 'B')]
+            $Param_2_Ab,
+
+            [parameter(ParameterSetName = 'B',
+                       Mandatory        = $true)]
+            $Param_3_B
+        )
+        process
+        {
+            $PSCmdlet.ParameterSetName
+        }
+    }
+    if ( $PSVersionTable.PSVersion.Major -lt 3 )
+    {
+        It 'PowerShell 2 always throws trying to resolve to parameter set A' {
+            try
+            {
+                Test-ParameterSetResolution -Param_2_Ab Arg_2_Ab
+            }
+            catch [System.Exception]
+            {
+                $threw = $true
+                $_.FullyQualifiedErrorId |
+                    Should match AmbiguousParameterSet
+            }
+            $threw | Should be $true
+        }
+    }
+    else
+    {
+        It 'Resolves to parameter set A' {
+            $r = Test-ParameterSetResolution -Param_2_Ab Arg_2_Ab
+            $r | Should be 'A'
+        }
+    }
+    It 'Resolves to parameter set B' {
+        $r = Test-ParameterSetResolution -Param_3_B Arg_3_B
+        $r | Should be 'B'
+    }
+}
