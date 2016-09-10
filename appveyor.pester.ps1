@@ -42,13 +42,6 @@ if (($env:PSModulePath.Split(';') | select -First 1) -ne $myModulePath) {
     $env:PSModulePath = "$myModulePath;$env:PSModulePath"
 }
 
-#dump some debugging information
-Write-Host '====== Debug Dump ======'
-Get-ChildItem Env:
-"PSModulePath = "+$env:PSModulePath
-Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules"
-Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules\Pester"
-
 $expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.3.14\Pester.psm1" 
 if ( -not (Test-Path $expectedPesterPath -PathType Leaf) )
 {
