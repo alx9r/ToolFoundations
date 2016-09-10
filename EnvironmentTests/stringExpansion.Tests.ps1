@@ -1,5 +1,12 @@
-$psVintage = $PSVersionTable.PSVersion.Major -lt 3 | ?: 'old' 'modern'
 Describe 'string expansion using $ExecutionContext' {
+    $psver = $PSVersionTable.PSVersion.Major
+    $psVintage = @{
+        1 = 'old'
+        2 = 'old'
+        3 = 'middle'
+        4 = 'middle'
+        5 = 'modern'
+    }.$psver
     It '.ExpandString() expands normal string' {
         $v = 'variable'
         $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $v')
@@ -10,6 +17,7 @@ Describe 'string expansion using $ExecutionContext' {
         $r = $ExecutionContext.InvokeCommand.ExpandString('expanded "$v"')
         $r | Should be @{
             old    = 'expanded variable'
+            middle = 'expanded "variable"'
             modern = 'expanded "variable"'
         }.$psVintage
     }
@@ -18,17 +26,17 @@ Describe 'string expansion using $ExecutionContext' {
         $r = "expanded $($o.V)"
         $r | Should be 'expanded variable'
     }
-    if ($psVintage -eq 'old' )
+    if ( 'old','modern' -contains $psVintage )
     {
-        It '.ExpandString() expands $($o.V) in old PowerShell' {
+        It ".ExpandString() expands `$(`$o.V) in PowerShell $psver" {
             $o = New-Object psobject -Property @{V = 'variable'}
             $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $($o.V)')
             $r | Should be 'expanded variable'
         }
     }
-    if ( $psVintage -eq 'modern' )
+    if ( 'middle' -contains $psVintage )
     {
-        It '.ExpandString() throws when expanding $($o.V) in modern PowerShell' {
+        It ".ExpandString() throws when expanding `$(`$o.V) in PowerShel $psver" {
             $o = New-Object psobject -Property @{V = 'variable'}
             try
             {
@@ -45,6 +53,7 @@ Describe 'string expansion using $ExecutionContext' {
         $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $()')
         $r | Should be @{
             old = 'expanded $'
+            middle = 'expanded '
             modern = 'expanded '
         }.$psVintage
     }
@@ -53,18 +62,18 @@ Describe 'string expansion using $ExecutionContext' {
         $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $($v)')
         $r | Should be 'expanded variable'
     }
-    if ( $psVintage -eq 'old' )
+    if ( 'old','modern' -contains $psVintage )
     {
-        It '.ExpandString() throws when expanding $(Get-Variable) in old PowerShell' {
+        It ".ExpandString() expands `$(Get-Variable) in PowerShell $psver" {
             $v = 'variable'
             Get-Variable v -ValueOnly | Should be 'variable'
             $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $(Get-Variable v -ValueOnly)')
             $r | Should be 'expanded variable'
         }
     }
-    if ( $psVintage -eq 'modern' )
+    if ( 'middle' -contains $psVintage )
     {
-        It '.ExpandString() throws when expanding $(Get-Variable) in modern PowerShell' {
+        It ".ExpandString() throws when expanding `$(Get-Variable) in PowerShell $psver" {
             $v = 'variable'
             Get-Variable v -ValueOnly | Should be 'variable'
             try
@@ -79,3 +88,4 @@ Describe 'string expansion using $ExecutionContext' {
         }
     }
 }
+
