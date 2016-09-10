@@ -50,7 +50,7 @@ Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules"
 Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules\Pester"
 
 $expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.3.14\Pester.psm1" 
-if ( -not Test-Path $expectedPesterPath -PathType Leaf )
+if ( -not (Test-Path $expectedPesterPath -PathType Leaf) )
 {
     Write-Error "Pester.psm1 is not at the expected location: $expectedPesterPath"
 }
