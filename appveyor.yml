@@ -34,7 +34,7 @@ os:
 - Unstable
 
 install:
-  - cinst pester --version 3.3.14
+  - cinst pester --version 3.4.3
 
 build: false
 

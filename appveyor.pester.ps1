@@ -42,7 +42,7 @@ if (($env:PSModulePath.Split(';') | select -First 1) -ne $myModulePath) {
     $env:PSModulePath = "$myModulePath;$env:PSModulePath"
 }
 
-$expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.3.14\Pester.psm1" 
+$expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.4.3\Pester.psm1" 
 if ( -not (Test-Path $expectedPesterPath -PathType Leaf) )
 {
     Write-Error "Pester.psm1 is not at the expected location: $expectedPesterPath"
