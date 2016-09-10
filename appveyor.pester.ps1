@@ -42,12 +42,25 @@ if (($env:PSModulePath.Split(';') | select -First 1) -ne $myModulePath) {
     $env:PSModulePath = "$myModulePath;$env:PSModulePath"
 }
 
+$expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.4.3\Pester.psm1" 
+if ( -not (Test-Path $expectedPesterPath -PathType Leaf) )
+{
+    Write-Error "Pester.psm1 is not at the expected location: $expectedPesterPath"
+}
+
 #Run a test with the current version of PowerShell
     if(-not $Finalize)
     {
         "`n`tSTATUS: Testing with PowerShell $PSVersion`n"
-    
-        Import-Module Pester
+        
+        if ( $PSVersionTable.PSVersion.Major -lt 3 )
+        {
+            Import-Module $expectedPesterPath
+        }
+        else
+        {
+            Import-Module Pester
+        }
 
         Invoke-Pester -Path "$ProjectRoot" -OutputFormat NUnitXml -OutputFile "$ProjectRoot\$TestFile" -PassThru |
             Export-Clixml -Path "$ProjectRoot\PesterResults$PSVersion.xml"
