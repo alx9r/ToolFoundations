@@ -49,12 +49,25 @@ Get-ChildItem Env:
 Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules"
 Get-ChildItem "$env:ProgramFiles\WindowsPowerShell\Modules\Pester"
 
+$expectedPesterPath = "$env:ProgramFiles\WindowsPowerShell\Modules\Pester\3.3.14\Pester.psm1" 
+if ( -not Test-Path $expectedPesterPath -PathType Leaf )
+{
+    Write-Error "Pester.psm1 is not at the expected location: $expectedPesterPath"
+}
+
 #Run a test with the current version of PowerShell
     if(-not $Finalize)
     {
         "`n`tSTATUS: Testing with PowerShell $PSVersion`n"
-    
-        Import-Module Pester
+        
+        if ( $PSVersionTable.PSVersion.Major -lt 3 )
+        {
+            Import-Module $expectedPesterPath
+        }
+        else
+        {
+            Import-Module Pester
+        }
 
         Invoke-Pester -Path "$ProjectRoot" -OutputFormat NUnitXml -OutputFile "$ProjectRoot\$TestFile" -PassThru |
             Export-Clixml -Path "$ProjectRoot\PesterResults$PSVersion.xml"
