@@ -14,7 +14,7 @@ Describe 'string expansion using $ExecutionContext' {
     }
     if ( 'old' -contains $psVintage )
     {
-        It ".ExpandString() expands variable inside quotes in PowerShell $psver" {
+        It ".ExpandString() throws when expanding variable inside quotes in PowerShell $psver" {
             $v = 'variable'
             try
             {
