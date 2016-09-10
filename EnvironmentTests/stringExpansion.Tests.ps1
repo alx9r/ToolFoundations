@@ -12,14 +12,28 @@ Describe 'string expansion using $ExecutionContext' {
         $r = $ExecutionContext.InvokeCommand.ExpandString('expanded $v')
         $r | Should be 'expanded variable'
     }
-    It '.ExpandString() expands variable inside quotes' {
-        $v = 'variable'
-        $r = $ExecutionContext.InvokeCommand.ExpandString('expanded "$v"')
-        $r | Should be @{
-            old    = 'expanded variable'
-            middle = 'expanded "variable"'
-            modern = 'expanded "variable"'
-        }.$psVintage
+    if ( 'old' -contains $psVintage )
+    {
+        It ".ExpandString() expands variable inside quotes in PowerShell $psver" {
+            $v = 'variable'
+            try
+            {
+                $ExecutionContext.InvokeCommand.ExpandString('expanded "$v"')
+            }
+            catch [System.ArgumentOutOfRangeException]
+            {
+                $threw = $true
+            }
+            $threw | Should be $true
+        }
+    }
+    if ( 'middle','modern' -contains $psVintage )
+    {
+        It ".ExpandString() expands variable inside quotes in PowerShell $psver" {
+            $v = 'variable'
+            $r = $ExecutionContext.InvokeCommand.ExpandString('expanded "$v"')
+            $r | Should be 'expanded variable'
+        }
     }
     It 'double quotes can expand $($o.V)' {
         $o = New-Object psobject -Property @{V = 'variable'}
