@@ -1,5 +1,7 @@
 [![Build status](https://ci.appveyor.com/api/projects/status/mc207w55rqmuc13i/branch/master?svg=true&passingText=master%20-%20OK)](https://ci.appveyor.com/project/alx9r/toolfoundations/branch/master)
 
+[![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:ToolFoundations_PublishStatusToGitHub)/statusIcon)](https://build.powershell.org/project.html?projectId=ToolFoundations&tab=projectOverview&guest=1)
+
 ## ToolFoundations
 
 ToolFoundations is a collection of PowerShell helper functions that I commonly use when writing other Powershell cmdlets in Powershell.
@@ -98,6 +100,6 @@ FileSystem::c:\local\path\file.txt
 PowerShell Version | Compatible         | Remarks
 -------------------|--------------------|--------
 2.0                | :white_check_mark: | there are [some PowerShell 2 limitations](https://github.com/alx9r/ToolFoundations/labels/Powershell%202%20Limitation)
-3.0                | :grey_question:    | not tested, probably works
+3.0                | :white_check_mark: |
 4.0                | :white_check_mark: |
 5.0                | :white_check_mark: |
