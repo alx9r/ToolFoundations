@@ -175,6 +175,16 @@ Describe 'how pester shows deep exceptions.' {
             # f1-53e2d768-6abb
         }
     }
+    It 'debug' {
+        $module = New-Module -Name '0ccf320f' -ScriptBlock {
+            function f1-c1178d48 {
+                f2-c1178d48
+            }
+            function f2-c1178d48 {
+                throw
+            }
+        }
+    }
     Context 'module' {
         $module = New-Module -Name 'beca0c5f' -ScriptBlock {
             function f1-8a0a3e64 {
