@@ -199,7 +199,7 @@ Function Get-CommonParameterNames
     param()
     process
     {
-        if ( $PSVersionTable.PSVersion.Major -ge 3 )
+        if ( $PSVersionTable.PSVersion.Major -gt 3 )
         {
             [System.Management.Automation.PSCmdlet]::CommonParameters+`
             [System.Management.Automation.PSCmdlet]::OptionalCommonParameters

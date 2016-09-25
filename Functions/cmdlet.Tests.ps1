@@ -1,32 +1,42 @@
 Import-Module ToolFoundations -Force
 
-Describe Get-BoundParams {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
+Describe Get-CommonParameterNames {
+    It 'returns something' {
+        $r = Get-CommonParameterNames
+        $r | Should not beNullOrEmpty
     }
-    BeforeEach {
-        Function Test-GetBoundParams
+    It 'contains Verbose' {
+        $r = Get-CommonParameterNames
+        $r -contains 'Verbose' |
+            Should be $true
+    }
+    It 'contains ErrorAction' {
+        $r = Get-CommonParameterNames
+        $r -contains 'ErrorAction' |
+            Should be $true
+    }
+    It 'contains WarningAction' {
+        $r = Get-CommonParameterNames
+        $r -contains 'WarningAction' |
+            Should be $true
+    }
+}
+Describe Get-BoundParams {
+    function Test-GetBoundParams
+    {
+        [CmdletBinding()]
+        param($p1,$p2,$test)
+        process
         {
-            [CmdletBinding()]
-            param($p1,$p2,$test)
-            process
+            switch ($test)
             {
-                switch ($test)
-                {
-                    1 { Get-BoundParams     }
-                    2 { & (Get-BoundParams) }
-                    3 { & (gbpm)            }
-                    4 { & (gbpm -IncludeCommonParameters ) }
-                }
+                1 { Get-BoundParams     }
+                2 { & (Get-BoundParams) }
+                3 { & (gbpm)            }
+                4 { & (gbpm -IncludeCommonParameters ) }
             }
         }
-    }
-
-    AfterEach {
-        Remove-Item function:Test-GetBoundParams -force
-    }
-
+        }
     It "outputs [scriptblock]" {
         (Test-GetBoundParams -test 1) -is [scriptblock] |
             Should be $true
@@ -60,27 +70,21 @@ Describe Get-BoundParams {
 }
 InModuleScope ToolFoundations {
     Describe Get-CommonParams {
-        BeforeAll {
-            Function Test-CommonParams1
+        function Test-CommonParams1
+        {
+            [CmdletBinding()]
+            param($params=@{})
+            process
             {
-                [CmdletBinding()]
-                param($params=@{})
-                process
-                {
-                    $oSplat = &(gcp @params)
-                    Test-CommonParams2 @oSplat
-                }
-            }
-            Function Test-CommonParams2
-            {
-                [CmdletBinding()]
-                param()
-                process{&(gbpm -IncludeCommonParameters )}
+                $oSplat = &(gcp @params)
+                Test-CommonParams2 @oSplat
             }
         }
-        AfterAll {
-            Remove-Item function:Test-CommonParams1 -Force
-            Remove-Item function:Test-CommonParams2 -Force
+        function Test-CommonParams2
+        {
+            [CmdletBinding()]
+            param()
+            process{&(gbpm -IncludeCommonParameters )}
         }
         It 'outputs [scriptblock].' {
             $r = gcp
