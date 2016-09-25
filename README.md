@@ -1,6 +1,4 @@
-[![Build status](https://ci.appveyor.com/api/projects/status/mc207w55rqmuc13i/branch/master?svg=true&passingText=master%20-%20OK)](https://ci.appveyor.com/project/alx9r/toolfoundations/branch/master)
-
-[![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:ToolFoundations_PublishStatusToGitHub)/statusIcon)](https://build.powershell.org/project.html?projectId=ToolFoundations&tab=projectOverview&guest=1)
+[![Build status](https://build.powershell.org/guestAuth/app/rest/builds/buildType:(id:ToolFoundations_PublishStatusToGitHub)/statusIcon)](https://build.powershell.org/project.html?projectId=ToolFoundations&tab=projectOverview&guest=1) [![Build status](https://ci.appveyor.com/api/projects/status/mc207w55rqmuc13i/branch/master?svg=true&passingText=master%20-%20OK)](https://ci.appveyor.com/project/alx9r/toolfoundations/branch/master)
 
 ## ToolFoundations
 
