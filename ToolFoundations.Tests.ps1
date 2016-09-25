@@ -1,7 +1,6 @@
 # This file is derived, in part, from the Pester project.  https://github.com/pester/Pester
 Import-Module ToolFoundations
 
-
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 $manifestPath   = "$here\ToolFoundations.psd1"
