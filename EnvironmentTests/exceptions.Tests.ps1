@@ -165,27 +165,27 @@ Describe 'script stack trace' {
 }
 Describe 'how pester shows deep exceptions.' {
     Context 'no module' {
-        function f1 {
-            f2
+        function f1-53e2d768-6abb {
+            f2-53e2d768-6abb
         }
-        function f2 {
+        function f2-53e2d768-6abb {
             throw
         }
         It 'shows like this (uncomment to see)' {
-            # f1
+            # f1-53e2d768-6abb
         }
     }
     Context 'module' {
-        $module = New-Module -Name 'moduleName' -ScriptBlock {
-            function f1 {
-                f2
+        $module = New-Module -Name 'beca0c5f' -ScriptBlock {
+            function f1-8a0a3e64 {
+                f2-8a0a3e64
             }
-            function f2 {
+            function f2-8a0a3e64 {
                 throw
             }
         }
         It 'shows like this (uncomment to see)' {
-            # f1
+            # f1-8a0a3e64
         }
     }
 }
