@@ -173,6 +173,7 @@ Describe 'how pester shows deep exceptions.' {
         }
         It 'shows like this (uncomment to see)' {
             # f1-53e2d768-6abb
+            1 | Should be 1
         }
     }
     It 'debug' {
