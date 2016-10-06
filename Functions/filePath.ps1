@@ -1603,22 +1603,22 @@ function Test-FilePath
     {
         if ( $PathObject -is [hashtable] )
         {
-            $PathObject | >> | Test-ValidFilePathParams -ErrorAction Stop
+            $PathObject | >> | Test-ValidFilePathParams -ErrorAction Stop | Out-Null
             $PathString = $PathObject | >> | ConvertTo-FilePathString
         }
         elseif ( $PathObject -is [string] )
         {
-            $PathObject | Test-ValidFilePath -ErrorAction Stop
+            $PathObject | Test-ValidFilePath -ErrorAction Stop | Out-Null
             $PathString = $PathObject
         }
         elseif ( $PathObject -is [pscustomobject] )
         {
-            $PathObject | Test-ValidFilePathParams -ErrorAction Stop
+            $PathObject | Test-ValidFilePathParams -ErrorAction Stop | Out-Null
             $PathString = $PathObject | ConvertTo-FilePathString
         }
         else
         {
-            $PathObject | Test-ValidFilePath -ErrorAction Stop
+            $PathObject | Test-ValidFilePath -ErrorAction Stop | Out-Null
             $PathString = $PathObject
         }
 

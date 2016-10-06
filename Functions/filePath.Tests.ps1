@@ -1776,6 +1776,7 @@ InModuleScope ToolFoundations {
                     Segments = 'segment'
                 }
                 $r = $path | Test-FilePath
+                $r.Count | Should be 1
                 $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
@@ -1786,6 +1787,7 @@ InModuleScope ToolFoundations {
             Mock Test-Path -Verifiable {'result'}
             It 'accepts string.' {
                 $r = 'a:\segment' | Test-FilePath
+                $r.Count | Should be 1
                 $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
@@ -1796,6 +1798,7 @@ InModuleScope ToolFoundations {
             Mock Test-Path -Verifiable { 'result' }
             It 'accepts a file path object.' {
                 $r = 'a:\segment' | ConvertTo-FilePathObject | Test-FilePath
+                $r.Count | Should be 1
                 $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
