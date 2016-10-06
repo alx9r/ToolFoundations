@@ -469,7 +469,7 @@ Describe 'Behavior of PSBoundParameters across pipeline steps.' {
         }
     }
 }
-Describe 'Parameter Set Resolution' {
+Describe 'Parameter Set Resolution Ambiguity' {
     function Test-ParameterSetResolution
     {
         [CmdletBinding()]
@@ -515,5 +515,47 @@ Describe 'Parameter Set Resolution' {
     It 'Resolves to parameter set B' {
         $r = Test-ParameterSetResolution -Param_3_B Arg_3_B
         $r | Should be 'B'
+    }
+}
+Describe 'Select parameter set based on hashtable vs pscustomobject vs string' {
+    function Test-Discrimination
+    {
+        [CmdletBinding()]
+        param
+        (
+            [parameter(ValueFromPipeline = $true,
+                       Mandatory = $true,
+                       ParameterSetName = 'string')]
+            [string]
+            $String,
+
+            [parameter(ValueFromPipeline = $true,
+                       Mandatory = $true,
+                       ParameterSetName = 'hashtable')]
+            [hashtable]
+            $Hashtable,
+
+            [parameter(ValueFromPipeline = $true,
+                       Mandatory = $true,
+                       ParameterSetName = 'pscustomobject')]
+            [pscustomobject]
+            $PsCustomObject
+        )
+        process
+        {
+            $PSCmdlet.ParameterSetName
+        }
+    }
+    It 'doesn''t resolves to string' {
+        { 'string' | Test-Discrimination -ErrorAction Stop } |
+            Should throw 'Parameter set cannot be resolved '
+    }
+    It 'doesnt''t resolves to hashtable' {
+        { @{} | Test-Discrimination -ErrorAction Stop } |
+            Should throw 'Parameter set cannot be resolved '
+    }
+    It 'resolves to pscustomobject' {
+        $r = New-Object pscustomobject | Test-Discrimination
+        $r | Should be 'pscustomobject'
     }
 }
