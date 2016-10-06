@@ -1792,6 +1792,16 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+        Context 'file path object' {
+            Mock Test-Path -Verifiable { 'result' }
+            It 'accepts a file path object.' {
+                $r = 'a:\segment' | ConvertTo-FilePathObject | Test-FilePath
+                $r | Should be $true
+                Assert-MockCalled Test-Path -Times 1 {
+                    $Path -eq 'a:\segment'
+                }
+            }
+        }
         Context 'ItemType' {
             Mock Test-Path -Verifiable {'result'}
             It 'correctly converts ItemType string.' {

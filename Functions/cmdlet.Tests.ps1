@@ -200,13 +200,27 @@ Describe Publish-Failure {
             }
         }
     }
-    Context 'Error' {
+    Context 'Default Silenced Errors' {
         function Fail
         {
             &(Publish-Failure 'My Message','param1' -ExceptionType System.ArgumentException -ErrorAction Continue)
         }
+        Mock Write-Verbose -Verifiable
+        It 'reports correct Verbose message even though ErrorAction is Continue.' {
+            Fail
+
+            Assert-MockCalled Write-Verbose -Times 1 {
+                $Message -eq 'My Message'
+            }
+        }
+    }
+    Context 'Error' {
+        function Fail
+        {
+            &(Publish-Failure 'My Message','param1' -ExceptionType System.ArgumentException -AllowError -ErrorAction Continue)
+        }
         Mock Write-Error -Verifiable
-        It 'reports correct error message.' {
+        It 'reports correct error message when AllowError is used.' {
             Fail
 
             Assert-MockCalled Write-Error -Times 1 {

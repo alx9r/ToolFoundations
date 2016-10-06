@@ -252,7 +252,7 @@ Test-ValidFileName
     [CmdletBinding()]
     param
     (
-        # The list of arguments for the exception when ErrorAction is Stop. The first element is used as the message when ErrorAction is Continue or SilentlyConti.
+        # The list of arguments for the exception when ErrorAction is Stop. The first element is used as the message when ErrorAction is Continue or SilentlyContinue.
         [Parameter(Mandatory                       = $true,
                    Position                        = 1,
                    ValueFromPipelineByPropertyName = $true)]
@@ -265,20 +265,31 @@ Test-ValidFileName
         [Type]
         $ExceptionType=[System.Exception],
 
+        # By default, output is Verbose when ErrorAction is Continue.  Use this switch to Write-Error when ErrorAction is Continue.
+        [switch]
+        $AllowError,
+
         # output the resulting scriptblock as code instead
         [switch]
         $AsCode
     )
     process
     {
-        if (-not $PSBoundParameters.ContainsKey('ErrorActionPrefernce'))
+        if (-not $PSBoundParameters.ContainsKey('ErrorActionPreference'))
         {
             $ErrorActionPreference = $PSCmdlet.GetVariableValue('ErrorActionPreference')
         }
 
         switch ($ErrorActionPreference) {
             'Continue' {
-                $code = "Write-Error '$($ArgumentList[0])'"
+                if ( $AllowError )
+                {
+                    $code = "Write-Error '$($ArgumentList[0])'"
+                }
+                else
+                {
+                    $code = "Write-Verbose '$($ArgumentList[0])'"
+                }
             }
             'SilentlyContinue' {
                 $code = "Write-Verbose '$($ArgumentList[0])'"

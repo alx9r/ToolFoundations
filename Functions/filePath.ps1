@@ -482,7 +482,7 @@ True if Path is known-valid.  False otherwise.
         }
         if ( -not ($domainName | Test-ValidDomainName ) )
         {
-            Write-Verbose "Seems like a UNC path, but $domainName is not a valid domain name."
+            &(Publish-Failure "Seems like a UNC path, but $domainName is not a valid domain name.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -497,7 +497,7 @@ True if Path is known-valid.  False otherwise.
             -not ($driveLetter | Test-ValidDriveLetter)
         )
         {
-            Write-Verbose "Seems like a UNC path administrative share, but $driveLetter is not a valid drive letter."
+            &(Publish-Failure "Seems like a UNC path administrative share, but $driveLetter is not a valid drive letter.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -511,7 +511,7 @@ True if Path is known-valid.  False otherwise.
             -not ($fragment | Test-ValidFilePathFragment)
         )
         {
-            Write-Verbose "Seems like a UNC path, but $fragment is not a valid path fragment."
+            &(Publish-Failure "Seems like a UNC path, but $fragment is not a valid path fragment.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -595,7 +595,7 @@ True if Path is known-valid.  False otherwise.
     {
         if ( $Path | Test-FilePathForMixedSlashes )
         {
-            Write-Verbose "Path $Path has mixed slashes."
+            &(Publish-Failure "Path $Path has mixed slashes.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -603,7 +603,7 @@ True if Path is known-valid.  False otherwise.
 
         if ( $noprefix.Length -gt 255 )
         {
-            Write-Verbose "Path is $($noprefix.Length) characters long.  Max allowed: 260"
+            &(Publish-Failure "Path is $($noprefix.Length) characters long.  Max allowed: 260",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -618,7 +618,7 @@ True if Path is known-valid.  False otherwise.
 
         if ( -not ($driveLetter | Test-ValidDriveLetter) )
         {
-            Write-Verbose "Path $Path seems like a Windows path but $driveLetter is not a valid drive letter."
+            &(Publish-Failure "Path $Path seems like a Windows path but $driveLetter is not a valid drive letter.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -628,7 +628,7 @@ True if Path is known-valid.  False otherwise.
             -not ($fragment | Test-ValidFilePathFragment)
         )
         {
-            Write-Verbose "Path $Path seems like a Windows path but $fragment is not a valid path fragment."
+            &(Publish-Failure "Path $Path seems like a Windows path but $fragment is not a valid path fragment.",'Path' ([System.ArgumentException]))
             return $false
         }
 
@@ -1586,24 +1586,12 @@ function Test-FilePath
     param
     (
         # The path to resolve.
-        [parameter(ParameterSetName                = 'string',
-                   mandatory                       = $true,
+        [parameter(mandatory                       = $true,
                    position                        = 1,
                    ValueFromPipeline               = $true,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | Test-ValidFilePath})]
-        [string]
-        $PathString,
-
-        # The path to resolve.
-        [parameter(ParameterSetName                = 'hashtable',
-                   mandatory                       = $true,
-                   position                        = 1,
-                   ValueFromPipeline               = $true,
-                   ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
-        [hashtable]
-        $PathHashtable,
+        [Alias('PathString','PathHashtable')]
+        $PathObject,
 
         [parameter(position                        = 3,
                    ValueFromPipelineByPropertyName = $true)]
@@ -1613,9 +1601,25 @@ function Test-FilePath
     )
     process
     {
-        if ($PSCmdlet.ParameterSetName -eq 'hashtable')
+        if ( $PathObject -is [hashtable] )
         {
-            $PathString = $PathHashTable | >> | ConvertTo-FilePathString
+            $PathObject | >> | Test-ValidFilePathParams -ErrorAction Stop
+            $PathString = $PathObject | >> | ConvertTo-FilePathString
+        }
+        elseif ( $PathObject -is [string] )
+        {
+            $PathObject | Test-ValidFilePath -ErrorAction Stop
+            $PathString = $PathObject
+        }
+        elseif ( $PathObject -is [pscustomobject] )
+        {
+            $PathObject | Test-ValidFilePathParams -ErrorAction Stop
+            $PathString = $PathObject | ConvertTo-FilePathString
+        }
+        else
+        {
+            $PathObject | Test-ValidFilePath -ErrorAction Stop
+            $PathString = $PathObject
         }
 
         $splat = @{}
