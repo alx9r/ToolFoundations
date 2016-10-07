@@ -469,7 +469,7 @@ Describe 'Behavior of PSBoundParameters across pipeline steps.' {
         }
     }
 }
-Describe 'Parameter Set Resolution' {
+Describe 'Parameter Set Resolution Ambiguity' {
     function Test-ParameterSetResolution
     {
         [CmdletBinding()]
@@ -515,5 +515,135 @@ Describe 'Parameter Set Resolution' {
     It 'Resolves to parameter set B' {
         $r = Test-ParameterSetResolution -Param_3_B Arg_3_B
         $r | Should be 'B'
+    }
+}
+Describe 'Select parameter set based on hashtable vs pscustomobject vs string' {
+    # see also https://stackoverflow.com/q/39902244/1404637
+
+    Context 'naive attempt' {
+        function Test-Discrimination
+        {
+            [CmdletBinding()]
+            param
+            (
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'string')]
+                [string]
+                $String,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'hashtable')]
+                [hashtable]
+                $Hashtable,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'pscustomobject')]
+                [pscustomobject]
+                $PsCustomObject
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'doesn''t resolves to string' {
+            { 'string' | Test-Discrimination -ErrorAction Stop } |
+                Should throw 'Parameter set cannot be resolved '
+        }
+        It 'doesn''t resolves to hashtable' {
+            { @{} | Test-Discrimination -ErrorAction Stop } |
+                Should throw 'Parameter set cannot be resolved '
+        }
+        It 'resolves to pscustomobject' {
+            $r = New-Object pscustomobject | Test-Discrimination
+            $r | Should be 'pscustomobject'
+        }
+    }
+    Context 'don''t use type accelerators' {
+        function Test-Discrimination
+        {
+            [CmdletBinding()]
+            param
+            (
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'string')]
+                [System.String]
+                $String,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'hashtable')]
+                [System.Collections.Hashtable]
+                $Hashtable,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'pscustomobject')]
+                [System.Management.Automation.PSCustomObject]
+                $PsCustomObject
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'resolves to string' {
+            $r = 'string' | Test-Discrimination
+            $r | Should be 'string'
+        }
+        It 'resolves to hashtable' {
+            $r = @{} | Test-Discrimination
+            $r | Should be 'hashtable'
+        }
+        It 'doesn''t resolve to pscustomobject' {
+            { New-Object pscustomobject | Test-Discrimination -ErrorAction Stop } |
+                Should throw "Cannot bind argument to parameter 'String'"
+        }
+    }
+    Context 'don''t use type accelerators, use default parameter set' {
+        function Test-Discrimination
+        {
+            [CmdletBinding(DefaultParameterSetName = 'pscustomobject')]
+            param
+            (
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'string')]
+                [System.String]
+                $String,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'hashtable')]
+                [System.Collections.Hashtable]
+                $Hashtable,
+
+                [parameter(ValueFromPipeline = $true,
+                           Mandatory = $true,
+                           ParameterSetName = 'pscustomobject')]
+                [System.Management.Automation.PSCustomObject]
+                $PsCustomObject
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'resolves to string' {
+            $r = 'string' | Test-Discrimination
+            $r | Should be 'string'
+        }
+        It 'resolves to hashtable' {
+            $r = @{} | Test-Discrimination
+            $r | Should be 'hashtable'
+        }
+        It 'doesn''t resolve to pscustomobject' {
+            { New-Object pscustomobject | Test-Discrimination -ErrorAction Stop } |
+                Should throw "Cannot bind argument to parameter 'String'"
+        }
     }
 }

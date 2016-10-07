@@ -614,6 +614,14 @@ InModuleScope ToolFoundations {
                 $r | Should be $false
             }
         }
+        Context 'throws' {
+            Mock Test-ValidUncFilePath {$false}
+            Mock Test-ValidWindowsFilePath {$false}
+            It 'throws on error when ErrorAction is Stop' {
+                { 'path' | Test-ValidFilePath -ErrorAction Stop } |
+                    Should throw 'path is not a known-valid file path.'
+            }
+        }
         Context 'empty string' {
             Mock Test-ValidUncFilePath {$false}
             Mock Test-ValidWindowsFilePath {$false}
@@ -1356,6 +1364,33 @@ Describe 'ConvertTo-FilePathObject integrations' {
         $r | Should be 'FileSystem::c:\path'
     }
 }
+Describe CoerceTo-FilePathObject {
+    It 'correctly passes through string path' {
+        $r = 'c:\seg' | CoerceTo-FilePathObject
+        $r.DriveLetter | Should be 'c'
+    }
+    It 'throws error on bad string path' {
+        { 'bad\PRN\path' | CoerceTo-FilePathObject } |
+            Should throw 'bad\PRN\path is not'
+    }
+    It 'correctly coerces from hashtable' {
+        $h = @{
+            DriveLetter = 'c'
+            Segments = 'seg'
+        }
+        $r = $h | CoerceTo-FilePathObject
+        $r.DriveLetter | Should be 'c'
+    }
+    It 'correctly coerces from object' {
+        $o = @{
+                DriveLetter = 'c'
+                Segments = 'seg'
+            } |
+            >> | New-FilePathObject Windows
+        $r = $o | CoerceTo-FilePathObject
+        $r.DriveLetter | Should be 'c'
+    }
+}
 InModuleScope ToolFoundations {
     Describe Test-ValidFilePathParams {
         Context 'success.' {
@@ -1537,6 +1572,33 @@ Describe 'ConvertTo-FilePathString integrations' {
         $object = '\\domain.name\c$\local\path' | ConvertTo-FilePathObject
         $r = $object | ConvertTo-FilePathString Windows
         $r | Should be 'c:\local\path'
+    }
+}
+Describe CoerceTo-FilePathString {
+    It 'correctly passes through string path' {
+        $r = 'c:\seg' | CoerceTo-FilePathString
+        $r | Should be 'c:\seg'
+    }
+    It 'throws error on bad string path' {
+        { 'bad\PRN\path' | CoerceTo-FilePathString } |
+            Should throw 'bad\PRN\path is not'
+    }
+    It 'correctly coerces from hashtable' {
+        $h = @{
+            DriveLetter = 'c'
+            Segments = 'seg'
+        }
+        $r = $h | CoerceTo-FilePathString
+        $r | Should be 'c:\seg'
+    }
+    It 'correctly coerces from object' {
+        $o = @{
+                DriveLetter = 'c'
+                Segments = 'seg'
+            } |
+            >> | New-FilePathObject Windows
+        $r = $o | CoerceTo-FilePathString
+        $r | Should be 'c:\seg'
     }
 }
 Describe ConvertTo-FilePathFormat {
@@ -1776,6 +1838,7 @@ InModuleScope ToolFoundations {
                     Segments = 'segment'
                 }
                 $r = $path | Test-FilePath
+                $r.Count | Should be 1
                 $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
@@ -1786,6 +1849,18 @@ InModuleScope ToolFoundations {
             Mock Test-Path -Verifiable {'result'}
             It 'accepts string.' {
                 $r = 'a:\segment' | Test-FilePath
+                $r.Count | Should be 1
+                $r | Should be $true
+                Assert-MockCalled Test-Path -Times 1 {
+                    $Path -eq 'a:\segment'
+                }
+            }
+        }
+        Context 'file path object' {
+            Mock Test-Path -Verifiable { 'result' }
+            It 'accepts a file path object.' {
+                $r = 'a:\segment' | ConvertTo-FilePathObject | Test-FilePath
+                $r.Count | Should be 1
                 $r | Should be $true
                 Assert-MockCalled Test-Path -Times 1 {
                     $Path -eq 'a:\segment'
@@ -1807,6 +1882,38 @@ InModuleScope ToolFoundations {
             It 'correctly throws on ErrorAction Stop' {
                 {'a:\segment' | Test-FilePath -ItemType Directory -ea Stop} |
                     Should throw 'Directory a:\segment does not exist.'
+            }
+        }
+    }
+    Describe Test-FilePathsAreEqual {
+        Context 'string paths' {
+            It 'same' {
+                $r = Test-FilePathsAreEqual 'c:\seg' 'c:\seg'
+                $r | Should be $true
+            }
+            It 'different' {
+                $r = Test-FilePathsAreEqual 'c:\seg' 'd:\seg'
+                $r | Should be $false
+            }
+        }
+        Context 'hashtable paths' {
+            It 'same' {
+                $r = Test-FilePathsAreEqual @{DriveLetter = 'c'; Segments = 'seg'} @{DriveLetter = 'c'; Segments = 'seg'}
+                $r | Should be $true
+            }
+            It 'different' {
+                $r = Test-FilePathsAreEqual @{DriveLetter = 'c'; Segments = 'seg'} @{DriveLetter = 'd'; Segments = 'seg'}
+                $r | Should be $false
+            }
+        }
+        Context 'subtle differences' {
+            It 'mixed slashes' {
+                $r = Test-FilePathsAreEqual 'c:/seg' 'c:\seg'
+                $r | Should be $true
+            }
+            It 'trailing slash' {
+                $r = Test-FilePathsAreEqual 'c:\seg' 'c:\seg\'
+                $r | Should be $false
             }
         }
     }

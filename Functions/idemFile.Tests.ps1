@@ -93,6 +93,39 @@ Describe Assert-ValidIdemFileParams {
             $_.Exception.Message | Should match 'Both CopyPath and FileContent were provided.'
         }
     }
+    Context 'coerce Path' {
+        Mock CoerceTo-FilePathObject -Verifiable {}
+        It 'attempts to coerce Path to string' {
+            $splat = @{
+                Mode = 'set'
+                Path = New-FilePathObject -DriveLetter c -Segments seg -FilePathType Windows
+                ItemType = 'File'
+                FileContent = 'content'
+            }
+            Assert-ValidIdemFileParams @splat
+            Assert-MockCalled CoerceTo-FilePathObject -Times 1 -ParameterFilter {
+                $InputObject.DriveLetter -eq 'c' -and
+                $InputObject.Segments -eq 'seg'
+            }
+        }
+    }
+    Context 'coerce CopyPath' {
+        Mock Test-FilePathsAreEqual {$false}
+        Mock CoerceTo-FilePathObject -Verifiable {}
+        It 'attempts to coerce CopyPath to string' {
+            $splat = @{
+                Mode = 'set'
+                Path = 'path'
+                ItemType = 'File'
+                CopyPath = New-FilePathObject -DriveLetter c -Segments seg -FilePathType Windows
+            }
+            Assert-ValidIdemFileParams @splat
+            Assert-MockCalled CoerceTo-FilePathObject -Times 1 -ParameterFilter {
+                $InputObject.DriveLetter -eq 'c' -and
+                $InputObject.Segments -eq 'seg'
+            }
+        }
+    }
 }
 Describe 'Process-IdemFile' {
     Mock New-Item {}
@@ -117,7 +150,7 @@ Describe 'Process-IdemFile' {
                 Should throw 'CopyPath b:\seg does not exist.'
 
             Assert-MockCalled Test-FilePath -Times 1 {
-                $PathHashtable.DriveLetter -eq 'b' -and
+                $PathObject.DriveLetter -eq 'b' -and
                 $ItemType -eq 'File'
             }
         }
@@ -310,7 +343,7 @@ Describe 'Process-IdemFile Set' {
         }
     }
     Context 'CreateParentFolders (CopyPath)' {
-        Mock Test-FilePath -Verifiable {$PathHashtable.DriveLetter -eq 'c'}
+        Mock Test-FilePath -Verifiable {$PathObject.DriveLetter -eq 'c'}
         Mock New-Item -Verifiable
         Mock Test-FileHash
         Mock Get-FileHash {
@@ -344,7 +377,7 @@ Describe 'Process-IdemFile Set' {
             $threw | Should be $true
 
             Assert-MockCalled Test-FilePath -Times 1 -Exactly {
-                $PathHashtable.Segments[-1] -eq 'implied'
+                $PathObject.Segments[-1] -eq 'implied'
             }
             Assert-MockCalled New-Item -Times 1 -Exactly {
                 $Path -eq 'a:\exists\implied' -and
@@ -403,7 +436,7 @@ Describe 'Process-IdemFile Test' {
             Process-IdemFile Test @splat -ea Stop
 
             Assert-MockCalled Test-FilePath -Times 1 -Exactly {
-                $PathHashtable.DriveLetter -eq 'a'
+                $PathObject.DriveLetter -eq 'a'
             }
             Assert-MockCalled Compare-FileContent -Times 1 -Exactly {
                 $Path.DriveLetter -eq 'a' -and
@@ -488,7 +521,7 @@ Describe Compare-FileContent {
             $r | Should be $false
 
             Assert-MockCalled Test-FilePath -Times 1 -Exactly {
-                $PathHashTable.DriveLetter -eq 'a'
+                $PathObject.DriveLetter -eq 'a'
             }
         }
     }
