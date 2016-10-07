@@ -93,6 +93,39 @@ Describe Assert-ValidIdemFileParams {
             $_.Exception.Message | Should match 'Both CopyPath and FileContent were provided.'
         }
     }
+    Context 'coerce Path' {
+        Mock CoerceTo-FilePathObject -Verifiable {}
+        It 'attempts to coerce Path to string' {
+            $splat = @{
+                Mode = 'set'
+                Path = New-FilePathObject -DriveLetter c -Segments seg -FilePathType Windows
+                ItemType = 'File'
+                FileContent = 'content'
+            }
+            Assert-ValidIdemFileParams @splat
+            Assert-MockCalled CoerceTo-FilePathObject -Times 1 -ParameterFilter {
+                $InputObject.DriveLetter -eq 'c' -and
+                $InputObject.Segments -eq 'seg'
+            }
+        }
+    }
+    Context 'coerce CopyPath' {
+        Mock Test-FilePathsAreEqual {$false}
+        Mock CoerceTo-FilePathObject -Verifiable {}
+        It 'attempts to coerce CopyPath to string' {
+            $splat = @{
+                Mode = 'set'
+                Path = 'path'
+                ItemType = 'File'
+                CopyPath = New-FilePathObject -DriveLetter c -Segments seg -FilePathType Windows
+            }
+            Assert-ValidIdemFileParams @splat
+            Assert-MockCalled CoerceTo-FilePathObject -Times 1 -ParameterFilter {
+                $InputObject.DriveLetter -eq 'c' -and
+                $InputObject.Segments -eq 'seg'
+            }
+        }
+    }
 }
 Describe 'Process-IdemFile' {
     Mock New-Item {}

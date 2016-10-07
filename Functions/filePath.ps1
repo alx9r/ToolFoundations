@@ -1,4 +1,6 @@
-﻿function Test-ValidDriveLetter
+﻿Set-Alias CoerceTo-FilePathString Invoke-CoercionToFilePathString
+Set-Alias CoerceTo-FilePathObject Invoke-CoercionToFilePathObject
+function Test-ValidDriveLetter
 {
 <#
 .SYNOPSIS
@@ -478,6 +480,7 @@ True if Path is known-valid.  False otherwise.
 
         if ( -not $domainName )
         {
+            &(Publish-Failure 'Cannot be a UNC path, no domain name was found.','Path' ([System.ArgumentException]))
             return $false
         }
         if ( -not ($domainName | Test-ValidDomainName ) )
@@ -661,11 +664,17 @@ True if Path is known-valid.  False otherwise.
     )
     process
     {
-        $valid = 'Test-ValidUncFilePath',
-                 'Test-ValidWindowsFilePath' |
-                    ? { $Path | & $_ }
+        if ( $Path | Test-ValidUncFilePath -ErrorAction SilentlyContinue )
+        {
+            return $true
+        }
+        if ( $Path | Test-ValidWindowsFilePath -ErrorAction SilentlyContinue )
+        {
+            return $true
+        }
 
-        return [bool]$valid
+        &(Publish-Failure "$Path is not a known-valid file path.",'Path' ([System.ArgumentException]))
+        return $false
     }
 }
 function Get-FilePathType
@@ -694,8 +703,8 @@ Get-FilePathType detects whether Path is a Windows or UNC path and outputs a str
     )
     process
     {
-        $isWindows = $Path | Test-ValidWindowsFilePath
-        $isUnc = $Path | Test-ValidUncFilePath
+        $isWindows = $Path | Test-ValidWindowsFilePath -ErrorAction Continue
+        $isUnc = $Path | Test-ValidUncFilePath -ErrorAction Continue
 
         if ( $isWindows -and $isUnc )
         {
@@ -1080,6 +1089,40 @@ This example demonstrates how the output of ConvertTo-FilePathObject matches the
         return New-Object PSObject -Property $r
     }
 }
+function Invoke-CoercionToFilePathObject
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position          = 1,
+                   Mandatory         = $true,
+                   ValueFromPipeline = $true)]
+        $InputObject
+    )
+    process
+    {
+        if ($InputObject -is [string] )
+        {
+            $InputObject | Test-ValidFilePath -ErrorAction Stop | Out-Null
+            return $InputObject | ConvertTo-FilePathObject
+        }
+        if ($InputObject -is [hashtable] )
+        {
+            $InputObject | >> | Assert-ValidFilePathObjectParams
+            return $InputObject | >>
+        }
+        if ( $InputObject -is [pscustomobject] )
+        {
+            $InputObject | Assert-ValidFilePathObjectParams
+            return $InputObject
+        }
+        throw New-Object System.ArgumentException(
+            'InputObject could not be coerced.',
+            'InputObject'
+        )
+
+    }
+}
 function Test-ValidFilePathParams
 <#
 .SYNOPSIS
@@ -1292,6 +1335,38 @@ This example show how you can convert a plain-old Windows path to the path of an
         {
             return "$($Segments -join $slash)$($TrailingSlash | ?: $slash)"
         }
+    }
+}
+function Invoke-CoercionToFilePathString
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position          = 1,
+                   Mandatory         = $true,
+                   ValueFromPipeline = $true)]
+        $InputObject
+    )
+    process
+    {
+        if ($InputObject -is [string] )
+        {
+            $InputObject | Test-ValidFilePath -ErrorAction Stop | Out-Null
+            return $InputObject
+        }
+        if ($InputObject -is [hashtable] )
+        {
+            return $InputObject | >> | ConvertTo-FilePathString
+        }
+        if ( $InputObject -is [pscustomobject] )
+        {
+            return $InputObject | ConvertTo-FilePathString
+        }
+        throw New-Object System.ArgumentException(
+            'InputObject could not be coerced.',
+            'InputObject'
+        )
+
     }
 }
 function ConvertTo-FilePathFormat
@@ -1640,6 +1715,29 @@ function Test-FilePath
             return $false
         }
         return $true
+    }
+}
+function Test-FilePathsAreEqual
+{
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Position                        = 1,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        $PathA,
+
+        [Parameter(Position                        = 2,
+                   Mandatory                       = $true,
+                   ValueFromPipelineByPropertyName = $true)]
+        $PathB
+    )
+    process
+    {
+        $pathStringA = $PathA | CoerceTo-FilePathString | Resolve-FilePath
+        $pathStringB = $PathB | CoerceTo-FilePathString | Resolve-FilePath
+
+        return $pathStringA -eq $pathStringB
     }
 }
 function ConvertTo-RelativeFilePathSegments

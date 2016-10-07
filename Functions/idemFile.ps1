@@ -17,8 +17,6 @@ Function Assert-ValidIdemFileParams
         [parameter(Mandatory                       = $true,
                    position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
-        [hashtable]
         $Path,
 
         [parameter(Mandatory                       = $true,
@@ -33,8 +31,6 @@ Function Assert-ValidIdemFileParams
         $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
-        [hashtable]
         $CopyPath,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
@@ -45,13 +41,10 @@ Function Assert-ValidIdemFileParams
     {
         if ( (&(gbpm)).Keys -contains 'CopyPath' )
         {
-            $pathStr = $Path | >> | ConvertTo-FilePathString | Resolve-FilePath
-            $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString | Resolve-FilePath
-
-            if ( $pathStr -eq $copyPathStr )
+            if ( Test-FilePathsAreEqual $Path $CopyPath )
             {
                 throw New-Object System.ArgumentException(
-                    "Path and CopyPath are the same: $pathStr",
+                    "Path and CopyPath are the same: $($Path | CoerceTo-FilePathString)",
                     'CopyPath'
                 )
             }
@@ -82,6 +75,15 @@ Function Assert-ValidIdemFileParams
                 'CopyPath'
             )
         }
+
+        # confirm that Path can be coerced to file path object
+        $Path | CoerceTo-FilePathObject | Out-Null
+
+        # confirm that CopyPath can be coerced to file path object
+        if ( $CopyPath )
+        {
+            $CopyPath | CoerceTo-FilePathObject | Out-Null
+        }
     }
 }
 
@@ -99,8 +101,6 @@ Function Invoke-ProcessIdemFile
         [parameter(Mandatory                       = $true,
                    position                        = 2,
                    ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
-        [hashtable]
         $Path,
 
         [parameter(Mandatory                       = $true,
@@ -115,8 +115,6 @@ Function Invoke-ProcessIdemFile
         $FileContent,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
-        [ValidateScript({$_ | >> | Test-ValidFilePathParams})]
-        [hashtable]
         $CopyPath,
 
         [parameter(ValueFromPipelineByPropertyName = $true)]
@@ -127,21 +125,28 @@ Function Invoke-ProcessIdemFile
     {
         &(gbpm) | >> | Assert-ValidIdemFileParams
 
+        # work with well-formed file path objects
+        $pathObj = $Path | CoerceTo-FilePathObject
+        if ( $CopyPath )
+        {
+            $copyPathObj = $CopyPath | CoerceTo-FilePathObject
+        }
+
         # Test CopyPath exists
         if
         (
-            $CopyPath -and
-            -not ($CopyPath | Test-FilePath -ItemType $ItemType -ea si)
+            $copyPathObj -and
+            -not ($copyPathObj | Test-FilePath -ItemType $ItemType -ea si)
         )
         {
-            $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString
+            $copyPathStr = $CopyPath | >> | CoerceTo-FilePathString
             &(Publish-Failure "CopyPath $copyPathStr does not exist.", 'CopyPath' ([System.ArgumentException]))
             return $false
         }
 
         # Calculate the source file hash. This might be expensive and
         # will be needed multiple times.
-        if ( $CopyPath -and $ItemType -eq 'File' )
+        if ( $copyPathObj -and $ItemType -eq 'File' )
         {
             $copyPathStr = $CopyPath | >> | ConvertTo-FilePathString
             $sourceFileHash = Get-FileHash $copyPathStr
@@ -150,18 +155,18 @@ Function Invoke-ProcessIdemFile
         ## test if the item exists at Path, create it or copy it if necessary
         ## project missing parent folders if necessary
 
-        if ( $CopyPath )
+        if ( $copyPathObj )
         {
-            $Test = {$sourceFileHash | Test-FileHash -Path ($Path | >> | ConvertTo-FilePathString)}
+            $Test = {$sourceFileHash | Test-FileHash -Path ($pathObj | CoerceTo-FilePathString)}
             $Remedy = {
                 if
                 (
                     $CreateParentFolders -and
-                    $Path.Segments.Count -gt 1
+                    $pathObj.Segments.Count -gt 1
                 )
                 {
-                    $projectPath = $Path.Clone()
-                    $projectPath.Segments = $Path.Segments[0..($Path.Segments.Count-2)]
+                    $projectPath = $pathObj.PsObject.Copy()
+                    $projectPath.Segments = $pathObj.Segments[0..($pathObj.Segments.Count-2)]
                     if ( -not (  $projectPath | Test-FilePath -ea si) )
                     {
                         $splat = @{
@@ -173,18 +178,18 @@ Function Invoke-ProcessIdemFile
                     }
                 }
                 $splat = @{
-                    Path = $CopyPath | >> | ConvertTo-FilePathString
-                    Destination = $Path | >> | ConvertTo-FilePathString
+                    Path = $copyPathObj | CoerceTo-FilePathString
+                    Destination = $pathObj | CoerceTo-FilePathString
                 }
                 Copy-Item @splat -ea Stop
             }
         }
         else
         {
-            $Test = {$Path | Test-FilePath -ItemType $ItemType -ea si}
+            $Test = {$pathObj | Test-FilePath -ItemType $ItemType -ea si}
             $Remedy = {
                 $splat = @{
-                    Path = $Path | >> | ConvertTo-FilePathString
+                    Path = $pathObj | CoerceTo-FilePathString
                     ItemType = $ItemType
                     Force = $CreateParentFolders
                 }
@@ -196,7 +201,7 @@ Function Invoke-ProcessIdemFile
 
         if ( -not $pathResult )
         {
-            $pathStr = $Path | >> | ConvertTo-FilePathString
+            $pathStr = $pathObj | CoerceTo-FilePathString
             &(Publish-Failure "$Mode failed for $pathStr." ([System.IO.FileNotFoundException]))
             return $false
         }
@@ -206,10 +211,10 @@ Function Invoke-ProcessIdemFile
 
         if ( (&(gbpm)).Keys -contains 'FileContent' )
         {
-            $Test = { $Path | Compare-FileContent -Content $FileContent }
+            $Test = { $pathObj | ConvertTo-Hashtable | Compare-FileContent -Content $FileContent }
             $Remedy = {
                 $splat = @{
-                    FilePath = $Path | >> | ConvertTo-FilePathString
+                    FilePath = $pathObj | CoerceTo-FilePathString
                     Encoding = 'ascii'
                 }
                 $FileContent | Out-File @splat -ea Stop | Out-Null
@@ -218,7 +223,7 @@ Function Invoke-ProcessIdemFile
 
             if ( -not $fileContentResult )
             {
-                $pathStr = $Path | >> | ConvertTo-FilePathString
+                $pathStr = $pathObj | CoerceTo-FilePathString
                 &(Publish-Failure "$Mode FileContent failed for $pathStr." ([System.IO.FileNotFoundException]))
                 return $false
             }
