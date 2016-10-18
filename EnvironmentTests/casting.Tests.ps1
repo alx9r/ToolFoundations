@@ -90,25 +90,14 @@ Describe 'implicit parameter cast - custom function' {
 }
 Describe 'implicit parameter cast - builtin function' {
     if ( $PSVersionTable.PSVersion -lt '3.0.0.0' ) {}
-    elseif ( $PSVersionTable.PSVersion -lt '5.0.10586.117' )
+    else
     {
         Context 'interrogate function' {
             It 'parameter type is int*' {
                 (Get-Help Select-Object).parameters.parameter |
                     ? {$_.Name -eq 'First'} |
                     % {$_.parametervalue } |
-                    Should match 'int'
-            }
-        }
-    }
-    else
-    {
-        Context 'interrogate function' {
-            It 'parameter type is SwitchParameter' {
-                (Get-Help Select-Object).parameters.parameter |
-                    ? {$_.Name -eq 'First'} |
-                    % {$_.parametervalue } |
-                    Should match 'SwitchParameter'
+                    Should match '(int|SwitchParameter)'
             }
         }
     }
