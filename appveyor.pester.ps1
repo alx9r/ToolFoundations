@@ -29,6 +29,12 @@
 #If Finalize is specified, we collect XML output, upload tests, and indicate build errors
 param([switch]$Finalize)
 
+# Dump some versions to the console
+Write-Output '=== PSVersionTable ==='
+Write-Output $PSVersionTable.PSVersion.ToString()
+Write-Output '=== Pester Version ==='
+Write-Output (Get-Module Pester).Version.ToString()
+
 #Initialize some variables, move to the project root
     $PSVersion = $PSVersionTable.PSVersion.Major
     $TestFile = "TestResultsPS$PSVersion.xml"
