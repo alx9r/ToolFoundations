@@ -80,8 +80,9 @@ Describe 'properties' {
         }
     }
     Context 'static property' {
-        class c { static $p }
-        $c = [c]::new()
+        $guid = [guid]::NewGuid().Guid.Replace('-','')
+        iex "class c$guid { static `$p }"
+        $c = New-Object "c$guid"
         It 'the variable is not revealed as a property' {
             $r = Get-Member -InputObject $c -MemberType Property
             $r | Should beNullOrEmpty
@@ -98,13 +99,13 @@ Describe 'properties' {
             $c.p | Should beNullOrEmpty
         }
         It 'the property can be retrieved using the type accelerator and starts out empty' {
-            [c]::p | Should beNullOrEmpty
+            iex "[c$guid]::p" | Should beNullOrEmpty
         }
         It 'the property can be set using the type accelerator' {
-            [c]::p = 'value'
+            iex "[c$guid]::p = 'value' "
         }
         It 'the property can be retrieved using the type accelerator' {
-            [c]::p | Should be 'value'
+            iex "[c$guid]::p" | Should be 'value'
         }
     }
 }
