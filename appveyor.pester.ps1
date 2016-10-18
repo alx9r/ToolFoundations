@@ -32,9 +32,6 @@ param([switch]$Finalize)
 # Dump some versions to the console
 Write-Output '=== PSVersionTable ==='
 Write-Output $PSVersionTable
-Import-Module Pester
-Write-Output '=== Pester Version ==='
-Write-Output (Get-Module Pester).Version.ToString()
 
 #Initialize some variables, move to the project root
     $PSVersion = $PSVersionTable.PSVersion.Major
@@ -68,6 +65,9 @@ if ( -not (Test-Path $expectedPesterPath -PathType Leaf) )
         {
             Import-Module Pester
         }
+
+        Write-Output '=== Pester Version ==='
+        Write-Output (Get-Module Pester).Version.ToString()
 
         Invoke-Pester -Path "$ProjectRoot" -OutputFormat NUnitXml -OutputFile "$ProjectRoot\$TestFile" -PassThru |
             Export-Clixml -Path "$ProjectRoot\PesterResults$PSVersion.xml"
