@@ -89,17 +89,19 @@ Describe 'implicit parameter cast - custom function' {
     }
 }
 Describe 'implicit parameter cast - builtin function' {
-    if ( $PSVersionTable.PSVersion.Major -ge 3 )
+    if ( $PSVersionTable.PSVersion -lt '3.0.0.0' ) {}
+    else
     {
         Context 'interrogate function' {
             It 'parameter type is int*' {
                 (Get-Help Select-Object).parameters.parameter |
                     ? {$_.Name -eq 'First'} |
                     % {$_.parametervalue } |
-                    Should match 'int'
+                    Should match '(int|SwitchParameter)'
             }
         }
     }
+
     Context 'normal invocation' {
         It 'accepts an integer' {
             2,3 | Select-Object -First 1 | Should be 2
