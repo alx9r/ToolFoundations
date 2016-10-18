@@ -89,14 +89,8 @@ Describe 'implicit parameter cast - custom function' {
     }
 }
 Describe 'implicit parameter cast - builtin function' {
-    if (
-        @(3,4) -contains $PSVersionTable.PSVersion.Major -or
-        (
-            $PSVersionTable.PSVersion.Major -eq 5 -and
-            $PSVersionTable.PSVersion.Minor -eq 0 -and
-            $PSVersionTable.PSVersion.Build -lt 10586
-        )
-    )
+    if ( $PSVersionTable.PSVersion -lt '3.0.0.0' ) {}
+    elseif ( $PSVersionTable.PSVersion -lt '5.0.10586.117' )
     {
         Context 'interrogate function' {
             It 'parameter type is int*' {
@@ -107,10 +101,10 @@ Describe 'implicit parameter cast - builtin function' {
             }
         }
     }
-    elseif ( $PSVersionTable.PSVersion.Major -ge 5 )
+    else
     {
         Context 'interrogate function' {
-            It 'parameter type is int*' {
+            It 'parameter type is SwitchParameter' {
                 (Get-Help Select-Object).parameters.parameter |
                     ? {$_.Name -eq 'First'} |
                     % {$_.parametervalue } |
