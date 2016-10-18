@@ -31,7 +31,8 @@ param([switch]$Finalize)
 
 # Dump some versions to the console
 Write-Output '=== PSVersionTable ==='
-Write-Output $PSVersionTable.PSVersion.ToString()
+Write-Output $PSVersionTable
+Import-Module Pester
 Write-Output '=== Pester Version ==='
 Write-Output (Get-Module Pester).Version.ToString()
 
