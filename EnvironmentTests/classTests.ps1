@@ -296,7 +296,7 @@ Describe 'methods' {
                 Should throw 'Unable to find type'
         }
         It 'a function in the module can return an instance of the class' {
-            $r = New-CObject 
+            $r = New-CObject
             $r.GetType().Name | Should be 'c'
         }
         It 'a variable exported from a module can be an instance of the class' {
