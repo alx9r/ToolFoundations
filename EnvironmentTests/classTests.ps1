@@ -281,7 +281,52 @@ Describe 'methods' {
             }
         }
     }
-    Context 'classes in modules' {}
+    Context 'classes in modules' {
+        # http://stackoverflow.com/q/31051103/1404637
+        $guid = [guid]::NewGuid().Guid
+        $module = New-Module -Name "Module-$guid" {
+            class c {}
+            function New-CObject { return [c]::new() }
+            $newC = [c]::new()
+            Export-ModuleMember -Variable * -Function *
+        }
+        $module | Import-Module
+        It 'class is not available outside module by default' {
+            { [c]::new() } |
+                Should throw 'Unable to find type'
+        }
+        It 'a function in the module can return an instance of the class' {
+            $r = New-CObject 
+            $r.GetType().Name | Should be 'c'
+        }
+        It 'a variable exported from a module can be an instance of the class' {
+            $newC.GetType().Name | Should be 'c'
+        }
+        It 'class is available outside module after using statement' {
+            $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
+            $r.GetType().Name | Should be 'c'
+        }
+    }
+    Context 'using statement' {
+        It 'using statement at beginning of scriptblock is not allowed' {
+            { iex '{ using module "ToolFoundations"; }' } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock not bound to any module is not allowed' {
+            { [scriptblock]::Create('{ using module "ToolFoundations"; }') } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock bound to a module is not allowed' {
+            { iex 'New-Module -ScriptBlock { using module "ToolFoundations"; }' } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of dot-sourced script is allowed' {
+            . "$($PSCommandPath | Split-Path -Parent)\..\Resources\usingModuleTest.ps1"
+        }
+        It 'using statement at beginning of script invoked using call operator is allowed' {
+            & "$($PSCommandPath | Split-Path -Parent)\..\Resources\usingModuleTest.ps1"
+        }
+    }
     Context 'static method' {}
     Context 'inheritance' {}
     Context 'interfaces' {}
