@@ -236,6 +236,18 @@ Describe 'methods' {
             $c.m('1')
             $c.p | Should be 'string'
         }
+        It 'selects more specific type' {
+            class c {
+                $p
+                m([object]$arg) { $this.p = 'object' }
+                m([string]$arg) { $this.p = 'string' }
+            }
+            $c = [c]::new()
+            $c.m('string')
+            $c.p | Should be 'string'
+            $c.m(1.0)
+            $c.p | Should be 'object'
+        }
     }
     Context 'class names' {
         $characters = @{
@@ -327,12 +339,97 @@ Describe 'methods' {
             & "$($PSCommandPath | Split-Path -Parent)\..\Resources\usingModuleTest.ps1"
         }
     }
+    Context 'inheritance' {
+        class a {
+            $p
+            [object]m() { return 'm' }
+        }
+        class b : a {}
+        $b = [b]::new()
+        It 'type of derived class is as expected' {
+            $r = $b.GetType()
+            $r.Name | Should be 'b'
+        }
+        It 'type of derived class mentions base class' {
+            $r = $b.GetType()
+            $r.BaseType.Name | Should be 'a'
+        }
+        It 'inherits method of parent class' {
+            $r = $b.m()
+            $r | Should be 'm'
+        }
+        It 'inherits property of parent class' {
+            $b.p = 'value'
+            $b.p | Should be 'value'
+        }
+    }
+    It 'inheriting from two parents is not allowed' {
+        class a {}
+        class b {}
+        { iex 'class c : a,b {}' } |
+            Should throw 'Interface name expected'
+    }
+    It 'multiple generations of inheritance is allowed' {
+        class a {}
+        class b : a {}
+        class c : b {}
+    }
+    Context 'grandparent' {
+        class a     { $a; [object]ma() { return 'a' } }
+        class b : a { $b; [object]mb() { return 'b' } }
+        class c : b { $c; [object]mc() { return 'c' } }
+        $c = [c]::new()
+        $t = $c.GetType()
+        It 'type of grandchild class is as expected' {
+            $t.Name | Should be 'c'
+        }
+        It 'base type of grandchild class is parent' {
+            $t.BaseType.Name | Should be 'b'
+        }
+        It 'can walk the type tree up to grandparent' {
+            $t.BaseType.BaseType.Name | Should be 'a'
+        }
+        It 'inherits method of parent class' {
+            $r = $c.mb()
+            $r | Should be 'b'
+        }
+        It 'inherits method of grandparent class' {
+            $r = $c.ma()
+            $r | Should be 'a'
+        }
+        It 'inherits property of parent class' {
+            $c.b = 'value'
+            $c.b | Should be 'value'
+        }
+        It 'inherits property of grandparent class' {
+            $c.a = 'value'
+            $c.a | Should be 'value'
+        }
+    }
+    Context 'override base class method' {
+        class a {
+            [object]m() { return 'a' }
+            [object]m($arg) { return 'a arg' }
+            [object]m([string]$arg) {return 'a string arg' }
+        }
+        class b : a {
+            [object]m() { return 'b' }
+        }
+        $c = [b]::new()
+        It 'simple overriding of base class method works as expected' {
+            $c.m() | Should be 'b'
+        }
+        It 'parent method overload is called for differing number of arguments' {
+            $c.m(1) | Should be 'a arg'
+        }
+        It 'parent method overload is called for differing argument type' {
+            $c.m('string') | Should be 'a string arg'
+        }
+    }
     Context 'static method' {}
-    Context 'inheritance' {}
     Context 'interfaces' {}
     Context 'constructors' {}
     Context 'call base class constructor' {}
     Context 'call base class method' {}
-    Context 'override base class method' {}
     Context 'hide non-virtual methods' {}
 }
