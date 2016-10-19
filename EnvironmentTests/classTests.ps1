@@ -273,6 +273,13 @@ Describe 'methods' {
                     Should throw 'Type name was too long'
             }
         }
+        foreach ( $name in 'function', 'configuration','class','static','hidden' )
+        {
+            It "name $name is allowed" {
+                iex "class $name {}"
+                iex "`$c = [$name]::new()"
+            }
+        }
     }
     Context 'classes in modules' {}
     Context 'static method' {}
