@@ -237,6 +237,44 @@ Describe 'methods' {
             $c.p | Should be 'string'
         }
     }
+    Context 'class names' {
+        $characters = @{
+            Allowed = 'a_'
+            NotAllowed = '`-=~!@#$%^&*()+[]\|;''",./<>?'
+            Special = ':{}'
+        }
+        foreach ( $char in $characters.Allowed.GetEnumerator() )
+        {
+            It "$char is allowed" {
+                iex "class a$($char)b {}"
+            }
+        }
+        foreach ( $char in $characters.NotAllowed.GetEnumerator() )
+        {
+            It "$char is not allowed" {
+                { iex "class a$($char)b {}" } |
+                    Should throw "Missing 'class' body in 'class' declaration."
+            }
+        }
+        foreach ( $length in 255,256,511,512,1000,1005,1006,1007)
+        {
+            It "$length character names are allowed" {
+                $name = 'a'*$length
+                $name.Length | Should be $length
+                iex "class $name {}"
+            }
+        }
+        foreach ( $length in 1008,1009,1022,1023,1024,2047,4095 )
+        {
+            It "$length character names are too long" {
+                $name = 'a'*$length
+                $name.Length | Should be $length
+                { iex "class $name {}" } |
+                    Should throw 'Type name was too long'
+            }
+        }
+    }
+    Context 'classes in modules' {}
     Context 'static method' {}
     Context 'inheritance' {}
     Context 'interfaces' {}
