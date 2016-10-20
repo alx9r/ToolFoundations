@@ -314,14 +314,15 @@ Describe 'methods' {
         It 'a variable exported from a module can be an instance of the class' {
             $newC.GetType().Name | Should be 'c'
         }
-        It 'class is available outside module after using statement' {
+        It 'class is available outside module after using statement in dot-sourced script' {
             $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
             $r.GetType().Name | Should be 'c'
         }
-        It 'class is not available outside module after dot-sourcing module' {
-            . "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1"
-            { [c]::new() } |
-                Should throw 'Unable to find type'
+        It 'class is available outside module after using statement invoked with iex' {
+            Import-Module "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1" -Force
+            iex 'using module classModuleStub'
+            $r = [c]::new()
+            $r.GetType().Name | Should be 'c'
         }
     }
     Context 'using statement' {
@@ -330,9 +331,12 @@ Describe 'methods' {
             #{ using module "ToolFoundations"; } |
             #    Should throw "'using' statement must appear before"
         }
+        It 'using statement using iex is allowed' {
+            iex 'using module "ToolFoundations";'
+        }
         It 'using statement at beginning of scriptblock using iex is not allowed' {
             { iex '{ using module "ToolFoundations"; }' } |
-                Should throw "' using' statement must appear before"
+                Should throw "A 'using' statement must appear before"
         }
         It 'using statement at beginning of scriptblock not bound to any module is not allowed' {
             # uncommenting the following line creates a ParseError
