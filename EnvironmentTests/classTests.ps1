@@ -318,17 +318,44 @@ Describe 'methods' {
             $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
             $r.GetType().Name | Should be 'c'
         }
+        It 'class is not available outside module after dot-sourcing module' {
+            . "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1"
+            { [c]::new() } |
+                Should throw 'Unable to find type'
+        }
     }
     Context 'using statement' {
         It 'using statement at beginning of scriptblock is not allowed' {
+            # uncommenting the following line creates a ParseError
+            #{ using module "ToolFoundations"; } |
+            #    Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock using iex is not allowed' {
             { iex '{ using module "ToolFoundations"; }' } |
-                Should throw "'using' statement must appear before"
+                Should throw "' using' statement must appear before"
         }
         It 'using statement at beginning of scriptblock not bound to any module is not allowed' {
+            # uncommenting the following line creates a ParseError
+            #{ [scriptblock]::Create( { using module "ToolFoundations"; } ) } |
+            #    Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock not bound to any module using iex is not allowed' {
             { [scriptblock]::Create('{ using module "ToolFoundations"; }') } |
                 Should throw "'using' statement must appear before"
         }
-        It 'using statement at beginning of scriptblock bound to a module is not allowed' {
+        It 'using statement at beginning of scriptblock bound to a module is not allowed (1)' {
+            { New-Module -ScriptBlock (iex '{ using module "ToolFoundations"; }') } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock bound to a module is not allowed (2)' {
+            { New-Module -ScriptBlock ([scriptblock]::Create('{ using module "ToolFoundations"; }')) } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock bound to a module is not allowed (3)' {
+            { New-Module -ScriptBlock (iex '[scriptblock]::Create({ using module "ToolFoundations"; })') } |
+                Should throw "'using' statement must appear before"
+        }
+        It 'using statement at beginning of scriptblock bound to a module is not allowed (4)' {
             { iex 'New-Module -ScriptBlock { using module "ToolFoundations"; }' } |
                 Should throw "'using' statement must appear before"
         }
