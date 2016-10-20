@@ -1,9 +1,6 @@
-Describe Compare-Object2 {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
+Import-Module ToolFoundations -Force
 
+Describe Compare-Object2 {
     It 'Compare-Object:  compares differing sets.' {
         $result = Compare-Object 1,2,3 1,2,3,4
 

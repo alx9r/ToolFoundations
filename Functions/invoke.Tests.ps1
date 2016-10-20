@@ -1,9 +1,6 @@
-﻿Describe "Invoke-Ternary" {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
+﻿Import-Module ToolFoundations -Force
 
+Describe "Invoke-Ternary" {
     It "correctly interprets boolean true" {
         $true | ?: 'true' 'false' | Should Be 'true'
     }
@@ -88,13 +85,7 @@
         }
     }
 }
-
-
 Describe "Invoke-IfScriptblock" {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
     It "outputs a non-scriptblock object" {
         Invoke-IfScriptBlock "string" | Should be 'string'
     }

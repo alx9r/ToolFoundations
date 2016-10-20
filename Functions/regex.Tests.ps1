@@ -1,9 +1,5 @@
+Import-Module ToolFoundations -Force
 Describe Test-ValidRegex {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
-
     #http://stackoverflow.com/q/7095238/1404637
     $bad  = '*','[0-9]++','['
 
@@ -24,11 +20,6 @@ Describe Test-ValidRegex {
     }
 }
 Describe ConvertTo-RegexEscapedString {
-    BeforeEach {
-        Remove-Module ToolFoundations -ea SilentlyContinue
-        Import-Module ToolFoundations
-    }
-
     # http://stackoverflow.com/a/12963199/1404637
     $NeedEscaping = '\t\n\f\r#$()*+.?[\^{|'
     $NoEscaping   = 'zxcvbnmasdfghjklqwertyuiop'
