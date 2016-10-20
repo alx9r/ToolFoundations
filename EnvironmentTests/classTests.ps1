@@ -318,10 +318,18 @@ Describe 'methods' {
             $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
             $r.GetType().Name | Should be 'c'
         }
-        It 'class is available outside module after using statement invoked with iex' {
-            Import-Module "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1" -Force
-            iex 'using module classModuleStub'
-            $r = [c]::new()
+        It 'class is not available outside module after using statement invoked with iex when new() invoked without iex' {
+            $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1"
+            Import-Module $path
+            iex "using module $path"
+            { [c]::new() } |
+                Should throw 'Unable to find type'
+        }
+        It 'class is available outside module after using statement invoked with iex when new() invoked with iex' {
+            $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1"
+            Import-Module $path
+            iex "using module $path"
+            $r = iex '[c]::new()'
             $r.GetType().Name | Should be 'c'
         }
     }
@@ -333,6 +341,16 @@ Describe 'methods' {
         }
         It 'using statement using iex is allowed' {
             iex 'using module "ToolFoundations";'
+        }
+        It 'using statement is not allowed for modules not in PSModulePath...' {
+            Import-Module "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1" -Force
+            { iex 'using module classModuleStub' } |
+                Should throw 'Could not find the module'
+        }
+        It '...unless using statement uses their full file path.' {
+            $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub.psm1"
+            Import-Module $path
+            iex "using module $path"
         }
         It 'using statement at beginning of scriptblock using iex is not allowed' {
             { iex '{ using module "ToolFoundations"; }' } |
