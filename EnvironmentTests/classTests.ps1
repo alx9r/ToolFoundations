@@ -249,6 +249,21 @@ Describe 'methods' {
             $c.p | Should be 'object'
         }
     }
+    Context 'static methods' {
+        class a {
+            $p
+            static [object]sm() {return 'sm'}
+            static sm([a]$arg) { $arg.p = 'value set by sm' }
+        }
+        It 'static methods are allowed' {
+            [a]::sm() | Should be 'sm'
+        }
+        It 'static method can accept its own type' {
+            $a = [a]::new()
+            [a]::sm($a)
+            $a.p | Should be 'value set by sm'
+        }
+    }
     Context 'class names' {
         $characters = @{
             Allowed = 'a_'
@@ -300,11 +315,11 @@ Describe 'methods' {
         }
         class b : a {}
         $b = [b]::new()
-        It 'type of derived class is as expected' {
+        It 'type of subclass is as expected' {
             $r = $b.GetType()
             $r.Name | Should be 'b'
         }
-        It 'type of derived class mentions base class' {
+        It 'type of subclass mentions base class' {
             $r = $b.GetType()
             $r.BaseType.Name | Should be 'a'
         }
@@ -369,21 +384,157 @@ Describe 'methods' {
         class b : a {
             [object]m() { return 'b' }
         }
-        $c = [b]::new()
+        $b = [b]::new()
         It 'simple overriding of base class method works as expected' {
-            $c.m() | Should be 'b'
+            $b.m() | Should be 'b'
         }
         It 'parent method overload is called for differing number of arguments' {
-            $c.m(1) | Should be 'a arg'
+            $b.m(1) | Should be 'a arg'
         }
         It 'parent method overload is called for differing argument type' {
-            $c.m('string') | Should be 'a string arg'
+            $b.m('string') | Should be 'a string arg'
         }
     }
-    Context 'static method' {}
-    Context 'interfaces' {}
-    Context 'constructors' {}
-    Context 'call base class constructor' {}
-    Context 'call base class method' {}
-    Context 'hide non-virtual methods' {}
+    Context 'call base class method from overridden implementation' {
+        class a {
+            [object]m() { return 'a' }
+        }
+        class b : a {
+            [object]m() { return ([a]$this).m()+'b' }
+        }
+        $b = [b]::new()
+        It 'child method calls base method' {
+            $b.m() | Should be 'ab'
+        }
+    }
+    Context 'type equality' {
+        class a {}
+        class b : a {}
+        $a = [a]::new()
+        $b = [b]::new()
+        It '$subClass -is [baseClass]' {
+            $b -is [a] | Should be $true
+        }
+        It '$baseClass -isnot [subClass]' {
+            $a -isnot [b] | Should be $true
+        }
+    }
+    Context 'constructors' {
+        class a {
+            $p
+            a() {$this.p = 'a'}
+        }
+        class b {
+            $p = 'init'
+            b() {$this.p = $this.p * 2}
+        }
+        It 'new() invokes constructor' {
+            [a]::new().p | Should be 'a'
+        }
+        It 'properties are initialized before constructor is run' {
+            [b]::new().p | Should be 'initinit'
+        }
+    }
+    Context 'static constructor' {
+        class a {
+            static $sp
+            static a() { [a]::sp = 'set by static a()' }
+        }
+        class b {
+            static $sp = 'init'
+            static b() { [b]::sp = [b]::sp*2 }
+        }
+        It 'static default constructors are supported' {
+            [a]::sp | Should be 'set by static a()'
+        }
+        It 'static constructors with parameters are not supported' {
+            { iex 'class b { static b($arg) {} }' } |
+                Should throw 'A static constructor cannot have any parameters'
+        }
+        It 'static properties are initialized before static constructors are called' {
+            [b]::sp | Should be 'initinit'
+        }
+    }
+    Context 'mixed static and non-static properties and constructors' {
+        class a {
+            static $sp = 'sp init'
+            $p = 'p init'
+            static a() { [a]::sp = [a]::sp * 2}
+            a() { $this.p = $this.p + [a]::sp }
+        }
+        It 'initialize static properties, run static constructor, initialize non-static properties, run non-static constructor' {
+            [a]::new().p | Should be 'p initsp initsp init'
+        }
+    }
+    Context 'call base class constructor' {
+        class a {
+            $p
+            a($arg) { $this.p = $arg }
+        }
+        class b : a {
+            b() : base('b arg') {}
+            b($arg) : base($arg) {}
+        }
+        class c : a {
+            c() : base ('c arg') { $this.p = $this.p * 2 }
+        }
+        class d : b {
+            d() : base() {}
+        }
+        class e : b {}
+        class f : b {
+            f() {}
+        }
+        class g : a {
+            g() {}
+        }
+        It 'calls base class constructor with literal from subclass' {
+            [b]::new().p | Should be 'b arg'
+        }
+        It 'calls base class constructor with argument from subclass constructor' {
+            [b]::new('passed arg').p | Should be 'passed arg'
+        }
+        It 'calls base class constructor prior to subclass constructor' {
+            [c]::new().p | Should be 'c argc arg'
+        }
+        It 'base refers to immediate ancestor' {
+            [d]::new().p | Should be 'b arg'
+        }
+        It 'omitting constructor automatically calls base class constructor' {
+            [e]::new().p | Should be 'b arg'
+        }
+        It 'if a base class has a default constructor it is called automatically before the subclass constructor' {
+            [f]::new().p | Should be 'b arg'
+        }
+        It 'if the subclass default constructor doesn''t mention a base class constructor, the base class must implement a default constructor' {
+            { [g]::new().p } |
+                Should throw 'Cannot find an overload for "new" and the argument count: "0"'
+            [f]::new().p | Should be 'b arg'
+        }
+    }
+
+    Context 'interfaces' {
+        It 'declaring an interface is a contract that has to be implemented' {
+            {iex 'class a : System.IComparable {}' } |
+                Should throw "Method 'CompareTo' in type" # ...does not have an implementation
+        }
+        It 'the implementation of interface method must have correct signature' {
+            { iex 'class a : System.IComparable { CompareTo() {} }' } |
+                Should throw "Method 'CompareTo' in type"
+            class a : System.IComparable {
+                [int] CompareTo([object] $obj) { return 0 }
+            }
+        }
+        It 'the interface can be used' {
+            class a : System.IComparable {
+                [int] CompareTo([object] $obj) { return 1 }
+            }
+            $a1 = [a]::new()
+            $a2 = [a]::new()
+
+            $a1 -gt $a2 | Should be $true
+            $a1 -le $a2 | Should be $false
+            $a2 -gt $a1 | Should be $true
+        }
+    }
 }
