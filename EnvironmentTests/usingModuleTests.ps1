@@ -1,3 +1,7 @@
+Get-Module |
+    ? {'classModuleStub1','classModuleStub2' -contains $_.Name } |
+    Remove-Module
+
 Describe 'using modules' {
     Context 'using statement' {
         It 'using statement at beginning of scriptblock is not allowed' {
@@ -9,13 +13,11 @@ Describe 'using modules' {
             iex 'using module "ToolFoundations";'
         }
         It 'using statement is not allowed for modules not in PSModulePath...' {
-            Import-Module "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1" -Force
             { iex 'using module classModuleStub1' } |
                 Should throw 'Could not find the module'
         }
         It '...unless using statement uses their full file path.' {
             $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
-            Import-Module $path
             iex "using module $path"
         }
         It 'using statement at beginning of scriptblock using iex is not allowed' {
@@ -83,17 +85,22 @@ Describe 'using modules' {
 }
 
 $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub2.psm1"
-Import-Module $path
 iex "using module $path"
 Describe 'difference between Pester and script scope' {
-    It 'class is not accessible when it is imported and "used" in a Pester scriptblock...' {
-        $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
-        Import-Module $path
+    $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
+
+    It 'class is not accessible when it is "used" in a Pester scriptblock...' {
         iex "using module $path"
         { [c1]::new() } |
             Should throw 'Unable to find type'
     }
-    It 'class is accessible in a Pester scriptblock when it is imported and "used" outside a Pester scriptblock' {
+    It 'unless it is "newed" in the same expression.' {
+        iex @"
+            using module $path
+            [c1]::new()
+"@
+    }
+    It 'class is accessible in a Pester scriptblock when it is "used" outside a Pester scriptblock' {
         $r = [c2]::new()
         $r.GetType().Name | Should be 'c2'
     }
