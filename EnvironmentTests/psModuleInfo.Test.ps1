@@ -15,6 +15,12 @@ Describe 'PSModuleInfo' {
             $r.ExportedCommands.'Invoke-SomeCommand'.Parameters |
                 Should beNullOrEmpty
         }
+        It 'even if the module is imported first' {
+            Import-Module $commandModuleStub1Path
+            $r = Get-Module $commandModuleStub1Path -ListAvailable
+            $r.ExportedCommands.'Invoke-SomeCommand'.Parameters |
+                Should beNullOrEmpty
+        }
     }
     Context 'Import-Module -PassThru' {
         It 'includes ExportedCommands' {
