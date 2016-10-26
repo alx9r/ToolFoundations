@@ -333,9 +333,10 @@ Describe 'methods' {
         }
     }
     It 'inheriting from two parents is not allowed' {
+        $guid = [guid]::NewGuid().Guid.Replace('-','')
         class a {}
         class b {}
-        { iex 'class c : a,b {}' } |
+        { iex "class c$guid : a,b {}" } |
             Should throw 'Interface name expected'
     }
     It 'multiple generations of inheritance is allowed' {
@@ -436,6 +437,7 @@ Describe 'methods' {
         }
     }
     Context 'static constructor' {
+        $guid = [guid]::NewGuid().Guid.Replace('-','')
         class a {
             static $sp
             static a() { [a]::sp = 'set by static a()' }
@@ -448,7 +450,7 @@ Describe 'methods' {
             [a]::sp | Should be 'set by static a()'
         }
         It 'static constructors with parameters are not supported' {
-            { iex 'class b { static b($arg) {} }' } |
+            { iex "class b$guid { static b$guid(`$arg) {} }" } |
                 Should throw 'A static constructor cannot have any parameters'
         }
         It 'static properties are initialized before static constructors are called' {
@@ -467,6 +469,7 @@ Describe 'methods' {
         }
     }
     Context 'call base class constructor' {
+        $guid = [guid]::NewGuid().Guid.Replace('-','')
         class a {
             $p
             a($arg) { $this.p = $arg }
@@ -503,6 +506,10 @@ Describe 'methods' {
         It 'omitting constructor automatically calls base class constructor' {
             [e]::new().p | Should be 'b arg'
         }
+        It 'omitting constructor where base class has no default constructor causes error' {
+            { iex "class h$guid : a {}" } |
+                Should throw "Base class 'a' does not contain a parameterless constructor."
+        }
         It 'if a base class has a default constructor it is called automatically before the subclass constructor' {
             [f]::new().p | Should be 'b arg'
         }
@@ -514,12 +521,13 @@ Describe 'methods' {
     }
 
     Context 'interfaces' {
+        $guid = [guid]::NewGuid().Guid.Replace('-','')
         It 'declaring an interface is a contract that has to be implemented' {
-            {iex 'class a : System.IComparable {}' } |
+            {iex "class a$guid : System.IComparable {}" } |
                 Should throw "Method 'CompareTo' in type" # ...does not have an implementation
         }
         It 'the implementation of interface method must have correct signature' {
-            { iex 'class a : System.IComparable { CompareTo() {} }' } |
+            { iex "class a$guid : System.IComparable { CompareTo() {} }" } |
                 Should throw "Method 'CompareTo' in type"
             class a : System.IComparable {
                 [int] CompareTo([object] $obj) { return 0 }
