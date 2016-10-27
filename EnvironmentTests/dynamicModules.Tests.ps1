@@ -12,6 +12,10 @@ dynamic module can also be overwritten.  However, a command defined
 in a dynamic module continues to be available despite removal or
 overwriting of its module.
 
+Question: Can function created within a dynamic module be removed?
+Answer: A function created within a dynamic module can be removed
+by the command Remove-Item function:\FunctionName.
+
 Question: Can a function in one dynamic module call a function
 in another dynamic module?
 Answer: Yes, and explicit importing is not required in either
@@ -79,6 +83,25 @@ Describe 'remove the force-imported Dynamic Module' {
     It 'the command from the removed module still works' {
         $r = & "f-$guid"
         $r | Should be 'result of f'
+    }
+}
+Describe 'remove the Dynamic Module''s functions' {
+    It 'the command from the removed module still works' {
+        $r = & "f-$guid"
+        $r | Should be 'result of f'
+    }
+    It 'the command can be listed from the function drive' {
+        $r = Get-Item "function:\f-$guid"
+        $r.Source -eq "DynamicModule-$guid"
+    }
+    It 'the command can be removed from the function drive' {
+        Remove-Item "function:\f-$guid"
+        { Get-Item "function:\f-$guid" -ea Stop } |
+            Should throw 'does not exist'
+    }
+    It 'the command no longer works' {
+        { & "f-$guid" } |
+            Should throw 'not recognized as the name of a cmdlet, function'
     }
 }
 
