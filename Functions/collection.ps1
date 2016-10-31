@@ -61,75 +61,58 @@ https://stackoverflow.com/a/28707054/1404637
             return $InputObject
         }
 
-        if ( ($InputObject -is [hashtable]) -or
-             ($InputObject -is [System.Collections.SortedList]) -or
-             ($InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary' ))
-        {
-            $InputObject.Count -or $AllowNullOrEmpty |
-                ?: $InputObject $null
-            return
-        }
-
-        if ( ($InputObject -is [System.Collections.BitArray]) -or
-             ($InputObject -is [System.Collections.Queue])  -or
-             ($InputObject -is [System.Collections.Stack]) )
-        {
-            if ( $InputObject.Count -or $AllowNullOrEmpty )
-            {
-                if ( $PSVersionTable.PSVersion -lt '3.0' -and -not $InputObject.Count )
-                {
-                    ,(,$InputObject)
-                }
-                else
-                {
-                    return ,$InputObject
-                }
-            }
-            else
-            {
-                return $null
-            }
-        }
-
-        if ( $InputObject -is [array] )
-        {
-            ,$InputObject
-            return
-        }
-
         if ( $InputObject -is [string] )
         {
             if ( $InputObject.Length -or $AllowNullOrEmpty )
             {
                 return ,$InputObject
             }
-            else
-            {
-                return $null
-            }
+            return $null
+        }
+ 
+        if ( $InputObject -is [array] )
+        {
+            ,$InputObject
+            return
+        }       
+        
+        if 
+        ( 
+            $InputObject -is [hashtable] -or
+            $InputObject -is [System.Collections.SortedList] -or
+            $InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary' 
+        )
+        {
+            $InputObject.Count -or $AllowNullOrEmpty |
+                ?: $InputObject $null
+            return
         }
 
         if 
         ( 
+            $InputObject -is [System.Collections.BitArray] -or
+            $InputObject -is [System.Collections.Queue] -or
+            $InputObject -is [System.Collections.Stack] -or
             $InputObject -is [System.Collections.ArrayList] -or
             $InputObject.GetType().FullName -match '^System.Collections.Generic.List'
         )
         {
-            if ( $InputObject.Count -or $AllowNullOrEmpty )
-            {
-                if ( $PSVersionTable.PSVersion -lt '3.0' -and -not $InputObject.Count )
-                {
-                    return ,(,$InputObject)
-                }
-                else
-                {
-                    return ,$InputObject
-                }
-            }
-            else
+            if 
+            ( 
+                -not $InputObject.Count -and
+                -not $AllowNullOrEmpty
+            )
             {
                 return $null
             }
+
+            if ( -not $InputObject.Count -and $PSVersionTable.PSVersion -lt '3.0' )
+            {
+                ,(,$InputObject)
+                return
+            }
+
+            return ,$InputObject
         }
 
         if ( -not $InputObject -is [System.Xml.XmlElement] )
@@ -168,7 +151,7 @@ New-GenericObject System.Collections.Generic.Dictionary System.String,$secondTyp
 # Generic type with a non-default constructor
 New-GenericObject System.Collections.Generic.LinkedListNode System.Int32 10
 .LINK
-
+http://stackoverflow.com/a/185174/1404637
 #>
     [CmdletBinding()]
     param
