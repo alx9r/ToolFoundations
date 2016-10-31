@@ -69,18 +69,18 @@ https://stackoverflow.com/a/28707054/1404637
             }
             return $null
         }
- 
+
         if ( $InputObject -is [array] )
         {
             ,$InputObject
             return
-        }       
-        
-        if 
-        ( 
+        }
+
+        if
+        (
             $InputObject -is [hashtable] -or
             $InputObject -is [System.Collections.SortedList] -or
-            $InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary' 
+            $InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary'
         )
         {
             $InputObject.Count -or $AllowNullOrEmpty |
@@ -88,8 +88,8 @@ https://stackoverflow.com/a/28707054/1404637
             return
         }
 
-        if 
-        ( 
+        if
+        (
             $InputObject -is [System.Collections.BitArray] -or
             $InputObject -is [System.Collections.Queue] -or
             $InputObject -is [System.Collections.Stack] -or
@@ -97,8 +97,8 @@ https://stackoverflow.com/a/28707054/1404637
             $InputObject.GetType().FullName -match '^System.Collections.Generic.List'
         )
         {
-            if 
-            ( 
+            if
+            (
                 -not $InputObject.Count -and
                 -not $AllowNullOrEmpty
             )
