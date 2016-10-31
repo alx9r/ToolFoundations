@@ -46,7 +46,11 @@ https://stackoverflow.com/a/28707054/1404637
         [parameter(Position=1,
                    Mandatory = $true,
                    ValueFromPipeline=$false)]
-        $InputObject
+        $InputObject,
+
+        # allow null or empty objects to be emitted
+        [switch]
+        $AllowNullOrEmpty
     )
     process
     {
@@ -57,36 +61,61 @@ https://stackoverflow.com/a/28707054/1404637
             return $InputObject
         }
 
-        if ( ($InputObject -is [hashtable]) -or
-             ($InputObject -is [System.Collections.SortedList]) -or
-             ($InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary' ))
+        if ( $InputObject -is [string] )
         {
-            $InputObject.Count | ?: $InputObject $null
-            return
+            if ( $InputObject.Length -or $AllowNullOrEmpty )
+            {
+                return ,$InputObject
+            }
+            return $null
         }
 
-        if ( ($InputObject -is [System.Collections.BitArray]) -or
-             ($InputObject -is [System.Collections.Queue])  -or
-             ($InputObject -is [System.Collections.Stack]) )
+        if ( $InputObject -is [array] )
         {
-            $InputObject.Count | ?: (,$InputObject) $null
+            ,$InputObject
             return
-        }
-
-        if ( $InputObject -is [string] -or
-             $InputObject -is [System.Collections.ArrayList] -or
-             $InputObject -is [array] )
-        {
-            return ,$InputObject
         }
 
         if
         (
-            -not (
-                $InputObject.GetType().FullName -match '^System.Collections.Generic.List' -or
-                $InputObject -is [System.Xml.XmlElement]
-            )
+            $InputObject -is [hashtable] -or
+            $InputObject -is [System.Collections.SortedList] -or
+            $InputObject.GetType().FullName -match '^System.Collections.Generic.Dictionary'
         )
+        {
+            $InputObject.Count -or $AllowNullOrEmpty |
+                ?: $InputObject $null
+            return
+        }
+
+        if
+        (
+            $InputObject -is [System.Collections.BitArray] -or
+            $InputObject -is [System.Collections.Queue] -or
+            $InputObject -is [System.Collections.Stack] -or
+            $InputObject -is [System.Collections.ArrayList] -or
+            $InputObject.GetType().FullName -match '^System.Collections.Generic.List'
+        )
+        {
+            if
+            (
+                -not $InputObject.Count -and
+                -not $AllowNullOrEmpty
+            )
+            {
+                return $null
+            }
+
+            if ( -not $InputObject.Count -and $PSVersionTable.PSVersion -lt '3.0' )
+            {
+                ,(,$InputObject)
+                return
+            }
+
+            return ,$InputObject
+        }
+
+        if ( -not $InputObject -is [System.Xml.XmlElement] )
         {
             $InputObjectTypeA = $InputObject.GetType().FullName
             $InputObjectTypeB = $InputObject.GetType().BaseType.GetType().FullName
@@ -95,4 +124,65 @@ https://stackoverflow.com/a/28707054/1404637
 
         return $InputObject
     }
+}
+
+function New-GenericObject
+{
+<#
+.SYNOPSIS
+Creates an object of a generic type.
+
+.DESCRIPTION
+
+.OUTPUTS
+Generic object of type name GenericTypeName with parameters TypeParameters.
+
+.EXAMPLE
+# Simple generic collection
+$list = New-GenericObject System.Collections.ObjectModel.Collection System.Int32
+.EXAMPLE
+# Generic dictionary with two types
+New-GenericObject System.Collections.Generic.Dictionary System.String,System.Int32
+.EXAMPLE
+# Generic list as the second type to a generic dictionary
+$secondType = New-GenericObject System.Collections.Generic.List Int32
+New-GenericObject System.Collections.Generic.Dictionary System.String,$secondType.GetType()
+.EXAMPLE
+# Generic type with a non-default constructor
+New-GenericObject System.Collections.Generic.LinkedListNode System.Int32 10
+.LINK
+http://stackoverflow.com/a/185174/1404637
+#>
+    [CmdletBinding()]
+    param
+    (
+        [Parameter(Mandatory = $true)]
+        [string]
+        $GenericTypeName,
+
+        [Parameter(Mandatory = $true)]
+        [type[]]
+        $TypeParameters,
+
+        [object[]]
+        $ConstructorParameters
+    )
+
+    ## Create the generic type name
+    $genericType = [Type] ($GenericTypeName + '`' + $TypeParameters.Count)
+
+    if(-not $genericType)
+    {
+        throw "Could not find generic type $genericTypeName"
+    }
+
+    ## Bind the type arguments to it
+    $closedType = $genericType.MakeGenericType($TypeParameters)
+    if(-not $closedType)
+    {
+        throw "Could not make closed type $genericType"
+    }
+
+    ## Create the closed version of the generic type
+    Out-Collection ([Activator]::CreateInstance($closedType, $ConstructorParameters)) -AllowNullOrEmpty
 }

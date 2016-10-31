@@ -33,7 +33,7 @@ depending on the following:
 Answer:
 If the mocked function is defined in a different module from the module
 under test, the module where the mocked function is defined must be explicitly
-imported in the module under test.
+imported InModuleScope of the module under test.
 #>
 
 $guid = [guid]::NewGuid().Guid
@@ -245,6 +245,17 @@ Describe 'effect of not importing module inside module that invokes mocked comma
                 }
             }
         }
+        InModuleScope "ModuleC-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
+            Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the non-importing module' {
+                Mock "A1-$guid" { 'mocked result of A1' }
+
+                It 'returns result from mocked function (when script invoked directly)' {
+                    $r = & "C-$guid"
+                    $r | Should be 'C calls A1: mocked result of A1'
+                }
+            }
+        }
     }
     else
     {
@@ -286,6 +297,38 @@ Describe 'effect of not importing module inside module that invokes mocked comma
                     }
 
                     $threw | Should be $true
+                }
+            }
+        }
+        InModuleScope "ModuleC-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
+            Context 'indirectly invoke mocked command from another non-importing module InModuleScope of non-importing module' {
+                try
+                {
+                    Mock "A1-$guid" { 'mocked result of A1' }
+                }
+                catch [System.Management.Automation.CommandNotFoundException]
+                {
+                    $threw = $true
+                    $exception = $_
+                }
+
+                It 'throws CommandNotFoundException when mocking command (when script invoked by Pester)' {
+                    $threw | Should be $true
+                }
+            }
+        }
+        InModuleScope "ModuleC-$guid" {
+            $guid = Get-Content 'TestDrive:\guid.txt'
+            Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the non-importing module, but import the module in an It{} block' {
+                It 'import the module' {
+                    Get-Module "ModuleA-$guid" | Import-Module -WarningAction SilentlyContinue
+                }
+                Mock "A1-$guid" { 'mocked result of A1' }
+
+                It 'returns result from mocked function (when script invoked by Pester)' {
+                    $r = & "C-$guid"
+                    $r | Should be 'C calls A1: mocked result of A1'
                 }
             }
         }

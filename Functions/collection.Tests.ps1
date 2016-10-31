@@ -1,45 +1,48 @@
 ﻿Import-Module ToolFoundations -Force
 
 Describe Out-Collection {
-    BeforeAll {
-            Function Raw {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process{$InputObject}
-            }
-            Function RawReturn {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process{ return $InputObject}
-            }
-            Function UsingOutCollection {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process{ Out-Collection $InputObject}
-            }
-            Function UsingOutCollectionReturn {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process{ return Out-Collection $InputObject }
-            }
-            Function TwoOutputsUsingOutCollection {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process
-                {
-                    Out-Collection $InputObject
-                    Out-Collection $InputObject
-                }
-            }
-            Function TwoOutputsRaw {
-                [CmdletBinding()]
-                param([parameter(position=1)]$InputObject)
-                process
-                {
-                    $InputObject
-                    $InputObject
-                }
-            }
+    Function Raw {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{$InputObject}
+    }
+    Function RawReturn {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ return $InputObject}
+    }
+    Function UsingOutCollection {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ Out-Collection $InputObject}
+    }
+    Function UsingOutCollectionReturn {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ return Out-Collection $InputObject }
+    }
+    Function UsingOutCollectionAllowNullorEmpty {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ return Out-Collection $InputObject -AllowNullOrEmpty }
+    }
+    Function TwoOutputsUsingOutCollection {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process
+        {
+            Out-Collection $InputObject
+            Out-Collection $InputObject
+        }
+    }
+    Function TwoOutputsRaw {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process
+        {
+            $InputObject
+            $InputObject
+        }
     }
     Context 'raw versus Out-Collection examples' {
         It 'normally unrolls a 1x1 array.' {
@@ -65,9 +68,25 @@ Describe Out-Collection {
             $o = New-Object System.Collections.Stack
             [bool]$o | Should be $true
         }
-        It 'converts empty stack to null.' {
+        It 'empty stack normally doesn''t make it through the pipeline...' {
+            $o = Raw (New-Object System.Collections.Stack)
+            $null -eq $o | Should be $true
+        }
+        It '...even when return is used.' {
+            $o = RawReturn (New-Object System.Collections.Stack)
+            $null -eq $o | Should be $true
+        }
+        It 'empty stack survives when wrapped in sacrificial wrapper.' {
+            $o = Raw (,(New-Object System.Collections.Stack))
+            $o.GetType() | Should match 'stack'
+        }
+        It 'converts empty stack to null...' {
             $o = UsingOutCollection (New-Object System.Collections.Stack)
-            [bool]$o | Should be $false
+            $null -eq $o | Should be $true
+        }
+        It '...but not when AllowNullOrEmpty' {
+            $o = UsingOutCollectionAllowNullorEmpty (New-Object System.Collections.Stack)
+            $null -eq $o | Should be $false
         }
         It 'normally linearizes square array.' {
             $o = TwoOutputsRaw @(10,'ten')
@@ -82,30 +101,30 @@ Describe Out-Collection {
         It 'normally outputs null for 1x1 array containing null item.' {
             $o = Raw @($null)
 
-            $o | Should beNullOrEmpty
+            $null -eq $o | Should be $true
         }
         It 'preserves 1x1 array containing null item.' {
             $o = UsingOutCollection @($null)
 
             $o.Count | Should be 1
-            $o[0]    | Should beNullOrEmpty
+            $null -eq $o[0] | Should be $true
         }
         It 'normally outputs null for 1x1 array containing null item. (return)' {
             $o = RawReturn @($null)
 
-            $o | Should beNullOrEmpty
+            $null -eq $o | Should be $true
         }
         It 'preserves 1x1 array containing null item only in PowerShell 3+. (return)' {
             $o = UsingOutCollectionReturn @($null)
 
             if ( $PSVersionTable.PSVersion.Major -le 2 )
             {
-                $o | Should beNullOrEmpty
+                $null -eq $o | Should be $true
             }
             else
             {
                 $o.Count | Should be 1
-                $o[0]    | Should beNullOrEmpty
+                $null -eq $o[0] | Should be $true
             }
         }
     }
@@ -130,8 +149,13 @@ Describe Out-Collection {
         It 'emits value for empty hashtable that evaluates to false.' {
             [bool](Out-Collection @{}) | Should be $false
         }
-        It "emits null for an empty hashtable." {
-            (Out-Collection @{}) | Should be $null
+        It 'emits null for an empty hashtable...' {
+            $r = Out-Collection @{}
+            $null -eq $r | Should be $true
+        }
+        It '...except when AllowNullOrEmpty' {
+            $r = UsingOutCollectionAllowNullorEmpty @{}
+            $null -eq $r | Should be $false
         }
         It "emits hashtable for a non-empty hashtable." {
             $h = @{a=20}
@@ -173,94 +197,125 @@ Describe Out-Collection {
             $o[1][1] | Should be 40
         }
     }
-    Context "dotnet collections" {
-        BeforeEach{
-            $miObjects =
-                       (New-Object string 'TenTwentyThirty'),
-                       (& {
-                           $l = New-Object "System.Collections.Generic.List``1[System.int32]"
-                           10,20,30 | % {$l.Add($_)}
-                           $l
-                       }),
-                       [System.Collections.ArrayList]@(10,20,30),
-                       (New-Object System.Collections.BitArray 16),
-                       [System.Collections.Hashtable]@{ten=10;twenty=20;thirty=30},
-                       [System.Collections.Queue]@(10,20,30),
-                       [System.Collections.SortedList]@{ten=10;twenty=20;thirty=30},
-                       [System.Collections.Stack]@(10,20,30),
-                       (& {
-                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
-                           ('ten',10),('twenty',20),('thirty',30) | % {$d.Add($_[0],$_[1])}
-                           $d
-                       })
+}
+Describe 'Out-Collection (dotnet collections)' {
+    Function UsingOutCollection {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ Out-Collection $InputObject}
+    }
+    Function UsingOutCollectionReturn {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ return Out-Collection $InputObject }
+    }
+    Function UsingOutCollectionAllowNullorEmpty {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process{ return Out-Collection $InputObject -AllowNullOrEmpty }
+    }
+    Function TwoOutputsUsingOutCollection {
+        [CmdletBinding()]
+        param([parameter(position=1)]$InputObject)
+        process
+        {
+            Out-Collection $InputObject
+            Out-Collection $InputObject
+        }
+    }
 
-            $siObjects =
-                       (New-Object string 't'),
-                       (& {
-                           $l = New-Object "System.Collections.Generic.List``1[System.int32]"
-                           10 | % {$l.Add($_)}
-                           $l
-                       }),
-                       [System.Collections.ArrayList]@(10),
-                       (New-Object System.Collections.BitArray 1),
-                       [System.Collections.Hashtable]@{ten=10},
-                       [System.Collections.Queue]@(10),
-                       [System.Collections.SortedList]@{ten=10},
-                       [System.Collections.Stack]@(10),
-                       (& {
-                           $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
-                           ,('ten',10) | % {$d.Add($_[0],$_[1])}
-                           $d
-                       })
-        }
-        It "preserves dotnet collections containing multiple items." {
-            $miobjects |
-                % {
-                    $o = Out-Collection $_
-                    $_.GetType().BaseType.FullName | Should be $o.GetType().BaseType.FullName
-                    $_.GetType().FullName          | Should be $o.GetType().FullName
-                    $_.Count                       | Should be $o.Count
-                }
-        }
-        It "preserves dotnet collections containing single items." {
-            $siobjects |
-                % {
-                    $o = Out-Collection $_
-                    $_.GetType().BaseType.FullName | Should be $o.GetType().BaseType.FullName
-                    $_.GetType().FullName          | Should be $o.GetType().FullName
-                    $_.Count                       | Should be $o.Count
-                }
-        }
-        It 'doesn''t linearize two outputs.' {
-            foreach ($collection in $miobjects )
-            {
-                $o = TwoOutputsUsingOutCollection $collection
-                if ( $o.Count -ne 2 )
-                {
-                    Out-Null
-                }
-                $o.Count | Should be 2
+    $miObjects =
+        @(1,2,3),
+        @{a=1;b=2;c=3},
+        (New-Object string 'TenTwentyThirty'),
+        (& {
+            $l = New-Object "System.Collections.Generic.List``1[System.int32]"
+            10,20,30 | % {$l.Add($_)}
+            $l
+        }),
+        [System.Collections.ArrayList]@(10,20,30),
+        (New-Object System.Collections.BitArray 16),
+        [System.Collections.Hashtable]@{ten=10;twenty=20;thirty=30},
+        [System.Collections.Queue]@(10,20,30),
+        [System.Collections.SortedList]@{ten=10;twenty=20;thirty=30},
+        [System.Collections.Stack]@(10,20,30),
+        (& {
+            $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
+            ('ten',10),('twenty',20),('thirty',30) | % {$d.Add($_[0],$_[1])}
+            $d
+        })
+
+    $siObjects =
+        @(1),
+        @{a=1},
+        (New-Object string 't'),
+        (& {
+            $l = New-Object "System.Collections.Generic.List``1[System.int32]"
+            10 | % {$l.Add($_)}
+            $l
+        }),
+        [System.Collections.ArrayList]@(10),
+        (New-Object System.Collections.BitArray 1),
+        [System.Collections.Hashtable]@{ten=10},
+        [System.Collections.Queue]@(10),
+        [System.Collections.SortedList]@{ten=10},
+        [System.Collections.Stack]@(10),
+        (& {
+            $d = New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]"
+            ,('ten',10) | % {$d.Add($_[0],$_[1])}
+            $d
+        })
+
+    $emptyObjects =
+        @{},
+        [string]::Empty,
+        (New-Object "System.Collections.Generic.List``1[System.int32]"),
+        (New-Object System.Collections.ArrayList),
+        (New-Object System.Collections.BitArray 0),
+        (New-Object System.Collections.Hashtable),
+        (New-Object System.Collections.Queue),
+        (New-Object System.Collections.SortedList),
+        (New-Object System.Collections.Stack),
+        (New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]")
+
+    Context 'collections containing multiple items' {
+        foreach ( $c in $miObjects )
+        {
+            It "preserves collection $($c.GetType().FullName)" {
+                $r = UsingOutCollection $c
+                $c.GetType().BaseType.FullName | Should be $r.GetType().BaseType.FullName
+                $c.GetType().FullName          | Should be $r.GetType().FullName
+                $c.Count                       | Should be $r.Count
+            }
+            It "doesn''t linearize two outputs for $($c.GetType().FullName)" {
+                $r = TwoOutputsUsingOutCollection $c
+                $r.Count | Should be 2
             }
         }
-        It "emits object that evaluates to null for dotnet collections containing no items." {
-            $emptyObjects =
-                       [string]::Empty,
-                       (New-Object "System.Collections.Generic.List``1[System.int32]"),
-                       (New-Object System.Collections.ArrayList),
-                       (New-Object System.Collections.BitArray 0),
-                       (New-Object System.Collections.Hashtable),
-                       (New-Object System.Collections.Queue),
-                       (New-Object System.Collections.SortedList),
-                       (New-Object System.Collections.Stack),
-                       (New-Object "System.Collections.Generic.Dictionary``2[System.String,System.int32]")
-
-            $emptyObjects |
-                % {
-                    $o = Out-Collection $_
-                    $result = [bool]$o
-                    $result | Should Be $false
-                }
-         }
+    }
+    Context 'collections containing single items' {
+        foreach ( $c in $siObjects )
+        {
+            It "preserves collection $($c.GetType().FullName)" {
+                $r = UsingOutCollection $c
+                $c.GetType().BaseType.FullName | Should be $r.GetType().BaseType.FullName
+                $c.GetType().FullName          | Should be $r.GetType().FullName
+                $c.Count                       | Should be $r.Count
+            }
+        }
+    }
+    Context 'collections containing no items' {
+        foreach ( $c in $emptyObjects )
+        {
+            It "emits null for collection $($c.GetType().FullName)" {
+                $r = UsingOutCollection $c
+                $null -eq $r | Should be $true
+            }
+            It "...except when AllowNullOrEmpty." {
+                $r = UsingOutCollectionAllowNullorEmpty $c
+                $null -eq $r | Should be $false
+            }
+        }
     }
 }
 Describe 'Out-Collection (XML)' {
@@ -284,6 +339,37 @@ Describe 'Out-Collection (XML)' {
         }
         It 'does not raise warning.' {
             Assert-MockCalled Write-Warning -Times 0
+        }
+    }
+}
+
+Describe 'New-GenericObject' {
+    Context '.Net collection of .Net objects' {
+        It 'create dictionary using generics' {
+            $r= New-GenericObject 'System.Collections.Generic.Dictionary' ([System.String]),([System.Int32])
+            $r.GetType() | Should match 'System.Collections.Generic.Dictionary'
+        }
+        It 'create dictionary using a type in the Automation namespace' {
+            $r = New-GenericObject 'System.Collections.Generic.Dictionary' 'System.String','System.Management.Automation.CommandInfo'
+            $r.GetType() | Should match 'System.Collections.Generic.Dictionary'
+        }
+    }
+    if ( $PSVersionTable.PSVersion -ge '5.0' )
+    {
+        Context '.Net collection of PowerShell Class objects' {
+            iex 'class a {$p}'
+            $h = @{}
+            It 'create dictionary using a PowerShell class' {
+                $h.a = New-GenericObject 'System.Collections.Generic.Dictionary' 'System.String',([a])
+            }
+            It 'add an item' {
+                $c = [a]::new()
+                $c.p = 'item1'
+                $h.a.Add('item1',$c)
+            }
+            It 'retrieve the item' {
+                $h.a.item1.p | Should be 'item1'
+            }
         }
     }
 }
