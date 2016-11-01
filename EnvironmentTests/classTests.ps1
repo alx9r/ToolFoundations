@@ -43,6 +43,21 @@ Describe 'properties' {
             $c.p | Should be 2
         }
     }
+    Context 'access $this in initializer' {
+        class c {
+            $p1 = 'val1'
+            $p2 = "$($this.p1)val2"
+            $p4 = "$($this.p3)val4"
+            $p3 = 'val3'
+        }
+        $c = [c]::new()
+        It 'one property can access another property in its initializer' {
+            $c.p2 | Should be 'val1val2'
+        }
+        It 'but beware of initialization order' {
+            $c.p4 | Should be 'val4'
+        }
+    }
     Context 'typed' {
         class c { [string] $p }
         $c = [c]::new()
@@ -116,6 +131,30 @@ Describe 'properties' {
                     $this._p = "setter $arg"
                 }
             }
+        }
+        $c = [c]::new()
+        It 'the property is a scriptproperty' {
+            $r = Get-Member -InputObject $c -Name 'p'
+            $r.MemberType | Should match 'ScriptProperty'
+        }
+        It 'the setter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'getter setter arg value'
+        }
+    }
+    Context 'override setter and getter using Add-Members (alternate syntax)' {
+        class c {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' `
+                {
+                    # get
+                    "getter $($this._p)"
+                }`
+                {
+                    # set
+                    param ( $arg )
+                    $this._p = "setter $arg"
+                }
+            )
         }
         $c = [c]::new()
         It 'the property is a scriptproperty' {
