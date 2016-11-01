@@ -9,12 +9,12 @@ Describe 'properties' {
             $r.Count | Should be 1
         }
         It 'the property has a getter' {
-            $r = Get-Member -InputObject $c -MemberType Property
-            $r.Definition | Should match 'get'
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property has a setter' {
-            $r = Get-Member -InputObject $c -MemberType Property
-            $r.Definition | Should match 'set'
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property starts out empty' {
             $c.p | Should beNullOrEmpty
@@ -65,18 +65,66 @@ Describe 'properties' {
             $r.Count | Should be 1
         }
         It 'the property has a getter' {
-            $r = Get-Member -InputObject $c -MemberType Property -Force
-            $r.Definition | Should match 'get'
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property has a setter' {
-            $r = Get-Member -InputObject $c -MemberType Property -Force
-            $r.Definition | Should match 'set'
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property can be set as usual' {
             $c.p = 'value'
         }
         It 'the property can be retrieved as usual' {
             $c.p | Should be 'value'
+        }
+    }
+    Context 'override setter and getter using set_p()/get_p()' {
+        class c {
+            $p
+            set_p($arg) { $this.p = "setter $arg" }
+            [object] get_p() { return $this.p }
+        }
+        $c = [c]::new()
+        It 'the property has only one getter' {
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.Count | Should be 1
+            $r.MemberType | Should match 'Method'
+        }
+        It 'the property has only one setter' {
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.Count | Should be 1
+            $r.MemberType | Should match 'Method'
+        }
+        It 'the setter is not overridden' {
+            $c.p = 'arg value'
+            $c.p | Should be 'arg value'
+        }
+    }
+    Context 'override setter and getter using Add-Members' {
+        class c {
+            hidden $_p
+            c() {
+                $this | Add-Member ScriptProperty 'p' `
+                {
+                    # get
+                    "getter $($this._p)"
+                }`
+                {
+                    # set
+                    param ( $arg )
+                    $this._p = "setter $arg"
+                }
+            }
+        }
+        $c = [c]::new()
+        It 'the property is a scriptproperty' {
+            $r = Get-Member -InputObject $c -Name 'p'
+            $r.MemberType | Should match 'ScriptProperty'
+        }
+        It 'the setter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'getter setter arg value'
         }
     }
     Context 'static property' {
