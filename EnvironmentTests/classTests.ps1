@@ -351,6 +351,8 @@ Describe 'methods' {
             $a.p | Should be 'value set by sm'
         }
     }
+}
+Describe 'naming' {
     Context 'class names' {
         $characters = @{
             Allowed = 'a_'
@@ -395,7 +397,9 @@ Describe 'methods' {
             }
         }
     }
-    Context 'inheritance' {
+}
+Describe 'inheritance' {
+    Context 'plain' {
         class a {
             $p
             [object]m() { return 'm' }
@@ -463,6 +467,8 @@ Describe 'methods' {
             $c.a | Should be 'value'
         }
     }
+}
+Describe 'overrides' {
     Context 'override base class method' {
         class a {
             [object]m() { return 'a' }
@@ -495,19 +501,21 @@ Describe 'methods' {
             $b.m() | Should be 'ab'
         }
     }
-    Context 'type equality' {
-        class a {}
-        class b : a {}
-        $a = [a]::new()
-        $b = [b]::new()
-        It '$subClass -is [baseClass]' {
-            $b -is [a] | Should be $true
-        }
-        It '$baseClass -isnot [subClass]' {
-            $a -isnot [b] | Should be $true
-        }
+}
+Describe 'type equality' {
+    class a {}
+    class b : a {}
+    $a = [a]::new()
+    $b = [b]::new()
+    It '$subClass -is [baseClass]' {
+        $b -is [a] | Should be $true
     }
-    Context 'constructors' {
+    It '$baseClass -isnot [subClass]' {
+        $a -isnot [b] | Should be $true
+    }
+}
+Describe 'constructors' {
+    Context 'plain' {
         class a {
             $p
             a() {$this.p = 'a'}
@@ -606,7 +614,8 @@ Describe 'methods' {
             [f]::new().p | Should be 'b arg'
         }
     }
-
+}
+Describe 'interfaces' {
     Context 'interfaces' {
         $guid = [guid]::NewGuid().Guid.Replace('-','')
         It 'declaring an interface is a contract that has to be implemented' {
