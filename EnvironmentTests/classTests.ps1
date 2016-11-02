@@ -144,17 +144,14 @@ Describe 'properties' {
     }
     Context 'override setter and getter using Add-Members (alternate syntax)' {
         class c {
-            hidden $_p = $($this | Add-Member ScriptProperty 'p' `
-                {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
                     # get
                     "getter $($this._p)"
-                }`
-                {
+                } {
                     # set
                     param ( $arg )
                     $this._p = "setter $arg"
-                }
-            )
+                })
         }
         $c = [c]::new()
         It 'the property is a scriptproperty' {
@@ -499,6 +496,51 @@ Describe 'overrides' {
         $b = [b]::new()
         It 'child method calls base method' {
             $b.m() | Should be 'ab'
+        }
+    }
+    Context 'override base class property' {
+        class a {
+            [string] $p1 = $($this.p2 = 'p2val' );
+            [string] $p2
+        }
+        class b :a {
+            [hashtable] $p1
+        }
+        It 'child type overrides base class type' {
+            $c = [b]::new()
+            $c.p1 = @{}
+            $c.p1 | Should beOfTYpe ([hashtable])
+        }
+        It 'initializer is invoked for property on base class even when it is overridden' {
+            $c = [b]::new()
+            $c.p2 | Should be 'p2val'
+        }
+    }
+    Context 'override of custom setter and getter using Add-Members' {
+        class a {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
+                # get
+                "GetterA $($this._p)"
+            } {
+                # set
+                param ( $arg )
+                $this._p = "SetterA $arg"
+            })
+        }
+        class b {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
+                # get
+                "GetterB $($this._p)"
+            } {
+                # set
+                param ( $arg )
+                $this._p = "SetterB $arg"
+            })
+        }
+        $c = [b]::new()
+        It 'the overridden setter and getter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'GetterB SetterB arg value'
         }
     }
 }
