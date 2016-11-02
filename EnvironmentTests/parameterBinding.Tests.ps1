@@ -665,7 +665,6 @@ Describe 'pipeline binding to ScriptProperty' {
     It 'pipeline binds normal property by name' {
         $r = $o | f
         $r.p | Should be 'pval'
-        $r
     }
     It 'pipeline binds script property by name' {
         $r = $o | f
