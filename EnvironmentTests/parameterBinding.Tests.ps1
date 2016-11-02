@@ -647,3 +647,28 @@ Describe 'Select parameter set based on hashtable vs pscustomobject vs string' {
         }
     }
 }
+Describe 'pipeline binding to ScriptProperty' {
+    $o = New-Object psobject -Property @{ p = 'pval' } |
+        Add-Member ScriptProperty 'sp' { 'spval' } -PassThru
+    function f {
+        [CmdletBinding()]
+        param
+        (
+            [Parameter(ValueFromPipelineByPropertyName = $true)]
+            $p,
+
+            [Parameter(ValueFromPipelineByPropertyName = $true)]
+            $sp
+        )
+        process { return $PSBoundParameters }
+    }
+    It 'pipeline binds normal property by name' {
+        $r = $o | f
+        $r.p | Should be 'pval'
+        $r
+    }
+    It 'pipeline binds script property by name' {
+        $r = $o | f
+        $r.sp | Should be 'spval'
+    }
+}
