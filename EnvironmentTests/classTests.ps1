@@ -9,12 +9,12 @@ Describe 'properties' {
             $r.Count | Should be 1
         }
         It 'the property has a getter' {
-            $r = Get-Member -InputObject $c -MemberType Property
-            $r.Definition | Should match 'get'
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property has a setter' {
-            $r = Get-Member -InputObject $c -MemberType Property
-            $r.Definition | Should match 'set'
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property starts out empty' {
             $c.p | Should beNullOrEmpty
@@ -43,6 +43,21 @@ Describe 'properties' {
             $c.p | Should be 2
         }
     }
+    Context 'access $this in initializer' {
+        class c {
+            $p1 = 'val1'
+            $p2 = "$($this.p1)val2"
+            $p4 = "$($this.p3)val4"
+            $p3 = 'val3'
+        }
+        $c = [c]::new()
+        It 'one property can access another property in its initializer' {
+            $c.p2 | Should be 'val1val2'
+        }
+        It 'but beware of initialization order' {
+            $c.p4 | Should be 'val4'
+        }
+    }
     Context 'typed' {
         class c { [string] $p }
         $c = [c]::new()
@@ -65,18 +80,87 @@ Describe 'properties' {
             $r.Count | Should be 1
         }
         It 'the property has a getter' {
-            $r = Get-Member -InputObject $c -MemberType Property -Force
-            $r.Definition | Should match 'get'
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property has a setter' {
-            $r = Get-Member -InputObject $c -MemberType Property -Force
-            $r.Definition | Should match 'set'
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.MemberType | Should match 'Method'
         }
         It 'the property can be set as usual' {
             $c.p = 'value'
         }
         It 'the property can be retrieved as usual' {
             $c.p | Should be 'value'
+        }
+    }
+    Context 'override setter and getter using set_p()/get_p()' {
+        class c {
+            $p
+            set_p($arg) { $this.p = "setter $arg" }
+            [object] get_p() { return $this.p }
+        }
+        $c = [c]::new()
+        It 'the property has only one getter' {
+            $r = Get-Member -InputObject $c -Name 'get_p' -Force
+            $r.Count | Should be 1
+            $r.MemberType | Should match 'Method'
+        }
+        It 'the property has only one setter' {
+            $r = Get-Member -InputObject $c -Name 'set_p' -Force
+            $r.Count | Should be 1
+            $r.MemberType | Should match 'Method'
+        }
+        It 'the setter is not overridden' {
+            $c.p = 'arg value'
+            $c.p | Should be 'arg value'
+        }
+    }
+    Context 'override setter and getter using Add-Members' {
+        class c {
+            hidden $_p
+            c() {
+                $this | Add-Member ScriptProperty 'p' `
+                {
+                    # get
+                    "getter $($this._p)"
+                }`
+                {
+                    # set
+                    param ( $arg )
+                    $this._p = "setter $arg"
+                }
+            }
+        }
+        $c = [c]::new()
+        It 'the property is a scriptproperty' {
+            $r = Get-Member -InputObject $c -Name 'p'
+            $r.MemberType | Should match 'ScriptProperty'
+        }
+        It 'the setter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'getter setter arg value'
+        }
+    }
+    Context 'override setter and getter using Add-Members (alternate syntax)' {
+        class c {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
+                    # get
+                    "getter $($this._p)"
+                } {
+                    # set
+                    param ( $arg )
+                    $this._p = "setter $arg"
+                })
+        }
+        $c = [c]::new()
+        It 'the property is a scriptproperty' {
+            $r = Get-Member -InputObject $c -Name 'p'
+            $r.MemberType | Should match 'ScriptProperty'
+        }
+        It 'the setter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'getter setter arg value'
         }
     }
     Context 'static property' {
@@ -264,6 +348,8 @@ Describe 'methods' {
             $a.p | Should be 'value set by sm'
         }
     }
+}
+Describe 'naming' {
     Context 'class names' {
         $characters = @{
             Allowed = 'a_'
@@ -308,7 +394,9 @@ Describe 'methods' {
             }
         }
     }
-    Context 'inheritance' {
+}
+Describe 'inheritance' {
+    Context 'plain' {
         class a {
             $p
             [object]m() { return 'm' }
@@ -376,6 +464,8 @@ Describe 'methods' {
             $c.a | Should be 'value'
         }
     }
+}
+Describe 'overrides' {
     Context 'override base class method' {
         class a {
             [object]m() { return 'a' }
@@ -408,19 +498,66 @@ Describe 'methods' {
             $b.m() | Should be 'ab'
         }
     }
-    Context 'type equality' {
-        class a {}
-        class b : a {}
-        $a = [a]::new()
-        $b = [b]::new()
-        It '$subClass -is [baseClass]' {
-            $b -is [a] | Should be $true
+    Context 'override base class property' {
+        class a {
+            [string] $p1 = $($this.p2 = 'p2val' );
+            [string] $p2
         }
-        It '$baseClass -isnot [subClass]' {
-            $a -isnot [b] | Should be $true
+        class b :a {
+            [hashtable] $p1
+        }
+        It 'child type overrides base class type' {
+            $c = [b]::new()
+            $c.p1 = @{}
+            $c.p1 | Should beOfTYpe ([hashtable])
+        }
+        It 'initializer is invoked for property on base class even when it is overridden' {
+            $c = [b]::new()
+            $c.p2 | Should be 'p2val'
         }
     }
-    Context 'constructors' {
+    Context 'override of custom setter and getter using Add-Members' {
+        class a {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
+                # get
+                "GetterA $($this._p)"
+            } {
+                # set
+                param ( $arg )
+                $this._p = "SetterA $arg"
+            })
+        }
+        class b {
+            hidden $_p = $($this | Add-Member ScriptProperty 'p' {
+                # get
+                "GetterB $($this._p)"
+            } {
+                # set
+                param ( $arg )
+                $this._p = "SetterB $arg"
+            })
+        }
+        $c = [b]::new()
+        It 'the overridden setter and getter works as expected' {
+            $c.p = 'arg value'
+            $c.p | Should be 'GetterB SetterB arg value'
+        }
+    }
+}
+Describe 'type equality' {
+    class a {}
+    class b : a {}
+    $a = [a]::new()
+    $b = [b]::new()
+    It '$subClass -is [baseClass]' {
+        $b -is [a] | Should be $true
+    }
+    It '$baseClass -isnot [subClass]' {
+        $a -isnot [b] | Should be $true
+    }
+}
+Describe 'constructors' {
+    Context 'plain' {
         class a {
             $p
             a() {$this.p = 'a'}
@@ -519,7 +656,8 @@ Describe 'methods' {
             [f]::new().p | Should be 'b arg'
         }
     }
-
+}
+Describe 'interfaces' {
     Context 'interfaces' {
         $guid = [guid]::NewGuid().Guid.Replace('-','')
         It 'declaring an interface is a contract that has to be implemented' {

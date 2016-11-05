@@ -16,6 +16,12 @@ Describe 'using modules' {
             { iex 'using module classModuleStub1' } |
                 Should throw 'Could not find the module'
         }
+        It '...even if it is imported first...' {
+            Import-Module "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
+            Get-Module classModuleStub1 | Should not beNullOrEmpty
+            { iex 'using module classModuleStub1' } |
+                Should throw 'Could not find the module'
+        }
         It '...unless using statement uses their full file path.' {
             $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
             iex "using module $path"
@@ -80,6 +86,10 @@ Describe 'using modules' {
         It 'class is available outside module after using statement in dot-sourced script' {
             $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
             $r.GetType().Name | Should be 'c1'
+        }
+        It 'class is available outside module by invoke bound scriptblock' {
+            $r = & $module.NewBoundScriptBlock({[c]::new()})
+            $r.GetType().Name | Should be 'c'
         }
     }
 }
