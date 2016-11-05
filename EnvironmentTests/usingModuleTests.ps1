@@ -81,6 +81,10 @@ Describe 'using modules' {
             $r = . "$($PSCommandPath | Split-Path -Parent)\..\Resources\initiateUsingModuleTest.ps1"
             $r.GetType().Name | Should be 'c1'
         }
+        It 'class is available outside module by invoke bound scriptblock' {
+            $r = & $module.NewBoundScriptBlock({[c]::new()})
+            $r.GetType().Name | Should be 'c'
+        }
     }
 }
 
