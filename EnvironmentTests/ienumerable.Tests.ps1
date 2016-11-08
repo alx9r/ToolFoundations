@@ -89,7 +89,7 @@ Describe 'generic IEnumerator' {
         class e : __e, System.Collections.Generic.IEnumerator[string] {
             [string] get_Current () {return 'generic'}
             Dispose() {}
-        }        
+        }
     }
 }
 Describe 'non-generic IEnumerator implementation' {
@@ -97,7 +97,7 @@ Describe 'non-generic IEnumerator implementation' {
     class e : System.Collections.IEnumerator {
         $a = 'a','b'
         [Nullable[int]] $i
-        [object] get_Current () { 
+        [object] get_Current () {
             if ( $null -eq $this.i )
             {
                 return $null
@@ -176,70 +176,91 @@ Describe 'non-generic IEnumerator implementation' {
             $e.i | Should beNullOrEmpty
         }
     }
-    Context 'cast to List' {
-        $h = @{}
-        It 'cast' {
-            [System.Collections.Generic.List[string]]$h.List = $e
+}
+
+Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritance technique' {
+    # see listing 3.10 of Jon Skeet's C# in Depth, 2nd Edition
+    # https://gist.github.com/Jaykul/dfc355598e0f233c8c7f288295f7bb56
+    class _CountingEnumerable : System.Collections.IEnumerable
+    {
+        [System.Collections.IEnumerator] GetEnumerator()
+        {
+            return [_CountingEnumerator]::new()
         }
-        It 'list type is correct' {
-            ,$h.list | Should beOfType ([System.Collections.Generic.List[string]])
+    }
+    class CountingEnumerable : _CountingEnumerable,System.Collections.Generic.IEnumerable[int]
+    {
+        [System.Collections.Generic.IEnumerator[int]] GetEnumerator()
+        {
+            return [CountingEnumerator]::new()
         }
-        It 'list count is incorrect' {
-            $h.list.Count | Should be 1
+    }
+    class _CountingEnumerator : System.Collections.IEnumerator
+    {
+        [int] $Current = -1
+
+        [bool] MoveNext()
+        {
+            $this.Current ++
+            return $this.Current -lt 10
+        }
+
+        [object] get_Current ()
+        {
+            return $this.Current
+        }
+
+        Reset() {}
+        Dispose() {}
+    }
+    class CountingEnumerator : _CountingEnumerator,System.Collections.Generic.IEnumerator[int]
+    {
+        [int] get_Current ()
+        {
+            return $this.Current
+        }
+    }
+    Context 'non-generic' {
+        It 'pipeline correctly consumes enumerator' {
+            $r = [_CountingEnumerator]::new() | % {$_}
+            $r.Count | Should be 10
+            $r[9] | Should be 9
+        }
+        It 'pipeline correctly consumes enumerable' {
+            $r = [_CountingEnumerable]::new() | % {$_}
+            $r.Count | Should be 10
+            $r[9] | Should be 9
+        }
+        It 'throws when converting enumerable to generic list using constructor' {
+            { [System.Collections.Generic.List[int]]::new([_CountingEnumerable]::new()) } |
+                Should throw 'Cannot find an overload'
+        }
+        It 'throws when converting enumerable to generic list by casting' {
+            { [System.Collections.Generic.List[int]] $r = [_CountingEnumerable]::new() } |
+                Should throw 'Cannot convert'
+        }
+    }
+    Context 'generic' {
+        It 'pipeline correctly consumes enumerator' {
+            $r = [CountingEnumerator]::new() | % {$_}
+            $r.Count | Should be 10
+            $r[9] | Should be 9
+        }
+        It 'pipeline correctly consumes enumerable' {
+            $r = [CountingEnumerable]::new() | % {$_}
+            $r.Count | Should be 10
+            $r[9] | Should be 9
+        }
+        It 'converts enumerable to generic list using constructor' {
+            $r = [System.Collections.Generic.List[int]]::new([CountingEnumerable]::new())
+            $r.Count | Should be 10
+            $r[9] | Should be 9
+        }
+        It 'converts enumerable to generic list using casting' {
+            [System.Collections.Generic.List[int]] $r = [CountingEnumerable]::new()
+            $r.Count | Should be 10
+            $r[9] | Should be 9
         }
     }
 }
 
-Describe 'non-generic IEnumerator implementation' {
-    class _e : System.Collections.IEnumerator {
-        $a = 'a','b'
-        [Nullable[int]] $i
-        [object] get_Current () { 
-            if ( $null -eq $this.i )
-            {
-                return $null
-            }
-            if ( $this.i -gt 1 )
-            {
-                throw 'enumerator past end'
-                return $null
-            }
-            return $this.a[$this.i]
-        }
-        [bool] MoveNext () {
-            if ( $this.i -ge 1 )
-            {
-                $this.i++
-                return $false
-            }
-            if ( $null -eq $this.i )
-            {
-                $this.i = 0
-                return $true
-            }
-            $this.i++
-            return $true
-        }
-        Reset () {
-            $this.i = $null
-        }
-        Dispose () {}
-    }
-    class e : _e,System.Collections.Generic.IEnumerator[string] {
-        [string] get_Current () {return ([_e]$this).get_Current()}
-    }
-    $e = [e]::new()
-
-    Context 'cast to List' {
-        $h = @{}
-        It 'cast' {
-            [System.Collections.Generic.List[string]]$h.List = $e
-        }
-        It 'list type is correct' {
-            ,$h.list | Should beOfType ([System.Collections.Generic.List[string]])
-        }
-        It 'list count is incorrect' {
-            $h.list.Count | Should be 1
-        }
-    }
-}
