@@ -116,6 +116,29 @@ Describe 'properties' {
             $c.p | Should be 'arg value'
         }
     }
+    Context 'virtual property using get_p() (simple)' {
+        class c {
+            [object] get_p() { return '' }
+        }
+        $c = [c]::new()
+        It 'the object has no property p' {
+            $r = Get-Member -InputObject $c -Name 'p' -Force
+            $r | Should beNullOrEmpty
+        }
+    }
+    Context 'virtual property using get_p() (using inheritance)' {
+        class Ip {
+            $p = 'value Ip'
+        }
+        class c : Ip {
+            [object] get_p() { return 'value c' }
+        }
+        $c = [c]::new()
+        It 'getting object does not invoke getter' {
+            $r = $c.p
+            $r | Should be 'value Ip'
+        }
+    }
     Context 'override setter and getter using Add-Members' {
         class c {
             hidden $_p
