@@ -198,6 +198,7 @@ Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritanc
     class _CountingEnumerator : System.Collections.IEnumerator
     {
         [int] $Current = -1
+        static [string] $which_get_Current
 
         [bool] MoveNext()
         {
@@ -205,9 +206,15 @@ Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritanc
             return $this.Current -lt 10
         }
 
-        [object] get_Current ()
+        [object] _get_Current()
         {
             return $this.Current
+        }
+
+        [object] get_Current ()
+        {
+            [_CountingEnumerator]::which_get_Current = 'non-generic'
+            return $this._get_Current()
         }
 
         Reset() {}
@@ -217,7 +224,8 @@ Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritanc
     {
         [int] get_Current ()
         {
-            return $this.Current
+            [_CountingEnumerator]::which_get_Current = 'generic'
+            return ([_CountingEnumerator]$this)._get_Current()
         }
     }
     Context 'non-generic' {
@@ -226,10 +234,18 @@ Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritanc
             $r.Count | Should be 10
             $r[9] | Should be 9
         }
+        It 'invoked non-generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'non-generic'
+        }
         It 'pipeline correctly consumes enumerable' {
             $r = [_CountingEnumerable]::new() | % {$_}
             $r.Count | Should be 10
             $r[9] | Should be 9
+        }
+        It 'invoked non-generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'non-generic'
         }
         It 'throws when converting enumerable to generic list using constructor' {
             { [System.Collections.Generic.List[int]]::new([_CountingEnumerable]::new()) } |
@@ -246,21 +262,181 @@ Describe 'PowerShell translation of Jon Skeet Example using Jaykul''s inheritanc
             $r.Count | Should be 10
             $r[9] | Should be 9
         }
+        It 'invoked non-generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'non-generic'
+        }
         It 'pipeline correctly consumes enumerable' {
             $r = [CountingEnumerable]::new() | % {$_}
             $r.Count | Should be 10
             $r[9] | Should be 9
+        }
+        It 'invoked non-generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'non-generic'
+        }
+        It 'correct counts using foreach loop' {
+            $j = 0
+            foreach ( $i in [CountingEnumerable]::new() )
+            {
+                $i | Should be $j
+                $j ++
+            }
+            $j | Should be 10
+        }
+        It 'invoked non-generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'non-generic'
         }
         It 'converts enumerable to generic list using constructor' {
             $r = [System.Collections.Generic.List[int]]::new([CountingEnumerable]::new())
             $r.Count | Should be 10
             $r[9] | Should be 9
         }
+        It 'invoked generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'generic'
+        }
         It 'converts enumerable to generic list using casting' {
             [System.Collections.Generic.List[int]] $r = [CountingEnumerable]::new()
             $r.Count | Should be 10
             $r[9] | Should be 9
         }
+        It 'invoked generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'generic'
+        }
+        It 'can be manually invoked' {
+            $eable = [CountingEnumerable]::new()
+            $eator = $eable.GetEnumerator()
+            $eator.Current | Should be -1
+            $eator.MoveNext() | Should be $true
+            $eator.Current | Should be 0
+        }
+        It 'invoked generic get_Current' {
+            [_CountingEnumerator]::which_get_Current |
+                Should be 'generic'
+        }
     }
 }
 
+Describe 'IEnumerable<T> emitted from module' {
+    $module = New-Module 'ienumerables' {
+        class _CountingEnumerable : System.Collections.IEnumerable
+        {
+            [System.Collections.IEnumerator] GetEnumerator()
+            {
+                return [_CountingEnumerator]::new()
+            }
+        }
+        class CountingEnumerable : _CountingEnumerable,System.Collections.Generic.IEnumerable[int]
+        {
+            [System.Collections.Generic.IEnumerator[int]] GetEnumerator()
+            {
+                return [CountingEnumerator]::new()
+            }
+        }
+        class _CountingEnumerator : System.Collections.IEnumerator
+        {
+            [int] $Current = -1
+
+            [bool] MoveNext()
+            {
+                $this.Current ++
+                return $this.Current -lt 10
+            }
+
+            [object] get_Current ()
+            {
+                return $this.Current
+            }
+
+            Reset() {}
+            Dispose() {}
+        }
+        class CountingEnumerator : _CountingEnumerator,System.Collections.Generic.IEnumerator[int]
+        {
+            [int] get_Current ()
+            {
+                return $this.Current
+            }
+        }
+        function New-CountingEnumerable { return ,[CountingEnumerable]::new() }
+    }
+    It 'New-' {
+        $r = New-CountingEnumerable
+        $r.GetType().Name | Should be 'CountingEnumerable'
+    }
+    It 'correctly counts using foreach loop' {
+        $counter = New-CountingEnumerable
+        $j = 0
+        foreach ( $i in $counter )
+        {
+            $i | Should be $j
+            $j ++
+        }
+        $j | Should be 10
+    }
+}
+
+Describe 'IEnumerable<T> emitted from module where T is a powershell class' {
+    $module = New-Module 'ienumerables' {
+        class c { $i=0 }
+        class _CountingEnumerable : System.Collections.IEnumerable
+        {
+            [System.Collections.IEnumerator] GetEnumerator()
+            {
+                return [_CountingEnumerator]::new()
+            }
+        }
+        class CountingEnumerable : _CountingEnumerable,System.Collections.Generic.IEnumerable[c]
+        {
+            [System.Collections.Generic.IEnumerator[c]] GetEnumerator()
+            {
+                return [CountingEnumerator]::new()
+            }
+        }
+        class _CountingEnumerator : System.Collections.IEnumerator
+        {
+            [int] $Current = -1
+
+            [bool] MoveNext()
+            {
+                $this.Current ++
+                return $this.Current -lt 10
+            }
+
+            [object] get_Current ()
+            {
+                $object = [c]::new()
+                $object.i = $this.Current
+                return $object
+            }
+
+            Reset() {}
+            Dispose() {}
+        }
+        class CountingEnumerator : _CountingEnumerator,System.Collections.Generic.IEnumerator[c]
+        {
+            [c] get_Current ()
+            {
+                return $this.Current
+            }
+        }
+        function New-CountingEnumerable { return ,[CountingEnumerable]::new() }
+    }
+    It 'New-' {
+        $r = New-CountingEnumerable
+        $r.GetType().Name | Should be 'CountingEnumerable'
+    }
+    It 'correctly counts using foreach loop' {
+        $counter = New-CountingEnumerable
+        $j = 0
+        foreach ( $c in $counter )
+        {
+            $c.i | Should be $j
+            $j ++
+        }
+        $j | Should be 10
+    }
+}
