@@ -7,7 +7,7 @@ $typeFiles = "$moduleRoot\Functions\*Types.ps1"
 $otherFiles = "$moduleRoot\Functions\*.ps1" | ? {$typeFiles -notcontains $_}
 @($typeFiles)+@($otherFiles) |
     Resolve-Path |
-    Where-Object { -not ($_.ProviderPath.ToLower().Contains(".tests.")) } |
+    Where-Object { -not ($_.ProviderPath.ToLower().Contains("tests.")) } |
     ForEach-Object { . $_.ProviderPath }
 
 # Export all the functions and module members here.
