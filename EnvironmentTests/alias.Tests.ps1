@@ -7,11 +7,11 @@ Describe 'alias: drive' {
                 Should throw
         }
         It 'New-Item "succeeds"...' {
-            New-Item -Path alias: -Name folder -Value 'value' -ItemType Directory -ErrorAction Stop 
+            New-Item -Path alias: -Name folder -Value 'value' -ItemType Directory -ErrorAction Stop
         }
         It '...but no item is created.' {
             $r = Get-ChildItem -Path alias: -Recurse |
-                ? { $_.Name -in 'folder','value' }
+                ? { 'folder','value' -contains $_.Name }
             $r | Should beNullOrEmpty
         }
     }
@@ -22,7 +22,7 @@ Describe 'altering aliases' {
             Set-Alias someName someCommand
             Get-Alias someName | Should not beNullOrEmpty
             Rename-Item alias:\someName someOtherName
-            Get-Alias someName -ea si | Should beNullOrEmpty
+            Get-Alias someName -ea SilentlyContinue | Should beNullOrEmpty
             Get-Alias someOtherName | Should not beNullOrEmpty
         }
     }
@@ -35,14 +35,14 @@ Describe 'altering aliases' {
         }
         It 'renaming works in local scope' {
             Rename-Item Alias:\someName someOtherName
-            Get-Alias someName -ea si | Should beNullOrEmpty
+            Get-Alias someName -ea SilentlyContinue | Should beNullOrEmpty
             Get-Alias someOtherName | Should not beNullOrEmpty
         }
         It 'the old name is gone in this scope...' {
-            Get-Alias someName -ea si | Should beNullOrEmpty
+            Get-Alias someName -ea SilentlyContinue | Should beNullOrEmpty
         }
         It '...but so is the new name.' {
-            Get-Alias someOtherName -ea si | Should beNullOrEmpty
+            Get-Alias someOtherName -ea SilentlyContinue | Should beNullOrEmpty
         }
     }
 }
@@ -50,7 +50,7 @@ Describe 'removing aliases' {
     Context 'Global AllScope created outside module removed from inside module' {
         It 'create module' {
             New-Module {
-                function f { Get-Alias someName -ea si }
+                function f { Get-Alias someName -ea SilentlyContinue }
                 function g { Remove-Item alias:\someName -ErrorAction Stop }
                 function h { Rename-Item alias:\someName someOtherName -ErrorAction Stop }
                 function j { Remove-Item alias:\someName -Force -ErrorAction Stop }
@@ -137,7 +137,7 @@ Describe 'override alias' {
                     Remove-Item alias:\someName -ErrorAction Stop
                     Set-Alias someName anotherCommand -ErrorAction Stop
                     Get-Alias someName
-                    $args.Invoke()
+                    $args[0].Invoke()
                 }
             }
         }
