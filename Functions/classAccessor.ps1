@@ -88,7 +88,7 @@ function Accessor
         Set-Alias get getFunction
 
         # invoke the scriptblock
-        $items = (Get-Module ToolFoundations).NewBoundScriptBlock(
+        $items = $MyInvocation.MyCommand.Module.NewBoundScriptBlock(
             $Scriptblock
         ).InvokeWithContext($functions,$variables)
 
