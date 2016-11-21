@@ -217,13 +217,10 @@ Describe 'Accessor property name' {
         }
     }
     Context 'no underscore' {
-        class c {
-            $p = $(Accessor $this {})
-        }
         It 'throws if there is no underscore' {
             try
             {
-                $c = [c]::new()
+                $p = (Accessor (New-Object psobject) {})
             }
             catch
             {
@@ -234,5 +231,24 @@ Describe 'Accessor property name' {
         }
         It 'exception includes correct file name' {}
         It 'exception includes correct line number' {}
+    }
+}
+
+Describe 'Accessor alternate syntax' {
+    Context 'no $' {
+        class c {
+            $_p = (Accessor $this { 10; get; })
+        }
+        $c = [c]::new()
+        It 'initializes' {
+            $c._p | Should be 10
+        }
+        It 'gets' {
+            $c.p | Should be 10
+        }
+        It 'set throws' {
+            { $c.p = 20 } |
+                Should throw 'Set accessor for property "p" is unavailable'
+        }
     }
 }
