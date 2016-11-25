@@ -99,16 +99,27 @@ iex "using module $path"
 Describe 'difference between Pester and script scope' {
     $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
 
-    It 'class is not accessible when it is "used" in a Pester scriptblock...' {
-        iex "using module $path"
-        { [c1]::new() } |
-            Should throw 'Unable to find type'
+    if ( $PSVersionTable.PSVersion -ge '5.1' )
+    {
+        It 'in PowerShell 5.1 and later class is accessible when it is "used" in a Pester scriptblock' {
+            iex "using module $path"
+            $c = [c1]::new()
+            $c.GetType().Name | Should be 'c1'
+        }
     }
-    It 'unless it is "newed" in the same expression.' {
-        iex @"
-            using module $path
-            [c1]::new()
+    else
+    {
+        It 'prior to PowerShell 5.1 class is not accessible when it is "used" in a Pester scriptblock...' {
+            iex "using module $path"
+            { [c1]::new() } |
+                Should throw 'Unable to find type'
+        }
+        It 'unless it is "newed" in the same expression.' {
+            iex @"
+                using module $path
+                [c1]::new()
 "@
+        }
     }
     It 'class is accessible in a Pester scriptblock when it is "used" outside a Pester scriptblock' {
         $r = [c2]::new()

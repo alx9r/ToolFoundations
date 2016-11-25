@@ -87,6 +87,15 @@ Describe 'Accessor using psobject' {
         $r = Get-Alias set
         $r.Definition | Should be 'Set-Variable'
     }
+    It 'exception in setter is raised to user' {
+        $_r = Accessor $o { set { throw 'setter exception' } }
+        { $o.r = 'some value' } |
+            Should throw 'setter exception'
+    }
+    It 'exception in getter is suppressed' {
+        $_r = Accessor $o { get { throw 'getter exception' } }
+        { $o.r } | Should not throw
+    }
 }
 Describe 'Accessor using classes' {
     Context 'get' {
