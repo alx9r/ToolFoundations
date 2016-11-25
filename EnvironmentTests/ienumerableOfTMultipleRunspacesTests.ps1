@@ -1,5 +1,4 @@
-﻿$modulePath = "$PSScriptRoot\ienumerableOfT.psm1"
-$scriptblock = {
+﻿$scriptblock = {
     param($ModulePath)
 
     $PSModuleAutoLoadingPreference = $Null
@@ -22,27 +21,21 @@ $($_.ScriptStackTrace)
 
 $h = @{}
 
-Describe 'module containing IEnumerable<T> across runspaces' {
-    It 'save original location' {
-        $h.OriginalLocation = Get-Location
-    }
-    It "set location to $PSScriptRoot" {
-        $PSScriptRoot | Set-Location
-    }
-    It 'getting enumerator in the first runspace succeeds' {
-        $runspace = [runspacefactory]::CreateRunspace()
-        $ps = [powershell]::Create()
-        $ps.Runspace =$runspace
-        $runspace.Open()
-        $ps.AddScript($scriptblock)
-        $ps.AddParameter('ModulePath',$modulePath)
-
-        $r = $ps.Invoke()
-        $r | Should be 'no exception'
-    }
-    if ( $PSVersionTable.PSVersion -ge '5.1' )
+Describe 'module containing IEnumerable across runspaces' {
+    $i = 0
+    foreach ( $values in @(
+            #  type, result
+            @('ienumerableOfT','^no exception$'),
+            @('ienumerableOfT',"The term 'FunctionName' is not recognized"),
+            @('ienumerable','^no exception$'),
+            @('ienumerable',"The term 'FunctionName' is not recognized")
+        )
+    )
     {
-        It 'in PowerShell 5.1 and later getting enumerator in the second runspace succeeds' {
+        $type,$result = $values
+        $modulePath = "$PSScriptRoot\$type.psm1"
+        $i ++
+        It "Runspace $i - getting enumerator from $type results in `"$result`"" {
             $runspace = [runspacefactory]::CreateRunspace()
             $ps = [powershell]::Create()
             $ps.Runspace =$runspace
@@ -51,24 +44,7 @@ Describe 'module containing IEnumerable<T> across runspaces' {
             $ps.AddParameter('ModulePath',$modulePath)
 
             $r = $ps.Invoke()
-            $r | Should match 'no exception'
+            $r | Should match $result
         }
-    }
-    else
-    {
-        It 'before PowerShell 5.1 getting enumerator in the second runspace throws' {
-            $runspace = [runspacefactory]::CreateRunspace()
-            $ps = [powershell]::Create()
-            $ps.Runspace =$runspace
-            $runspace.Open()
-            $ps.AddScript($scriptblock)
-            $ps.AddParameter('ModulePath',$modulePath)
-
-            $r = $ps.Invoke()
-            $r | Should match "The term 'FunctionName' is not recognized"
-        }
-    }
-    It 'restore original location' {
-        $h.OriginalLocation | Set-Location
     }
 }
