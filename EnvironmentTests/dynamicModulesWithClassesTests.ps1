@@ -12,37 +12,37 @@ Describe 'Reloading Dynamic Modules Containing Classes' {
 '@
     $tests = [ordered]@{
         'create module passing arguments' = @(
-            'literal 1', 'argument 1'
+            'literal1', 'argument1','literal1','argument1','argument1'
         )
         'overwrite identical module passing different arguments' = @(
-          # 'literal 1', 'argument 2' # <== how it should be
-            'literal 1', 'argument 1' # <== how it is
+            'literal1', 'argument2','literal1','argument2','argument1' # <== how it is
+          # 'literal1', 'argument2','literal1','argument2','argument2' # <== how it should be
         )
         'create module with different class definition' = @(
-            'literal 2', 'argument 3'
+            'literal2', 'argument3','literal2','argument3','argument3'
         )
     }
     foreach ( $key in $tests.Keys )
     {
-        $plainLiteral,$argument = $tests.$key
+        $plainLiteral,$argument,$expectedLiteral,$expectedArgument,$expectedProperty = $tests.$key
         $literal = "'$plainLiteral'"
         Context $key {
-            It 'create module' {
+            It "create module containing literal $literal with argument $argument" {
                 $module = New-Module "m-$guidFrag" (
                     [scriptblock]::Create($ExecutionContext.InvokeCommand.ExpandString($scriptString))
                 ) -ArgumentList $argument
             }
-            It 'correct module arguments are available from function' {
+            It "module argument $expectedArgument is returned from function" {
                 $r = & "Get-PassedArgs$guidFrag"
-                $r | Should be $argument
+                $r | Should be $expectedArgument
             }
-            It 'correct module arguments are available from class' {
+            It "module argument $expectedProperty is returned by class" {
                 $r = & "Get-C$guidFrag"
-                $r.passedIn | Should be $argument
+                $r.passedIn | Should be $expectedProperty
             }
-            It 'correct literal is available from class' {
+            It "literal $literal is available from class" {
                 $r = & "Get-C$guidFrag"
-                $r.literal | Should be $plainLiteral
+                $r.literal | Should be $expectedLiteral
             }
         }
     }
