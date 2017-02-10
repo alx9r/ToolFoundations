@@ -41,4 +41,51 @@ InModuleScope ToolFoundations {
             $threw | Should be $true
         }
     }
+
+    Describe Invoke-TcpRequest {
+        Context 'success' {
+            Mock Connect-Tcp -Verifiable {
+                [System.Net.Sockets.TcpClient]::new()
+            }
+            Mock Invoke-TcpReadWrite -Verifiable {
+                if ( $PSCmdlet.ParameterSetName -eq 'write' )
+                {
+                    return
+                }
+                'read value'
+            }
+            It 'returns read value' {
+                $splat = @{
+                    Encoding = [System.Text.Encoding]::ASCII
+                    WriteString = 'write value'
+                    IpAddress = '192.168.0.1'
+                    Port = 23
+                    Timeout = [timespan]::FromSeconds(1)
+                }
+                $r = Invoke-TcpRequest @splat
+                $r | Should be 'read value'
+            }
+            It 'connects' {
+                Assert-MockCalled Connect-Tcp 1 {
+                    $IpAddress -eq '192.168.0.1' -and
+                    $Port -eq '23' -and
+                    $Timeout.TotalSeconds -eq 1
+                }
+            }
+            It 'writes' {
+                Assert-MockCalled Invoke-TcpReadWrite 1 {
+                    $Encoding -eq [System.Text.Encoding]::ASCII -and
+                    $WriteString -eq 'write value' -and
+                    $TimeOut.TotalSeconds -eq 1
+                }
+            }
+            It 'reads' {
+                Assert-MockCalled Invoke-TcpReadWrite 1 {
+                    $Encoding -eq [System.Text.Encoding]::ASCII -and
+                    $null -eq $WriteString -and
+                    $TimeOut.TotalSeconds -eq 1
+                }
+            }
+        }
+    }
 }
