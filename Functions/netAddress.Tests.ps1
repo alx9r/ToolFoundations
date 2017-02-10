@@ -54,7 +54,7 @@ InModuleScope ToolFoundations {
             It 'throws correct exception' {
                 try
                 {
-                    'invalid address' | Test-ValidNetAddress -ErrorAction Stop 
+                    'invalid address' | Test-ValidNetAddress -ErrorAction Stop
                 }
                 catch [System.ArgumentException]
                 {
