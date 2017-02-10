@@ -26,6 +26,9 @@ function Test-ValidTcpPort
     }
 }
 
+if ( $PSVersionTable.PSVersion.Major -ge 5 )
+{
+
 function Connect-Tcp
 {
     [CmdletBinding()]
@@ -212,4 +215,5 @@ function Invoke-TcpRequest
             }
         }
     }
+}
 }

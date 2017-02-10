@@ -42,6 +42,9 @@ InModuleScope ToolFoundations {
         }
     }
 
+    if ( $PSVersionTable.PSVersion.Major -ge 5 )
+    {
+
     Describe Invoke-TcpRequest {
         Context 'success' {
             Mock Connect-Tcp -Verifiable {
@@ -87,5 +90,7 @@ InModuleScope ToolFoundations {
                 }
             }
         }
+    }
+
     }
 }
