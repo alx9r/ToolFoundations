@@ -12,7 +12,7 @@ Describe 'using modules' {
         It 'using statement using iex is allowed' {
             iex 'using module "ToolFoundations";'
         }
-        It 'using statement is not allowed for modules not in PSModulePath...' {
+        It 'using statement is not allowed for a module not in PSModulePath...' {
             { iex 'using module classModuleStub1' } |
                 Should throw 'Could not find the module'
         }
@@ -22,9 +22,18 @@ Describe 'using modules' {
             { iex 'using module classModuleStub1' } |
                 Should throw 'Could not find the module'
         }
-        It '...unless using statement uses their full file path.' {
+        It '...unless using statement uses its absolute file path...' {
             $path = "$($PSCommandPath | Split-Path -Parent)\..\Resources\classModuleStub1.psm1"
             iex "using module $path"
+        }
+        It '(push test path)' {
+            Push-Location "$($PSCommandPath | Split-Path -Parent)\.."
+        }
+        It '...or using statement uses its relative file path.' {
+            iex 'using module .\Resources\classModuleStub1.psm1'
+        }
+        It '(pop test path)' {
+            Pop-Location
         }
         It 'using statement at beginning of scriptblock using iex is not allowed' {
             { iex '{ using module "ToolFoundations"; }' } |
