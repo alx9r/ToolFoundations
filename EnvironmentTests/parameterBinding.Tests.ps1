@@ -517,6 +517,61 @@ Describe 'Parameter Set Resolution Ambiguity' {
         $r | Should be 'B'
     }
 }
+Describe '__AllParameterSets when no parameter set is selected' {
+    Context 'one parameter set' {
+        function test
+        {
+            [CmdletBinding()]
+            param
+            (
+                $notInSet,
+
+                [parameter(ParameterSetName = 'A')]
+                $A
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'mentioning a parameter in a set resolves to that parameter set' {
+            $r = test -A a
+            $r | Should be a
+        }
+        It 'mentioning only parameters not in parameter sets resolves to __AllParameterSets' {
+            $r = test -NotInSet n
+            $r | Should be '__AllParameterSets'
+        }
+    }
+    Context 'two parameter sets' {
+        function test
+        {
+            [CmdletBinding()]
+            param
+            (
+                $notInSet,
+
+                [parameter(ParameterSetName = 'A')]
+                $A,
+
+                [parameter(ParameterSetName = 'B')]
+                $B
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'mentioning a parameter in a set resolves to that parameter set' {
+            $r = test -A a
+            $r | Should be a
+        }
+        It 'mentioning only parameters not in parameter sets throws exception' {
+            { test -no_set n } |
+                Should throw 'Parameter set cannot be resolved'
+        }
+    }
+}
 Describe 'Select parameter set based on hashtable vs pscustomobject vs string' {
     # see also https://stackoverflow.com/q/39902244/1404637
 
