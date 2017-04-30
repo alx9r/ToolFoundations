@@ -517,7 +517,7 @@ Describe 'Parameter Set Resolution Ambiguity' {
         $r | Should be 'B'
     }
 }
-Describe '__AllParameterSets when no parameter set is selected' {
+Describe 'Selection of parameter sets when no parameter set is selected' {
     Context 'one parameter set' {
         function test
         {
@@ -540,6 +540,10 @@ Describe '__AllParameterSets when no parameter set is selected' {
         }
         It 'mentioning only parameters not in parameter sets resolves to __AllParameterSets' {
             $r = test -NotInSet n
+            $r | Should be '__AllParameterSets'
+        }
+        It 'mentioning no parameters resolves to __AllParameters' {
+            $r = test
             $r | Should be '__AllParameterSets'
         }
     }
@@ -569,6 +573,80 @@ Describe '__AllParameterSets when no parameter set is selected' {
         It 'mentioning only parameters not in parameter sets throws exception' {
             { test -no_set n } |
                 Should throw 'Parameter set cannot be resolved'
+        }
+        It 'mentioning no parameters throws exception' {
+            { test } |
+                Should throw 'Parameter set cannot be resolved'
+        }
+    }
+    Context 'two parameter sets and "core" set' {
+        function test
+        {
+            [CmdletBinding()]
+            param
+            (
+                [parameter(ParameterSetName = 'core')]
+                [parameter(ParameterSetName = 'A')]
+                [parameter(ParameterSetName = 'B')]
+                $Core,
+
+                [parameter(ParameterSetName = 'A')]
+                $A,
+
+                [parameter(ParameterSetName = 'B')]
+                $B
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'mentioning a parameter in a set resolves to that parameter set' {
+            $r = test -A a
+            $r | Should be a
+        }
+        It 'mentioning only parameters in core set throws exception' {
+            { test -Core c } |
+                Should throw 'Parameter set cannot be resolved'
+        }
+        It 'mentioning no parameters throws exception' {
+            { test } |
+                Should throw 'Parameter set cannot be resolved'
+        }
+    }
+    Context 'two parameter sets, "core" set, and default' {
+        function test
+        {
+            [CmdletBinding(DefaultParameterSetName = 'core')]
+            param
+            (
+                [parameter(ParameterSetName = 'core')]
+                [parameter(ParameterSetName = 'A')]
+                [parameter(ParameterSetName = 'B')]
+                $Core,
+
+                [parameter(ParameterSetName = 'A')]
+                $A,
+
+                [parameter(ParameterSetName = 'B')]
+                $B
+            )
+            process
+            {
+                $PSCmdlet.ParameterSetName
+            }
+        }
+        It 'mentioning a parameter in a set resolves to that parameter set' {
+            $r = test -A a
+            $r | Should be a
+        }
+        It 'mentioning only parameters in core set resolves to core set' {
+            $r = test -Core c
+            $r | Should be 'core'
+        }
+        It 'mentioning no parameters resolves to core set' {
+            $r = test
+            $r | Should be 'core'
         }
     }
 }
