@@ -671,3 +671,30 @@ Describe 'pipeline binding to ScriptProperty' {
         $r.sp | Should be 'spval'
     }
 }
+Describe 'no CmdletBinding' {
+    function f { param($a) $args }
+    It 'resultant command object has CmdletBinding set to false' {
+        $r = Get-Command f
+        $r.CmdletBinding | Should be $false
+    }
+    It 'accepts bogusly-name arguments without error' {
+        f -bogus
+    }
+    It 'bogusly-named arguments are collected in $args' {
+        $r = f -bogus1 1 -bogus2 2
+        $r.Count | Should be 4
+        $r[1] | Should be 1
+        $r[2] | Should be '-bogus2'
+    }
+}
+Describe 'implicit CmdletBinding' {
+    function f { param([Parameter(Mandatory=$true)]$a) }
+    It 'using [Parameter()] causes resultant command object to have CmdletBinding set to true' {
+        $r = Get-Command f
+        $r.CmdletBinding | Should be $true
+    }
+    It 'bogusly-name arguments throw exceptions' {
+        { f -bogus } |
+            Should throw 'A parameter cannot be found'
+    }
+}
