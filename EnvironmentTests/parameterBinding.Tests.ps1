@@ -831,3 +831,11 @@ Describe 'implicit CmdletBinding' {
             Should throw 'A parameter cannot be found'
     }
 }
+Describe 'CmdletBinding and aliases' {
+    function f { [CmdletBinding()]param($a) }
+    Set-Alias af f
+    It 'an alias of a command using CmdletBinding does not have a CmdletBinding attribute' {
+        $r = Get-Member CmdletBinding -InputObject (Get-Command af)
+        $r | Should beNullOrEmpty
+    }
+}
