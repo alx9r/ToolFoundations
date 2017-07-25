@@ -13,7 +13,10 @@ function Start-Process2
         $RunAs,
 
         [switch]
-        $TestDelay
+        $TestDelay,
+
+        [switch]
+        $SetWorkingDirectory
     )
     process
     {
@@ -33,6 +36,7 @@ function Start-Process2
         $psi.RedirectStandardError = $true
         $psi.FileName = $Command
         if ($Runas ) {$psi.Verb = 'RunAs'}
+        if ($SetWorkingDirectory ) { $psi.WorkingDirectory = Get-Location | % { $_.Path } }
         $psi.Arguments = $Arguments
         $process = New-Object System.Diagnostics.Process
         $process.StartInfo = $psi
