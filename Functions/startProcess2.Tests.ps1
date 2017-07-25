@@ -77,4 +77,19 @@ Describe Start-Process2 {
             $result.StandardError | Should be "my error`r`n"
         }
     }
+    Context 'set working directory' {
+        $stashLocation = Get-Location
+        It 'switch to working location' {
+            Set-Location $resourcePath
+        }
+        It 'uses the current location as the working directory' {
+            $r = Start-Process2 powershell.exe '-command "Get-Location | % {$_.Path}"' -SetWorkingDirectory
+
+            $r.ExitCode | Should be 0
+            $r.StandardOutput | Should be "$resourcePath`r`n"
+        }
+        It 'switch to stashed location' {
+            $stashLocation | Set-Location
+        }
+    }
 }
