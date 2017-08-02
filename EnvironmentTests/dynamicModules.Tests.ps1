@@ -53,10 +53,10 @@ Describe 'unimported dynamic modules are not removed using Remove-Module' {
     }
 }
 Describe 'overwrite the dynamic module with an empty one' {
-    It 'overwrite the module' {
+    It 'overwriting the module removes the exported functions' {
         $h.DynamicModule = New-Module -Name "DynamicModule-$guid" -ScriptBlock {}
-        $h.DynamicModule.ExportedFunctions |
-            Should beNullOrEmpty
+        $h.DynamicModule.ExportedFunctions.Count |
+            Should be 0
     }
     It 'the command from the overwritten module still works' {
         $r = & "f-$guid"
