@@ -558,6 +558,7 @@ InModuleScope ToolFoundations {
                     $_.Exception.Message | Should match 'Cmdlet Test-NoDefaultParameterSet has more than one parameterset and no default. You must provide ParameterSetName.'
                     $_.Exception.ParamName | Should be 'ParameterSetName'
                 }
+                $threw | Should be $true
             }
         }
     }
@@ -621,7 +622,7 @@ InModuleScope ToolFoundations {
 }
 InModuleScope ToolFoundations {
     Describe Invoke-CommandSafely {
-        function Test
+        function Test-OneMandatory
         {
             [CmdletBinding()]
             param
@@ -637,15 +638,14 @@ InModuleScope ToolFoundations {
 
         It 'throws on missing param.' {
             $splat = @{}
-            { Invoke-CommandSafely Test $splat } | Should throw
+            { Invoke-CommandSafely Test-OneMandatory $splat } | Should throw
         }
         Context 'does not invoke' {
-            Mock Test -Verifiable
             It 'does not invoke on missing param.' {
                 $splat = @{}
                 try
                 {
-                    Invoke-CommandSafely Test $splat
+                    Invoke-CommandSafely Test-OneMandatory $splat
                 }
                 catch [System.ArgumentException]
                 {
@@ -653,15 +653,13 @@ InModuleScope ToolFoundations {
                 }
 
                 $throws | Should be $true
-
-                Assert-MockCalled Test -Times 0
             }
         }
         It 'invokes on good params.' {
             $splat = @{
                 x = 100
             }
-            $r = Invoke-CommandSafely Test $splat
+            $r = Invoke-CommandSafely Test-OneMandatory $splat
             $r | Should be 100
         }
     }
