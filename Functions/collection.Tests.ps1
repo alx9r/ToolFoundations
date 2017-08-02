@@ -327,14 +327,14 @@ Describe 'Out-Collection (XML)' {
 
             $out = Out-Collection $single
             $out | Should BeOfType ([System.Xml.XmlElement])
-            $out | Should be $single
+            $out.GetHashCode() | Should be $single.GetHashCode()
         }
         It 'preserves XML Element containing multiple elements.' {
             $multiple = $doc.doc.sometags
             $multiple.Count | Should be 2
 
             $out = Out-Collection $multiple
-            $out | Should be $multiple
+            $out.GetHashCode() | Should be $multiple.GetHashCode()
             $out | Should BeOfType ([System.Xml.XmlElement])
         }
         It 'does not raise warning.' {
