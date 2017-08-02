@@ -200,7 +200,8 @@ function Invoke-TcpRequest
             $socket = Connect-Tcp $IpAddress $Port -TimeOut $Timeout
 
             # write
-            $socket | Invoke-TcpReadWrite $Encoding $WriteString -TimeOut $Timeout
+            $socket | Invoke-TcpReadWrite $Encoding $WriteString -TimeOut $Timeout | 
+                Out-Null
 
             # read
             return $socket | Invoke-TcpReadWrite $Encoding -TimeOut $Timeout
