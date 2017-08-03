@@ -226,7 +226,7 @@ Describe 'effect of not importing module inside module that invokes mocked comma
         Context 'indirectly invoke mocked command from another non-importing module InModuleScope of the mocked command''s module' {
             Mock "A1-$guid" { 'mocked result of A1' }
 
-            It 'returns result from real function (when script invoked directly)' {
+            It 'returns result from real function' {
                 $r = & "C-$guid"
                 $r | Should be 'C calls A1: real result of A1'
             }
