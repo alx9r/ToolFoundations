@@ -1,8 +1,9 @@
-﻿if ( (Get-Module Pester).Version -lt '4.0.0' )
+﻿$path = $PSCommandPath | Split-Path -Parent
+if ( (Get-Module Pester).Version -lt '4.0.0' )
 {
-    . "$PSScriptRoot\pester3InModuleScopeTests.ps1"
+    . "$path\pester3InModuleScopeTests.ps1"
 }
 else
 {
-    . "$PSScriptRoot\pester4InModuleScopeTests.ps1"
+    . "$path\pester4InModuleScopeTests.ps1"
 }
