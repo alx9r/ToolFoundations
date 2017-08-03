@@ -1,42 +1,4 @@
-﻿<#
-This file tests the circumstances required for mocks to work.
-
-# Part 1
-Question: When are mocks and when are real functions called?
-
-Test Method:
-The first part of this file tests whether a real or mocked function
-will be called depending on the following:
- - whether the mocked function is called inside or outside a module
- - whether a call to the mocked function is subsequent to a callstack
-   that originated inside or outside an InModuleScope{} block
- - whether the call is InModuleScope{} of the module where the mocked
-   function is defined or the module where the mocked function is
-   called.
-
-Answer:
-In order for a mock to be called, the mock and the test must be inside
-InModuleScope{} for the module under test.
-
-
-# Part 2
-Question: Is importing the module of the mocked function important?
-
-Test Method:
-The second part of this file tests whether a testing using mocks works
-depending on the following:
- - whether the mock and test is invoked inside or outside InModuleScope{}
- - whether the script is invoked by Pester or in ISE using F5
- - whether the module where the mocked function is defined is imported
-   in the module under test.
-
-Answer:
-If the mocked function is defined in a different module from the module
-under test, the module where the mocked function is defined must be explicitly
-imported InModuleScope of the module under test.
-#>
-
-$guid = [guid]::NewGuid().Guid
+﻿$guid = [guid]::NewGuid().Guid
 $h = @{}
 $h.MyInvocation = $MyInvocation
 $h.DirectlyInvokedScript = -not [bool]$h.MyInvocation.Line
