@@ -16,14 +16,14 @@ Describe 'Invoke-ProcessPersistentItem -Ensure Present: ' {
 
     $delegates = @{
         Tester = 'Test-Item'
-        Adder = 'Add-Item'
+        Curer = 'Add-Item'
         Remover = 'Remove-Item'
-        PropertySetter = 'Set-Property'
+        PropertyCurer = 'Set-Property'
         PropertyTester = 'Test-Property'
     }
     $coreDelegates = @{
         Tester = 'Test-Item'
-        Adder = 'Add-Item'
+        Curer = 'Add-Item'
         Remover = 'Remove-Item'
     }
 
@@ -45,7 +45,7 @@ Describe 'Invoke-ProcessPersistentItem -Ensure Present: ' {
                 $Mode -eq 'Set' -and
                 $_Keys.Key -eq 'key value' -and
                 $Properties.P -eq 'P desired' -and
-                $PropertySetter -eq 'Set-Property' -and
+                $PropertyCurer -eq 'Set-Property' -and
                 $PropertyTester -eq 'Test-Property'
             }
         }
@@ -206,7 +206,7 @@ Describe 'Invoke-ProcessPersistentItemProperty' {
     Mock Test-Property { $true } -Verifiable
 
     $delegates = @{
-        PropertySetter = 'Set-Property'
+        PropertyCurer = 'Set-Property'
         PropertyTester = 'Test-Property'
     }
     Context 'Set, property already correct' {

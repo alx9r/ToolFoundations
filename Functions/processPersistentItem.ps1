@@ -28,7 +28,7 @@ function Invoke-ProcessPersistentItem
 
         [Parameter(Mandatory = $true)]
         [string]
-        $Adder,
+        $Curer,
 
         [Parameter(Mandatory = $true)]
         [string]
@@ -42,7 +42,7 @@ function Invoke-ProcessPersistentItem
         [Parameter(ParameterSetName = 'with_properties',
                    Mandatory = $true)]
         [string]
-        $PropertySetter,
+        $PropertyCurer,
 
 
         [Parameter(ParameterSetName = 'with_properties',
@@ -53,19 +53,19 @@ function Invoke-ProcessPersistentItem
     process
     {
         # retrieve the item
-        $present = & $Tester @_Keys
+        $correct = & $Tester @_Keys
 
         # process item existence
         switch ( $Ensure )
         {
             'Present' {
-                if ( -not $present )
+                if ( -not $correct )
                 {
                     # add the item
                     switch ( $Mode )
                     {
-                        'Set'  { $item = & $Adder @_Keys } # create the item
-                        'Test' { return $false }              # the item doesn't exist
+                        'Set'  { $item = & $Curer @_Keys } # cure the item
+                        'Test' { return $false }           # the item doesn't exist
                     }
                 }
             }
@@ -73,13 +73,13 @@ function Invoke-ProcessPersistentItem
                 switch ( $Mode )
                 {
                     'Set'  {
-                        if ( $present )
+                        if ( $correct )
                         {
                             & $Remover @_Keys | Out-Null
                         }
                         return
                     }
-                    'Test' { return -not $present }
+                    'Test' { return -not $correct }
                 }
             }
         }
@@ -99,7 +99,7 @@ function Invoke-ProcessPersistentItem
             Mode = $Mode
             Keys = $_Keys
             Properties = $Properties
-            PropertySetter = $PropertySetter
+            PropertyCurer = $PropertyCurer
             PropertyTester = $PropertyTester
         }
         Invoke-ProcessPersistentItemProperty @splat
@@ -126,7 +126,7 @@ function Invoke-ProcessPersistentItemProperty
 
         [Parameter(Mandatory = $true)]
         [string]
-        $PropertySetter,
+        $PropertyCurer,
 
         [Parameter(Mandatory = $true)]
         [string]
@@ -153,7 +153,7 @@ function Invoke-ProcessPersistentItemProperty
 
                 # the existing property does not match the desired property
                 # so fix it
-                & $PropertySetter @_Keys -PropertyName $propertyName -Value $desired |
+                & $PropertyCurer @_Keys -PropertyName $propertyName -Value $desired |
                     Out-Null
             }
         }
