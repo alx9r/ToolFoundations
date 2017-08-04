@@ -1,3 +1,5 @@
+if ( $PSVersionTable.PSVersion -lt '5.0.0' ) { return }
+
 Import-Module ToolFoundations -Force
 
 InModuleScope ToolFoundations {

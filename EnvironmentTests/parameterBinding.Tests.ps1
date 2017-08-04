@@ -839,3 +839,15 @@ Describe 'CmdletBinding and aliases' {
         $r | Should beNullOrEmpty
     }
 }
+Describe 'splats and invokation operator' {
+    function f { param($a) $a }
+    $splat = @{ a = 1 }
+    It 'splat binds to parameter...' {
+        $r = f @splat
+        $r | Should be 1
+    }
+    It '...even when invoked using &' {
+        $r = & 'f' @splat
+        $r | Should be 1
+    }
+}
