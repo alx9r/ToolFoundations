@@ -24,7 +24,7 @@ function Invoke-ProcessPersistentItem
 
         [Parameter(Mandatory = $true)]
         [string]
-        $Getter,
+        $Tester,
 
         [Parameter(Mandatory = $true)]
         [string]
@@ -53,13 +53,13 @@ function Invoke-ProcessPersistentItem
     process
     {
         # retrieve the item
-        $item = & $Getter @_Keys
+        $present = & $Tester @_Keys
 
         # process item existence
         switch ( $Ensure )
         {
             'Present' {
-                if ( -not $item )
+                if ( -not $present )
                 {
                     # add the item
                     switch ( $Mode )
@@ -73,13 +73,13 @@ function Invoke-ProcessPersistentItem
                 switch ( $Mode )
                 {
                     'Set'  {
-                        if ( $item )
+                        if ( $present )
                         {
                             & $Remover @_Keys | Out-Null
                         }
                         return
                     }
-                    'Test' { return -not $item }
+                    'Test' { return -not $present }
                 }
             }
         }
