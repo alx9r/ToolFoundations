@@ -1,6 +1,6 @@
-Import-Module WindowsShell -Force
+Import-Module ToolFoundations -Force
 
-InModuleScope WindowsShell {
+InModuleScope ToolFoundations {
 
 function Get-Item    { param ($Key) }
 function Add-Item    { param ($Key) }
