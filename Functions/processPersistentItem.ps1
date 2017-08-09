@@ -30,7 +30,9 @@ function Invoke-ProcessPersistentItem
         [string]
         $Curer,
 
-        [Parameter(Mandatory = $true)]
+        [hashtable]
+        $CurerParams = @{},
+
         [string]
         $Remover,
 
@@ -52,6 +54,12 @@ function Invoke-ProcessPersistentItem
     )
     process
     {
+        # confirm remover is present when necessary
+        if ( $Mode -eq 'Set' -and $Ensure -eq 'Absent' -and -not $Remover )
+        {
+            throw 'Invoked "Set Absent" but no remover was provided.'
+        }
+
         # retrieve the item
         $correct = & $Tester @_Keys
 
@@ -64,7 +72,7 @@ function Invoke-ProcessPersistentItem
                     # add the item
                     switch ( $Mode )
                     {
-                        'Set'  { $item = & $Curer @_Keys } # cure the item
+                        'Set'  { $item = & $Curer @_Keys @CurerParams } # cure the item
                         'Test' { return $false }           # the item doesn't exist
                     }
                 }

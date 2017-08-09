@@ -5,7 +5,7 @@ Import-Module ToolFoundations -Force
 InModuleScope ToolFoundations {
 
 function Test-Item    { param ($Key) }
-function Add-Item    { param ($Key) }
+function Add-Item    { param ($Key,$CP) }
 function Remove-Item { param ($Key) }
 
 Describe 'Invoke-ProcessPersistentItem -Ensure Present: ' {
@@ -33,13 +33,17 @@ Describe 'Invoke-ProcessPersistentItem -Ensure Present: ' {
             $splat = @{
                 Keys = @{ Key = 'key value' }
                 Properties = @{ P = 'P desired' }
+                CurerParams = @{ CP = 'CP Param' }
             }
             $r = Invoke-ProcessPersistentItem Set Present @splat @delegates
             $r | Should beNullOrEmpty
         }
         It 'correctly invokes functions' {
             Assert-MockCalled Test-Item 1 { $Key -eq 'key value' }
-            Assert-MockCalled Add-Item 1 { $Key -eq 'key value' }
+            Assert-MockCalled Add-Item 1 {
+                $Key -eq 'key value' -and
+                $CP -eq 'CP Param'
+            }
             Assert-MockCalled Remove-Item 0 -Exactly
             Assert-MockCalled Invoke-ProcessPersistentItemProperty 1 {
                 $Mode -eq 'Set' -and
@@ -193,6 +197,28 @@ Describe 'Invoke-ProcessPersistentItem -Ensure Present: ' {
             Assert-MockCalled Add-Item 0 -Exactly
             Assert-MockCalled Remove-Item 0 -Exactly
             Assert-MockCalled Invoke-ProcessPersistentItemProperty 0 -Exactly
+        }
+    }
+    Context '-Ensure Absent: Set, no remover' {
+        It 'throws' {
+            $splat = @{
+                Keys = @{ Key = 'key value' }
+                Tester = 'Test-Item'
+                Curer = 'Add-Item'
+            }
+            { Invoke-ProcessPersistentItem Set Absent @splat } |
+                Should throw 'no remover'
+        }
+    }
+    Context '-Ensure Absent: absent, Test, no remover' {
+        It 'returns true' {
+            $splat = @{
+                Keys = @{ Key = 'key value' }
+                Tester = 'Test-Item'
+                Curer = 'Add-Item'
+            }
+            $r = Invoke-ProcessPersistentItem Test Absent @splat
+            $r | Should be $true
         }
     }
 }
