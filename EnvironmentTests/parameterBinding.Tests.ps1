@@ -851,3 +851,58 @@ Describe 'splats and invokation operator' {
         $r | Should be 1
     }
 }
+
+Describe 'null string passed through pipeline by property name' {
+    Context 'no attribute' {
+        function f {
+            [CmdletBinding()]
+            param (
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
+                [string]
+                $x
+            )
+            process { $x }
+        }
+        It 'null becomes string' {
+            $r = New-Object psobject -Property @{
+                x = $null
+            } | f
+            $r.GetType() | Should be 'string'
+        }
+    }
+    Context '[AllowNull()]' {
+        function f {
+            [CmdletBinding()]
+            param (
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
+                [AllowNull()]
+                [string]
+                $x
+            )
+            process { $x }
+        }
+        It 'null becomes string' {
+            $r = New-Object psobject -Property @{
+                x = $null
+            } | f
+            $r.GetType() | Should be 'string'
+        }
+    }
+    Context 'no type' {
+        function f {
+            [CmdletBinding()]
+            param (
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
+                $x
+            )
+            process { $x }
+        }
+        It 'null remains null' {
+            $r = New-Object psobject -Property @{
+                x = $null
+            } | f
+            $null -eq $r | Should be $true
+        }
+    }
+}
+
