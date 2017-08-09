@@ -851,6 +851,7 @@ Describe 'splats and invokation operator' {
         $r | Should be 1
     }
 }
+
 Describe 'null string passed through pipeline by property name' {
     Context 'no attribute' {
         function f {
@@ -904,3 +905,4 @@ Describe 'null string passed through pipeline by property name' {
         }
     }
 }
+
