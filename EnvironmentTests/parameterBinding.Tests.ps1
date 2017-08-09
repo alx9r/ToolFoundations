@@ -857,7 +857,7 @@ Describe 'null string passed through pipeline by property name' {
         function f {
             [CmdletBinding()]
             param (
-                [Parameter(ValueFromPipelineByPropertyName)]
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
                 [string]
                 $x
             )
@@ -874,7 +874,7 @@ Describe 'null string passed through pipeline by property name' {
         function f {
             [CmdletBinding()]
             param (
-                [Parameter(ValueFromPipelineByPropertyName)]
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
                 [AllowNull()]
                 [string]
                 $x
@@ -892,7 +892,7 @@ Describe 'null string passed through pipeline by property name' {
         function f {
             [CmdletBinding()]
             param (
-                [Parameter(ValueFromPipelineByPropertyName)]
+                [Parameter(ValueFromPipelineByPropertyName = $true)]
                 $x
             )
             process { $x }
