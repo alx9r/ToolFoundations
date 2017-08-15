@@ -1,4 +1,4 @@
-if ( $PSVersionTable.PSVersion -lt 3.0.0 )
+if ( $PSVersionTable.PSVersion -lt '3.0.0' )
 {
     return
 }
