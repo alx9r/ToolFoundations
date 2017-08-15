@@ -1,3 +1,8 @@
+if ( $PSVersionTable.PSVersion -lt 3.0.0 )
+{
+    return
+}
+
 Add-Type "public enum Triple_8c166bf8 { one, two, three }"
 
 Describe 'nullable enum' {
