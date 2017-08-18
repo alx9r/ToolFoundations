@@ -914,3 +914,36 @@ Describe 'null passed to various parameter types' {
     }
 }
 
+Describe 'behavior of different values passed to [string[]] parameter' {
+    Context '[string[]] only' {
+        function f {
+            param([string[]]$x)
+            New-Object psobject -Property @{
+                value = $x
+                type = if ($x) { $x.GetType() }
+            }
+        }
+        It 'null remains null' {
+            $r = f -x $null
+            $null -eq $r.value | Should be $true
+        }
+        It '[string]::empty remains [string]::empty' {
+            $r = f -x ([string]::empty)
+            [string]::Empty -eq $r.value | Should be $true
+        }
+        It 'string becomes string[]' {
+            $r = f -x 'a'
+            $r.type | Should be 'string[]'
+        }
+        It 'string[] count 1 remains string[] count 1' {
+            $r = f -x @('a')
+            $r.value.Count | Should be 1
+            $r.type | Should be 'string[]'
+        }
+        It 'string[] count 2 remains string[] count 2' {
+            $r = f -x 'a','b'
+            $r.value.Count | Should be 2
+            $r.type | Should be 'string[]'
+        }
+    }
+}
