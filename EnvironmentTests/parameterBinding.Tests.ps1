@@ -852,55 +852,32 @@ Describe 'splats and invokation operator' {
     }
 }
 
-Describe 'null string passed through pipeline by property name' {
+Describe 'null passed to string parameter' {
     Context 'no attribute' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                [string]
-                $x
-            )
-            process { $x }
-        }
+        function f { param([string]$x) $x }
         It 'null becomes string' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
             $r.GetType() | Should be 'string'
         }
     }
     Context '[AllowNull()]' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                [AllowNull()]
-                [string]
-                $x
-            )
-            process { $x }
-        }
+        function f { param ([AllowNull()][string] $x ) $x }
         It 'null becomes string' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
             $r.GetType() | Should be 'string'
         }
     }
     Context 'no type' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                $x
-            )
-            process { $x }
-        }
+        function f { param ($x) $x }
         It 'null remains null' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
+            $null -eq $r | Should be $true
+        }
+    }
+    Context '[string[]]' {
+        function f { param ([string[]]$x) $x }
+        It 'null remains null' {
+            $r = f -x $null
             $null -eq $r | Should be $true
         }
     }
