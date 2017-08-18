@@ -883,3 +883,34 @@ Describe 'null passed to string parameter' {
     }
 }
 
+Describe 'null passed to various parameter types' {
+    foreach ( $values in @(
+        @([hashtable],$null),
+        @([array],$null),
+        @([string],[string]::Empty),
+        #@([System.Collections.Generic.Dictionary[int]],$null),
+        @([System.Collections.ArrayList], $null),
+        @([System.Collections.BitArray], $null),
+        @([System.Collections.SortedList], $null),
+        @([System.Collections.Queue], $null),
+        @([System.Collections.Stack], $null)
+    ))
+    {
+        $type, $expectedValue = $values
+        $typeName = $type.FullName
+        if ( $null -eq $expectedValue ) { $expectedValueDescription = 'null' }
+        else {
+            $expectedValueDescription = @{
+                [string]::Empty = '[string]::Empty'
+            }.$expectedValue
+        }
+        Context "parameter type $typeName" {
+            Invoke-Expression "function f { param([$typeName]`$x) `$x }"
+            It "$name becomes $expectedValueDescription" {
+                $r = f -x $null
+                $r -eq $expectedValue | Should be $true
+            }
+        }
+    }
+}
+
