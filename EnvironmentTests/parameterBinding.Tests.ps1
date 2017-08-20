@@ -884,6 +884,7 @@ Describe 'null passed to string parameter' {
 }
 
 Describe 'null passed to various parameter types' {
+    Add-Type -AssemblyName mscorlib
     foreach ( $values in @(
         @([int],0),
         @([System.Nullable[int]],$null),
