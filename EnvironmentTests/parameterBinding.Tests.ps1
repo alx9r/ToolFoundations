@@ -885,10 +885,14 @@ Describe 'null passed to string parameter' {
 
 Describe 'null passed to various parameter types' {
     foreach ( $values in @(
+        @([int],0),
+        @([System.Nullable[int]],$null),
+        @([System.DayOfWeek],'Sunday','throws'),
+        @([System.Nullable[System.DayOfWeek]],$null),
         @([hashtable],$null),
         @([array],$null),
         @([string],[string]::Empty),
-        #@([System.Collections.Generic.Dictionary[int]],$null),
+        @([System.Collections.Generic.Dictionary``2[System.String,int32]],$null),
         @([System.Collections.ArrayList], $null),
         @([System.Collections.BitArray], $null),
         @([System.Collections.SortedList], $null),
@@ -897,19 +901,30 @@ Describe 'null passed to various parameter types' {
     ))
     {
         $type, $expectedValue = $values
-        $typeName = $type.FullName
+        $typeName = $type.UnderlyingSystemType
         if ( $null -eq $expectedValue ) { $expectedValueDescription = 'null' }
-        else {
-            $expectedValueDescription = @{
-                [string]::Empty = '[string]::Empty'
-            }.$expectedValue
+        elseif ( $expectedValue -eq [string]::Empty )
+        {
+            $expectedValueDescription = '[string]::Empty'
         }
+        else { $expectedValueDescription = $expectedValue }
+
         Context "parameter type $typeName" {
             Invoke-Expression "function f { param([$typeName]`$x) `$x }"
-            It "$name becomes $expectedValueDescription" {
-                $r = f -x $null
-                $r -eq $expectedValue | Should be $true
+            if ( $expectedValue -eq 'throws' )
+            {
+                It '$null throws exception' {
+                    { f -x $Null } | Should throw
+                }
             }
+            else
+            {
+                It "$name becomes $expectedValueDescription" {
+                    $r = f -x $null
+                    $r -eq $expectedValue | Should be $true
+                }
+            }
+
         }
     }
 }
@@ -944,6 +959,16 @@ Describe 'behavior of different values passed to [string[]] parameter' {
             $r = f -x 'a','b'
             $r.value.Count | Should be 2
             $r.type | Should be 'string[]'
+        }
+    }
+}
+
+Describe 'behavior of [nullstring]::Value passed to [string] parameter' {
+    function f { param( [string]$x ) $x }
+    Context 'named parameter' {
+        It '[nullstring]::Value becomes [string]::empty' {
+            $r = f -x ([NullString]::Value)
+            [string]::Empty -eq $r | Should be $true
         }
     }
 }
