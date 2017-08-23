@@ -3,10 +3,6 @@
 # Script module or binary module file associated with this manifest.
 ModuleToProcess = 'ToolFoundations.psm1'
 
-ScriptsToProcess = @(
-    '.\dotNetTypes\nullSafeString.ps1'
-)
-
 # Version number of this module.
 ModuleVersion = '0.2.0'
 
