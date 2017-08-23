@@ -1,4 +1,9 @@
-﻿Add-Type @"
+﻿if ( $PSVersionTable.PSVersion -lt '3.0' )
+{
+    return
+}
+
+Add-Type @"
     public class NullsafeString : System.IEquatable<string>,System.IConvertible
     {
         public string Value = null;
