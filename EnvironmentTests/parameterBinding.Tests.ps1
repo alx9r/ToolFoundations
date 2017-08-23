@@ -885,7 +885,7 @@ Describe 'null passed to string parameter' {
 
 Describe 'null passed to various parameter types' {
     Add-Type -AssemblyName mscorlib
-    foreach ( $values in @(
+    $arraylist = [System.Collections.ArrayList]@(
         @([int],0),
         @([System.Nullable[int]],$null),
         @([System.DayOfWeek],'Sunday','throws'),
@@ -893,13 +893,17 @@ Describe 'null passed to various parameter types' {
         @([hashtable],$null),
         @([array],$null),
         @([string],[string]::Empty),
-        @([System.Collections.Generic.Dictionary``2[System.String,int32]],$null),
         @([System.Collections.ArrayList], $null),
         @([System.Collections.BitArray], $null),
         @([System.Collections.SortedList], $null),
         @([System.Collections.Queue], $null),
         @([System.Collections.Stack], $null)
-    ))
+    )
+    if ( $PSVersionTable.PSVersion -ge '3.0' )
+    {
+        $arraylist.Add(@([System.Collections.Generic.Dictionary``2[System.String,int32]],$null))
+    }
+    foreach ( $values in $arraylist )
     {
         $type, $expectedValue = $values
         $typeName = $type.UnderlyingSystemType
@@ -964,6 +968,8 @@ Describe 'behavior of different values passed to [string[]] parameter' {
     }
 }
 
+if ( $PSVersionTable.PSVersion -ge '3.0' )
+{
 Describe 'behavior of [nullstring]::Value passed to [string] parameter' {
     function f { param( [string]$x ) $x }
     Context 'named parameter' {
@@ -972,4 +978,5 @@ Describe 'behavior of [nullstring]::Value passed to [string] parameter' {
             [string]::Empty -eq $r | Should be $true
         }
     }
+}
 }

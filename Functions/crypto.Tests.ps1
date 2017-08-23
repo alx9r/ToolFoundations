@@ -1,3 +1,8 @@
+if ( $PSVersionTable.PSVersion -lt '3.0' )
+{
+    return
+}
+
 Import-Module ToolFoundations -Force
 
 Describe Get-StringHash {
