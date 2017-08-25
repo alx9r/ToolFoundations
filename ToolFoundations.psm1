@@ -1,8 +1,8 @@
 
 $moduleRoot = Split-Path -Path $MyInvocation.MyCommand.Path
 
-# Dot source the type files...
-. "$moduleRoot\Functions\LoadTypes.ps1"
+# Dot source the PowerShell type files...
+. "$moduleRoot\Functions\idemTypes.ps1"
 
 # ...and then the remaining .ps1 files
 "$moduleRoot\Functions\*.ps1",
