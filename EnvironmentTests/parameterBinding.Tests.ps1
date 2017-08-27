@@ -980,3 +980,76 @@ Describe 'behavior of [nullstring]::Value passed to [string] parameter' {
     }
 }
 }
+
+Describe '[AllowNull()]' {
+    Context 'omit [AllowNull()]' {
+        function f {
+            [CmdletBinding()]
+            param
+            (
+                [Parameter(ValueFromPipelineByPropertyName=$true)]
+                $a,
+
+                [Parameter(Mandatory = $true,
+                           ValueFromPipelineByPropertyName=$true)]
+                $b
+            )
+            $PSBoundParameters
+        }
+        It 'named parameter gets bound' {
+            $r = f -a $null -b 's'
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It 'named mandatory parameter does not bind' {
+            { f -a 's' -b $null } |
+                Should throw 'cannot bind'
+        }
+        It 'pipeline parameter gets bound' {
+            $r = New-Object psobject -Property @{
+                a = $null
+                b = 's'
+            } | f
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It 'mandatory pipeline parameter is not bound...' {
+            $r = New-Object psobject -Property @{
+                a = 's'
+                b = $null
+            } | f -ea silent
+            $r.Keys -contains 'b' | Should be $false
+        }
+        It '...and produces a non-terminating error by default.' {
+            {
+                New-Object psobject -Property @{
+                    a = 's'
+                    b = $null
+                } | f -ea stop
+            } |
+                Should throw "Cannot bind argument to parameter 'b' because it is null."
+        }
+    }
+    Context '[AllowNull()]' {
+        function f {
+            [CmdletBinding()]
+            param
+            (
+                [Parameter(Mandatory = $true,
+                           ValueFromPipelineByPropertyName=$true)]
+                [AllowNull()]
+                $a
+            )
+            $PSBoundParameters
+        }
+        It 'mandatory pipeline parameter is bound...' {
+            $r = New-Object psobject -Property @{
+                a = $null
+            } | f
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It '...and produces no error.' {
+            New-Object psobject -Property @{
+                a = $null
+            } | f -ea stop
+        }
+    }
+}
