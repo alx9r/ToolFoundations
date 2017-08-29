@@ -8,7 +8,9 @@ Add-Type @"
     {
         public string Value = null;
 
-        public NullsafeString(string v = null)
+        public NullsafeString() {}
+
+        public NullsafeString(string v)
         {
             Value = v;
         }
