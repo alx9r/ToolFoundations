@@ -114,6 +114,41 @@ Describe 'rethrowing exceptions' {
             $threw | Should be $true
         }
     }
+    Context 'catch via pipeline' {
+        function f2 {
+            param(
+                [Parameter(ValueFromPipeline = $true)]$v
+            )
+            process { throw }
+        }
+        function f1
+        {
+            try
+            {
+                'output'
+            }
+            catch
+            {
+                throw New-Object System.Exception(
+                    'message f1',
+                    $_.Exception
+                )
+            }
+        }
+        It 'repackaging of inner exception works.' {
+            try
+            {
+                f1 | f2
+            }
+            catch
+            {
+                $threw = $true
+                $_.Exception.Message | Should be 'message f1'
+                $_.Exception.InnerException.Message | Should be 'ScriptHalted'
+            }
+            $threw | Should be $true
+        }
+    }
 }
 if ( $PSVersionTable.PSVersion.Major -ge 4 )
 {
