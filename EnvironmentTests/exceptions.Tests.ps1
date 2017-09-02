@@ -143,8 +143,15 @@ Describe 'rethrowing exceptions' {
             catch
             {
                 $threw = $true
-                $_.Exception.Message | Should be 'message f1'
-                $_.Exception.InnerException.Message | Should be 'ScriptHalted'
+                if ( $PSVersionTable.PSVersion -gt '2.0' )
+                {
+                    $_.Exception.Message | Should be 'message f1'
+                    $_.Exception.InnerException.Message | Should be 'ScriptHalted'
+                }
+                else
+                {
+                    $_.Exception.Message | Should be 'ScriptHalted'
+                }
             }
             $threw | Should be $true
         }

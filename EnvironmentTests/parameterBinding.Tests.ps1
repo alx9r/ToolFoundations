@@ -1002,7 +1002,7 @@ Describe '[AllowNull()]' {
         }
         It 'named mandatory parameter does not bind' {
             { f -a 's' -b $null } |
-                Should throw 'cannot bind'
+                Should throw 'Cannot bind'
         }
         It 'pipeline parameter gets bound' {
             $r = New-Object psobject -Property @{
@@ -1015,7 +1015,7 @@ Describe '[AllowNull()]' {
             $r = New-Object psobject -Property @{
                 a = 's'
                 b = $null
-            } | f -ea silent
+            } | f -ea SilentlyContinue
             $r.Keys -contains 'b' | Should be $false
         }
         It '...and produces a non-terminating error by default.' {
