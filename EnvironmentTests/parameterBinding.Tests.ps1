@@ -852,57 +852,204 @@ Describe 'splats and invokation operator' {
     }
 }
 
-Describe 'null string passed through pipeline by property name' {
+Describe 'null passed to string parameter' {
     Context 'no attribute' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                [string]
-                $x
-            )
-            process { $x }
-        }
+        function f { param([string]$x) $x }
         It 'null becomes string' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
             $r.GetType() | Should be 'string'
         }
     }
     Context '[AllowNull()]' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                [AllowNull()]
-                [string]
-                $x
-            )
-            process { $x }
-        }
+        function f { param ([AllowNull()][string] $x ) $x }
         It 'null becomes string' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
             $r.GetType() | Should be 'string'
         }
     }
     Context 'no type' {
-        function f {
-            [CmdletBinding()]
-            param (
-                [Parameter(ValueFromPipelineByPropertyName = $true)]
-                $x
-            )
-            process { $x }
-        }
+        function f { param ($x) $x }
         It 'null remains null' {
-            $r = New-Object psobject -Property @{
-                x = $null
-            } | f
+            $r = f -x $null
+            $null -eq $r | Should be $true
+        }
+    }
+    Context '[string[]]' {
+        function f { param ([string[]]$x) $x }
+        It 'null remains null' {
+            $r = f -x $null
             $null -eq $r | Should be $true
         }
     }
 }
 
+Describe 'null passed to various parameter types' {
+    Add-Type -AssemblyName mscorlib
+    $arraylist = [System.Collections.ArrayList]@(
+        @([int],0),
+        @([System.Nullable[int]],$null),
+        @([System.DayOfWeek],'Sunday','throws'),
+        @([System.Nullable[System.DayOfWeek]],$null),
+        @([hashtable],$null),
+        @([array],$null),
+        @([string],[string]::Empty),
+        @([System.Collections.ArrayList], $null),
+        @([System.Collections.BitArray], $null),
+        @([System.Collections.SortedList], $null),
+        @([System.Collections.Queue], $null),
+        @([System.Collections.Stack], $null)
+    )
+    if ( $PSVersionTable.PSVersion -ge '3.0' )
+    {
+        $arraylist.Add(@([System.Collections.Generic.Dictionary``2[System.String,int32]],$null))
+    }
+    foreach ( $values in $arraylist )
+    {
+        $type, $expectedValue = $values
+        $typeName = $type.UnderlyingSystemType
+        if ( $null -eq $expectedValue ) { $expectedValueDescription = 'null' }
+        elseif ( $expectedValue -eq [string]::Empty )
+        {
+            $expectedValueDescription = '[string]::Empty'
+        }
+        else { $expectedValueDescription = $expectedValue }
+
+        Context "parameter type $typeName" {
+            Invoke-Expression "function f { param([$typeName]`$x) `$x }"
+            if ( $expectedValue -eq 'throws' )
+            {
+                It '$null throws exception' {
+                    { f -x $Null } | Should throw
+                }
+            }
+            else
+            {
+                It "$name becomes $expectedValueDescription" {
+                    $r = f -x $null
+                    $r -eq $expectedValue | Should be $true
+                }
+            }
+
+        }
+    }
+}
+
+Describe 'behavior of different values passed to [string[]] parameter' {
+    Context '[string[]] only' {
+        function f {
+            param([string[]]$x)
+            New-Object psobject -Property @{
+                value = $x
+                type = if ($x) { $x.GetType() }
+            }
+        }
+        It 'null remains null' {
+            $r = f -x $null
+            $null -eq $r.value | Should be $true
+        }
+        It '[string]::empty remains [string]::empty' {
+            $r = f -x ([string]::empty)
+            [string]::Empty -eq $r.value | Should be $true
+        }
+        It 'string becomes string[]' {
+            $r = f -x 'a'
+            $r.type | Should be 'string[]'
+        }
+        It 'string[] count 1 remains string[] count 1' {
+            $r = f -x @('a')
+            $r.value.Count | Should be 1
+            $r.type | Should be 'string[]'
+        }
+        It 'string[] count 2 remains string[] count 2' {
+            $r = f -x 'a','b'
+            $r.value.Count | Should be 2
+            $r.type | Should be 'string[]'
+        }
+    }
+}
+
+if ( $PSVersionTable.PSVersion -ge '3.0' )
+{
+Describe 'behavior of [nullstring]::Value passed to [string] parameter' {
+    function f { param( [string]$x ) $x }
+    Context 'named parameter' {
+        It '[nullstring]::Value becomes [string]::empty' {
+            $r = f -x ([NullString]::Value)
+            [string]::Empty -eq $r | Should be $true
+        }
+    }
+}
+}
+
+Describe '[AllowNull()]' {
+    Context 'omit [AllowNull()]' {
+        function f {
+            [CmdletBinding()]
+            param
+            (
+                [Parameter(ValueFromPipelineByPropertyName=$true)]
+                $a,
+
+                [Parameter(Mandatory = $true,
+                           ValueFromPipelineByPropertyName=$true)]
+                $b
+            )
+            $PSBoundParameters
+        }
+        It 'named parameter gets bound' {
+            $r = f -a $null -b 's'
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It 'named mandatory parameter does not bind' {
+            { f -a 's' -b $null } |
+                Should throw 'Cannot bind'
+        }
+        It 'pipeline parameter gets bound' {
+            $r = New-Object psobject -Property @{
+                a = $null
+                b = 's'
+            } | f
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It 'mandatory pipeline parameter is not bound...' {
+            $r = New-Object psobject -Property @{
+                a = 's'
+                b = $null
+            } | f -ea SilentlyContinue
+            $r.Keys -contains 'b' | Should be $false
+        }
+        It '...and produces a non-terminating error by default.' {
+            {
+                New-Object psobject -Property @{
+                    a = 's'
+                    b = $null
+                } | f -ea stop
+            } |
+                Should throw "Cannot bind argument to parameter 'b' because it is null."
+        }
+    }
+    Context '[AllowNull()]' {
+        function f {
+            [CmdletBinding()]
+            param
+            (
+                [Parameter(Mandatory = $true,
+                           ValueFromPipelineByPropertyName=$true)]
+                [AllowNull()]
+                $a
+            )
+            $PSBoundParameters
+        }
+        It 'mandatory pipeline parameter is bound...' {
+            $r = New-Object psobject -Property @{
+                a = $null
+            } | f
+            $r.Keys -contains 'a' | Should be $true
+        }
+        It '...and produces no error.' {
+            New-Object psobject -Property @{
+                a = $null
+            } | f -ea stop
+        }
+    }
+}

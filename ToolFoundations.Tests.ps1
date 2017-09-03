@@ -75,6 +75,7 @@ Describe 'Style rules' {
         Get-ChildItem $moduleRoot -Include *.ps1,*.psm1
         Get-ChildItem $moduleRoot\Functions -Include *.ps1,*.psm1 -Recurse
         Get-ChildItem $moduleRoot\EnvironmentTests -Include *.ps1,*.psm1 -Recurse
+        Get-ChildItem $moduleRoot\dotNetTypes -Include *.ps1,*.psm1 -Recurse
     )
 
     It 'Source files contain no trailing whitespace' {

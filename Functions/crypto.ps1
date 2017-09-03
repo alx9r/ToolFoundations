@@ -1,3 +1,8 @@
+if ( $PSVersionTable.PSVersion -lt '3.0' )
+{
+    return
+}
+
 function Get-StringHash
 {
     [CmdletBinding()]
