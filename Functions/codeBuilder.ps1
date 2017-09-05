@@ -127,7 +127,7 @@ Use Depth to add levels of indentation to the literal string. The first line is 
         if ( $Object -is [hashtable] )
         {
             $acc = "@{$nl"
-            $q = [System.Collections.Queue]@($Object.Keys | Sort)
+            $q = [System.Collections.Queue]@($Object.get_Keys() | Sort)
 
             while ( $q.Count )
             {
