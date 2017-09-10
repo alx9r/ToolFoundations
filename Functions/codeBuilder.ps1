@@ -140,6 +140,13 @@ Use Depth to add levels of indentation to the literal string. The first line is 
             }
             return "$acc$nl$($t*$d)}"
         }
+        if ( $Object -is [bool] )
+        {
+            return @{
+                $true = '$true'
+                $false = '$false'
+            }.$Object
+        }
         throw New-Object System.NotSupportedException(
             "Object $Object is of type $($Object.GetType()). Conversion for this type is not implemented.",
             'Object'
