@@ -90,28 +90,26 @@ Describe '[NullsafeString]' {
             $ns -eq $s | Should be $true
         }
     }
-    Context 'conversions' {
-        Context 'ChangeType()' {
-            It 'to string' {
-                [NullSafeString]$nss = 'value'
-                [System.Convert]::ChangeType($nss,[string])
-            }
-            It 'from string throws' {
-                $s = 'value'
-                { [System.Convert]::ChangeType($s,[NullSafeString]) } |
-                    Should throw
-            }
+    Context 'convert using ChangeType()' {
+        It 'to string' {
+            [NullSafeString]$nss = 'value'
+            [System.Convert]::ChangeType($nss,[string])
         }
-        Context 'New-Object' {
-            It 'to string throws' {
-                [NullSafeString]$nss = 'value'
-                { New-Object string($nss) } |
-                    Should throw
-            }
-            It 'from string' {
-                $s = 'value'
-                New-Object NullSafeString($s)
-            }
+        It 'from string throws' {
+            $s = 'value'
+            { [System.Convert]::ChangeType($s,[NullSafeString]) } |
+                Should throw
+        }
+    }
+    Context 'convert using New-Object' {
+        It 'to string throws' {
+            [NullSafeString]$nss = 'value'
+            { New-Object string($nss) } |
+                Should throw
+        }
+        It 'from string' {
+            $s = 'value'
+            New-Object NullSafeString($s)
         }
     }
 }
