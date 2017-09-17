@@ -133,6 +133,18 @@ Describe 'ConvertTo-PsLiteralString' {
     }
 '@
     }
+    It 'correctly converts booleans' {
+        $m = @{foo = $true,$false}
+        $r = ConvertTo-PsLiteralString $m -Depth 1
+        $r | Should be @'
+@{
+        foo=@(
+            $true,
+            $false
+        )
+    }
+'@
+    }
     It 'throws correct error for an unhandled type.' {
         try
         {
