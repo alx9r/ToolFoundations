@@ -44,3 +44,50 @@ Describe 'pass values to scriptblock' {
         }
     }
 }
+
+Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/46428736/1404637)' {
+    New-Module m {
+        function SomeScriptblockInvoker {
+            param
+            (
+                [Parameter(Position = 1)]
+                [scriptblock]
+                $Scriptblock,
+
+                [Parameter(ValueFromPipeline)]
+                $InputObject
+            )
+            process
+            {
+                $modifiedLocal = 'variable name collision'
+                $local = 'variable name collision'
+                $InputObject | ForEach-Object $Scriptblock
+            }
+        }
+    } |
+        Import-Module
+    $sb = {
+        $modifiedLocal = 'modified local value'
+        [pscustomobject] @{
+            Local = $local
+            DollarBar = $_
+        }
+    }
+    foreach ( $commandName in 'ForEach-Object','SomeScriptblockInvoker' )
+    {
+        Context $commandName {
+            $modifiedLocal = 'original local value'
+            $local = 'local'
+            $r = 'input object' | & $commandName $sb
+            It 'Local is accessible' {
+                $r.Local | Should be 'local'
+            }
+            It 'DollarBar is input object' {
+                $r.DollarBar | Should be 'input object'
+            }
+            It 'modifies local variable' {
+                $modifiedLocal | Should be 'modified local value'
+            }
+        }
+    }
+}
