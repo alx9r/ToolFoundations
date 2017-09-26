@@ -46,7 +46,7 @@ Describe 'pass values to scriptblock' {
 }
 
 Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/46428736/1404637)' {
-    New-Module m {
+    New-Module m1 {
         function SomeScriptblockInvoker {
             param
             (
@@ -54,7 +54,7 @@ Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/4642
                 [scriptblock]
                 $Scriptblock,
 
-                [Parameter(ValueFromPipeline)]
+                [Parameter(ValueFromPipeline=$true)]
                 $InputObject
             )
             process
@@ -66,27 +66,39 @@ Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/4642
         }
     } |
         Import-Module
-    $sb = {
-        $modifiedLocal = 'modified local value'
-        [pscustomobject] @{
-            Local = $local
-            DollarBar = $_
+
+    $m2 = New-Module m2 {
+        $modifiedLocal = 'original local value'
+        function GetSomeScriptblock {
+            {
+                $modifiedLocal = 'modified local value'
+                [pscustomobject] @{
+                    Local = $local
+                    DollarBar = $_
+                }
+            }
         }
     }
+    $m2 | Import-Module
+
     foreach ( $commandName in 'ForEach-Object','SomeScriptblockInvoker' )
     {
         Context $commandName {
             $modifiedLocal = 'original local value'
             $local = 'local'
-            $r = 'input object' | & $commandName $sb
+            $r = 'input object' | & $commandName (GetSomeScriptblock)
             It 'Local is accessible' {
                 $r.Local | Should be 'local'
             }
             It 'DollarBar is input object' {
                 $r.DollarBar | Should be 'input object'
             }
-            It 'modifies local variable' {
-                $modifiedLocal | Should be 'modified local value'
+            It 'does not modify local variable' {
+                $modifiedLocal | Should be 'original local value'
+            }
+            It 'does modify value local to where scriptblock is defined' {
+                & $m2.NewBoundScriptBlock({$modifiedLocal}) |
+                    Should be 'modified local value'
             }
         }
     }
