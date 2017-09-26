@@ -68,6 +68,7 @@ Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/4642
         Import-Module
 
     $m2 = New-Module m2 {
+        $local = 'local'
         $modifiedLocal = 'original local value'
         function GetSomeScriptblock {
             {
@@ -85,7 +86,6 @@ Describe 'invoke scriptblock in parent context (https://stackoverflow.com/q/4642
     {
         Context $commandName {
             $modifiedLocal = 'original local value'
-            $local = 'local'
             $r = 'input object' | & $commandName (GetSomeScriptblock)
             It 'Local is accessible' {
                 $r.Local | Should be 'local'
