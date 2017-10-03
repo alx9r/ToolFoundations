@@ -79,6 +79,8 @@ Describe Get-FileNewline {
     }
 }
 
+InModuleScope ToolFoundations {
+
 Describe Convert-Newline {
     Mock Get-FileNewline { [System.Environment]::NewLine+"`n" }
     $system = 'a'+[System.Environment]::NewLine+'b'
@@ -94,4 +96,5 @@ Describe Convert-Newline {
         $r = $source | Convert-Newline -To $t
         $r | Should be $target
     }
+}
 }
