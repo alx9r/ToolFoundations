@@ -36,6 +36,9 @@ os:
 install:
   - cinst pester --version 3.4.3
 
+init:
+  - git config --global core.autocrlf true
+  
 build: false
 
 test_script:

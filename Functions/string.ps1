@@ -66,3 +66,32 @@ function Expand-String
     }
 }
 
+function Get-FileNewline
+{
+    @'
+
+
+'@
+}
+
+function Convert-Newline
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateSet('File','System')]
+        $To,
+
+        [Parameter(ValueFromPipeline=$true,
+                   Mandatory=$true)]
+        $InputString
+    )
+    process
+    {
+        if ($To -eq 'System' )
+        {
+            return $InputString.Replace((Get-FileNewline),[System.Environment]::NewLine)
+        }
+        $InputString.Replace([System.Environment]::NewLine,(Get-FileNewline))
+    }
+}
