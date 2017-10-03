@@ -66,7 +66,7 @@ function Expand-String
     }
 }
 
-function Get-PsNewline
+function Get-FileNewline
 {
     @'
 
@@ -79,7 +79,7 @@ function Convert-Newline
     param
     (
         [Parameter(Mandatory=$true)]
-        [ValidateSet('PS','System')]
+        [ValidateSet('File','System')]
         $To,
 
         [Parameter(ValueFromPipeline=$true,
@@ -90,8 +90,8 @@ function Convert-Newline
     {
         if ($To -eq 'System' )
         {
-            return $InputString.Replace((Get-PsNewline),[System.Environment]::NewLine)
+            return $InputString.Replace((Get-FileNewline),[System.Environment]::NewLine)
         }
-        $InputString.Replace([System.Environment]::NewLine,(Get-PsNewline))
+        $InputString.Replace([System.Environment]::NewLine,(Get-FileNewline))
     }
 }

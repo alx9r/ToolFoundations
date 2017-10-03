@@ -60,7 +60,7 @@ Describe "Expand-String" {
     }
 }
 
-Describe Get-PsNewline {
+Describe Get-FileNewline {
     It 'same as <n>' -TestCases @(
        @{ n='here string @""@'; s= @"
 
@@ -74,18 +74,18 @@ Describe Get-PsNewline {
 }.ToString() }
     ) {
         param($n,$s)
-        $r = Get-PsNewline
+        $r = Get-FileNewline
         $r | Should be $s   
     }
 }
 
 Describe Convert-Newline {
-    Mock Get-PsNewline { [System.Environment]::NewLine+"`n" }
+    Mock Get-FileNewline { [System.Environment]::NewLine+"`n" }
     $system = 'a'+[System.Environment]::NewLine+'b'
-    $ps = 'a'+(Get-PsNewline)+'b'
+    $file = 'a'+(Get-FileNewline)+'b'
     It 'converts <s> to <t>' -TestCases @(
-        @{s='System';t='PS'}
-        @{s='PS';    t='System'}
+        @{s='System';t='File'}
+        @{s='File';    t='System'}
     ){
         param($s,$t)
         $source = Get-Variable $s -ValueOnly
