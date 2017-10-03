@@ -1,3 +1,5 @@
+Import-Module ToolFoundations -Force
+
 &{
     '[System.Environment]::newline'
     ([System.Environment]::NewLine).GetEnumerator() | %{[int]$_}
@@ -22,28 +24,31 @@ Describe newlines {
 "@ |
             Should beNullOrEmpty
         }
-        It 'two empty lines is system newline' {
-            @"
+        It 'two empty lines is one newline' {
+            $r = @"
 
 
 "@ |
-            Should be ([System.Environment]::NewLine)
+            Convert-Newline -To System
+            $r | Should be ([System.Environment]::NewLine)
         }
     }
     Context 'scriptblock' {
         It 'empty is empty string' {
             {}.ToString() | Should be ''
         }
-        It 'newline is system newline' {
-            {
+        It 'newline is one newline' {
+            $r = {
 }.ToString() |
-            Should be ([System.Environment]::NewLine)
+            Convert-Newline -To System
+            $r | Should be ([System.Environment]::NewLine)
         }
         It 'empty line is two system newlines' {
-            {
+            $r = {
 
 }.ToString() |
-            Should be ([System.Environment]::NewLine*2)
+            Convert-Newline -To System
+            $r | Should be ([System.Environment]::NewLine*2)
         }
     }
 }
