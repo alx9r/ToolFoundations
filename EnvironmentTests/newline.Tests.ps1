@@ -24,12 +24,11 @@ Describe newlines {
 "@ |
             Should beNullOrEmpty
         }
-        It 'two empty lines is one newline' {
+        It 'two empty lines is one system newline' {
             $r = @"
 
 
-"@ |
-            Convert-Newline -To System
+"@
             $r | Should be ([System.Environment]::NewLine)
         }
     }
@@ -37,17 +36,15 @@ Describe newlines {
         It 'empty is empty string' {
             {}.ToString() | Should be ''
         }
-        It 'newline is one newline' {
+        It 'newline is one system newline' {
             $r = {
-}.ToString() |
-            Convert-Newline -To System
+}.ToString()
             $r | Should be ([System.Environment]::NewLine)
         }
         It 'empty line is two system newlines' {
             $r = {
 
-}.ToString() |
-            Convert-Newline -To System
+}.ToString()
             $r | Should be ([System.Environment]::NewLine*2)
         }
     }
