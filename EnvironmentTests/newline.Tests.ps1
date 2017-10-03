@@ -4,34 +4,34 @@ Describe newlines {
         $r | Should be 13,10
     }
     Context 'here string' {
-        It 'empty line' {
+        It 'empty line is empty string' {
             @"
 
 "@ |
             Should beNullOrEmpty
         }
-        It 'two empty lines' {
+        It 'two empty lines is system newline' {
             @"
 
 
 "@ |
-            Should be "`r`n"
+            Should be ([System.Environment]::NewLine)
         }
     }
     Context 'scriptblock' {
-        It 'empty' {
+        It 'empty is empty string' {
             {}.ToString() | Should be ''
         }
-        It 'newline' {
+        It 'newline is system newline' {
             {
 }.ToString() |
-            Should be "`r`n"
+            Should be ([System.Environment]::NewLine)
         }
-        It 'empty line' {
+        It 'empty line is two system newlines' {
             {
 
 }.ToString() |
-            Should be "`r`n`r`n"
+            Should be ([System.Environment]::NewLine*2)
         }
     }
 }
