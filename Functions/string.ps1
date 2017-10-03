@@ -66,3 +66,32 @@ function Expand-String
     }
 }
 
+function Get-PsNewline
+{
+    @'
+
+
+'@
+}
+
+function Convert-Newline
+{
+    param
+    (
+        [Parameter(Mandatory=$true)]
+        [ValidateSet('PS','System')]
+        $To,
+
+        [Parameter(ValueFromPipeline=$true,
+                   Mandatory=$true)]
+        $InputString
+    )
+    process
+    {
+        if ($To -eq 'System' )
+        {
+            return $InputString.Replace((Get-PsNewline),[System.Environment]::NewLine)
+        }
+        $InputString.Replace([System.Environment]::NewLine,(Get-PsNewline))
+    }
+}

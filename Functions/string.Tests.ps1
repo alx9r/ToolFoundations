@@ -59,3 +59,39 @@ Describe "Expand-String" {
         }
     }
 }
+
+Describe Get-PsNewline {
+    It 'same as <n>' -TestCases @(
+       @{ n='here string @""@'; s= @"
+
+
+"@.ToString() }
+       @{ n="here string @''@"; s= @'
+
+
+'@.ToString() }
+       @{ n='scriptblock'; s={
+}.ToString() }
+    ) {
+        param($n,$s)
+        $r = Get-PsNewline
+        $r | Should be $s   
+    }
+}
+
+Describe Convert-Newline {
+    Mock Get-PsNewline { [System.Environment]::NewLine+"`n" }
+    $system = 'a'+[System.Environment]::NewLine+'b'
+    $ps = 'a'+(Get-PsNewline)+'b'
+    It 'converts <s> to <t>' -TestCases @(
+        @{s='System';t='PS'}
+        @{s='PS';    t='System'}
+    ){
+        param($s,$t)
+        $source = Get-Variable $s -ValueOnly
+        $target = Get-Variable $t -ValueOnly
+
+        $r = $source | Convert-Newline -To $t
+        $r | Should be $target
+    }
+}
