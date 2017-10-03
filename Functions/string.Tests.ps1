@@ -75,7 +75,7 @@ Describe Get-FileNewline {
     ) {
         param($n,$s)
         $r = Get-FileNewline
-        $r | Should be $s   
+        $r | Should be $s
     }
 }
 
