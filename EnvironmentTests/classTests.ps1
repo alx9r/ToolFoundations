@@ -640,15 +640,13 @@ Describe 'constructors' {
                 $this.p = $a
             }
         }
-        Context 'elements are arguments' {
-            It 'single element' {
-                $r = [a]@(1)
-                $r.p | Should be 1
-            }
-            It 'multiple elements' {
-                $r = [a]@(1,2)
-                $r.p | Should be 1,2
-            }
+        It 'elements are arguments - single element' {
+            $r = [a]@(1)
+            $r.p | Should be 1
+        }
+        It 'elements are arguments - multiple elements' {
+            $r = [a]@(1,2)
+            $r.p | Should be 1,2
         }
     }
     class b { $p }
