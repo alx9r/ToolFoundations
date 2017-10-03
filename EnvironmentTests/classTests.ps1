@@ -596,6 +596,118 @@ Describe 'constructors' {
             [b]::new().p | Should be 'initinit'
         }
     }
+    Context 'conversion from hashtable' {
+        Context 'no constructor' {
+            class a {
+                $p
+            }
+            It 'populates property' {
+                $r = [a]@{p=1}
+                $r.p | Should be 1
+            }
+            It 'empty hashtable' {
+                $r = [a]@{}
+                $r.p | Should beNullOrEmpty
+            }
+            It 'extra item throws' {
+                { [a]@{q=1} } |
+                    Should throw 'property was not found'
+            }
+        }
+        Context 'constructor' {
+            class a {
+                $p
+                a ($s) { $this.p = $s }
+            }
+            It 'hashtable is constructor argument' {
+                $r = [a]@{p=1}
+                $r.p | Should beOfType ([hashtable])
+            }
+        }
+    }
+    Context 'conversion from array' {
+        Context 'no constructor' {
+            class a {
+                $p
+            }
+            It 'throw' {
+                { [a]@(1) } |
+                    Should throw 'Cannot convert'
+            }
+        }
+        Context 'single-parameter constructor' {
+            class a {
+                $p
+                a ($a)
+                {
+                    $this.p = $a
+                }
+            }
+            Context 'elements are arguments' {
+                It 'single element' {
+                    $r = [a]@(1)
+                    $r.p | Should be 1
+                }
+                It 'multiple elements' {
+                    $r = [a]@(1,2)
+                    $r.p | Should be 1,2
+                }
+            }
+        }
+    }
+    Context 'conversion from base class' {
+        class b { $p }
+        Context 'no constructor' {
+            class c : b { $q }
+            It 'throws' {
+                { [c]([b]::new()) } |
+                    Should throw 'Cannot convert'
+            }
+        }
+        Context 'conversion constructor' {
+            class c : b {
+                $q
+                c ([b]$b) { $this.p = $b.p }
+            }
+            It 'converts' {
+                $r = [c]([b]@{p=1})
+                $r | Should beOfType ([c])
+                $r.p | Should be 1
+            }
+        }
+    }
+    Context 'explicit conversion' {
+        Context 'single paramter' {
+            class a {
+                $p
+                a ([int]$i) { $this.p = $i }
+                a ([string]$s) { $this.p = $s }
+            }
+            It 'converts to exact type match' {
+                $r = [a]1
+                $r.p | Should beOfType ([int])
+                $r.p | Should be 1
+
+                $r = [a]'1'
+                $r.p | Should beOfType ([string])
+                $r.p | Should be '1'
+            }
+        }
+        Context 'second parameter with default' {
+            class a {
+                $p
+                $q
+                a ([int]$i,$b=2)
+                {
+                    $this.p = $i
+                    $this.q = $b
+                }
+            }
+            It 'throws' {
+                { [a]1 } | Should throw 'Cannot convert'
+            }
+        }
+    }
     Context 'static constructor' {
         $guid = [guid]::NewGuid().Guid.Replace('-','')
         class a {
@@ -704,6 +816,29 @@ Describe 'interfaces' {
             $a1 -gt $a2 | Should be $true
             $a1 -le $a2 | Should be $false
             $a2 -gt $a1 | Should be $true
+        }
+    }
+}
+Describe 'equality' {
+    Context 'basic class' {
+        class a { $p }
+        It 'equating objects with equal properties returns false' {
+            $r = [a]@{p=1} -eq [a]@{p=1}
+            $r | Should be $false
+        }
+    }
+    Context '.Equals()' {
+        class a {
+            $p
+            [bool] Equals($other) { return $other.p -eq $this.p }
+        }
+        It 'equating objects with <d> properties returns <r>' -TestCases @(
+            @{d = 'unequal';v=1,1;r=$true}
+            @{d = 'equal'  ;v=1,2;r=$false}
+        ) {
+            param($d,$v,$r)
+            $r = [a]@{p=$v[0]} -eq [a]@{p=$v[1]}
+            $r | Should be $r
         }
     }
 }
