@@ -29,15 +29,18 @@
 #If Finalize is specified, we collect XML output, upload tests, and indicate build errors
 param([switch]$Finalize)
 
-# Dump some versions to the console
+# Dump environment information to the console
 Write-Output '=== PSVersionTable ==='
 Write-Output $PSVersionTable
 
+Write-Output '=== Git Config ==='
+git config --list
+
 #Initialize some variables, move to the project root
-    $PSVersion = $PSVersionTable.PSVersion.Major
-    $TestFile = "TestResultsPS$PSVersion.xml"
-    $ProjectRoot = $ENV:APPVEYOR_BUILD_FOLDER
-    Set-Location $ProjectRoot
+$PSVersion = $PSVersionTable.PSVersion.Major
+$TestFile = "TestResultsPS$PSVersion.xml"
+$ProjectRoot = $ENV:APPVEYOR_BUILD_FOLDER
+Set-Location $ProjectRoot
 
 
 #Set PSModulePath to include one level up from the project root
