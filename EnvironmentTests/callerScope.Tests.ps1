@@ -38,32 +38,32 @@ Describe 'script module access of variable in caller''s scope using SessionState
         It 'gets variable' {
             $l = 'caller value'
             $r = Get-CallerVariable l
-            $r | Should -Be 'caller value'
+            $r | Should e 'caller value'
         }
         It 'sets variable' {
             $l = 'original value'
             'new value' | Set-CallerVariable l
-            $l | Should -Be 'new value'
+            $l | Should be 'new value'
         }
     }
     Context 'from same module' {
         It 'gets variable' {
             $r = f1
-            $r | Should -Be 'caller value'
+            $r | Should be 'caller value'
         }
         It 'does not set variable' {
             $r = g1
-            $r | Should -Be 'original value'
+            $r | Should be 'original value'
         }
     }
     Context 'from another module' {
         It 'gets variable' {
             $r = f2
-            $r | Should -Be 'caller value'
+            $r | Should be 'caller value'
         }
         It 'does not set variable' {
             $r = g2
-            $r | Should -Be 'new value'
+            $r | Should be 'new value'
         }
     }
 }
