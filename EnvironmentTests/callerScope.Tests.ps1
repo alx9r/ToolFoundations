@@ -1,3 +1,5 @@
+Import-Module ToolFoundations
+
 Describe 'script module access of variable in caller''s scope using SessionState' {
     $m1 = New-Module m1 {
         function Get-CallerVariable {
