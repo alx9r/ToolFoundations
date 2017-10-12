@@ -33,7 +33,7 @@ function New-Psm1Module
         $Scriptblock,
 
         [Object[]]
-        $ArgumentList
+        $ArgumentList = @()
     )
     process
     {
