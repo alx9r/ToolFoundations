@@ -38,7 +38,7 @@ Describe 'script module access of variable in caller''s scope using SessionState
         It 'gets variable' {
             $l = 'caller value'
             $r = Get-CallerVariable l
-            $r | Should e 'caller value'
+            $r | Should be 'caller value'
         }
         It 'sets variable' {
             $l = 'original value'
