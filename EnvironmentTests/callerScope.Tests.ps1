@@ -113,9 +113,19 @@ Describe 'attempt to surgically import module into caller''s scope using session
     Context 'run test' {
         f2 -Path $m3Path
 
-        It 'module is not imported into caller''s module' {
-            $r = & $m2 Get-Module m3_$guidFrag
-            $r | Should beNullOrEmpty
+        $r = & $m2 Get-Module m3_$guidFrag
+        if ( $PSVersionTable.PSVersion.Major -lt 3 )
+        {
+            It 'module is imported into caller''s module' {
+                $r | Should beOfType ([psmoduleinfo])
+                $r.Name | Should be m3_$guidFrag
+            }
+        }
+        else
+        {
+            It 'module is not imported into caller''s module' {
+                $r | Should beNullOrEmpty
+            }
         }
     }
 }
