@@ -6,7 +6,7 @@ Describe 'script module access of variable in caller''s scope using SessionState
         }
         function Set-CallerVariable {
             param(
-                [Parameter(ValueFromPipeline)][string]$Value,
+                [Parameter(ValueFromPipeline=$true)][string]$Value,
                 [Parameter(Position=1)]$Name
             )
             process { $PSCmdlet.SessionState.PSVariable.Set($Name,$Value)}
